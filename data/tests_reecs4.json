@@ -1,0 +1,605 @@
+{
+  "reecs": [
+    {
+      "reec_id": "reec:ww2-001",
+      "label": "Seconde Guerre mondiale",
+      "aliases": ["WWII", "Guerre 39-45"],
+      "type": "Context",
+      "subtype": "Période historique",
+      "category": "Conflit mondial",
+      "summary_short": "Conflit mondial de 1939 à 1945",
+      "summary_detailed": "La Seconde Guerre mondiale fut le conflit armé le plus vaste que l'humanité ait connu, mobilisant plus de 100 millions de combattants.",
+      "temporal_start_date": "1939-09-01",
+      "temporal_end_date": "1945-09-02",
+      "temporal_precision": "day",
+      "spatial_locations": ["Europe", "Asie", "Afrique"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["guerre", "conflit mondial"]
+    },
+    {
+      "reec_id": "reec:ww2-002",
+      "label": "Winston Churchill",
+      "aliases": ["Churchill"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Chef d'État",
+      "summary_short": "Premier ministre britannique durant la Seconde Guerre mondiale",
+      "summary_detailed": "Winston Churchill fut Premier ministre du Royaume-Uni de 1940 à 1945, figure emblématique de la résistance britannique.",
+      "temporal_start_date": "1940",
+      "temporal_end_date": "1945",
+      "temporal_precision": "year",
+      "spatial_locations": ["Royaume-Uni", "Londres"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["politique", "royaume-uni"]
+    },
+    {
+      "reec_id": "reec:ww2-003",
+      "label": "Franklin D. Roosevelt",
+      "aliases": ["FDR", "Roosevelt"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Chef d'État",
+      "summary_short": "Président des États-Unis durant la Seconde Guerre mondiale",
+      "summary_detailed": "Franklin Delano Roosevelt dirigea les États-Unis durant la Seconde Guerre mondiale et joua un rôle crucial dans la victoire des Alliés.",
+      "temporal_start_date": "1933",
+      "temporal_end_date": "1945",
+      "temporal_precision": "year",
+      "spatial_locations": ["États-Unis"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["politique", "états-unis"]
+    },
+    {
+      "reec_id": "reec:ww2-004",
+      "label": "Adolf Hitler",
+      "aliases": ["Hitler"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Chef d'État",
+      "summary_short": "Dictateur nazi ayant déclenché la Seconde Guerre mondiale",
+      "summary_detailed": "Adolf Hitler déclencha la Seconde Guerre mondiale en 1939 et fut responsable de l'Holocauste.",
+      "temporal_start_date": "1933",
+      "temporal_end_date": "1945",
+      "temporal_precision": "year",
+      "spatial_locations": ["Allemagne"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["nazisme", "dictature"]
+    },
+    {
+      "reec_id": "reec:ww2-005",
+      "label": "Débarquement de Normandie",
+      "aliases": ["D-Day", "6 juin 1944"],
+      "type": "Event",
+      "subtype": "Événement militaire",
+      "category": "Opération militaire",
+      "summary_short": "Opération amphibie alliée en Normandie",
+      "summary_detailed": "Le débarquement de Normandie du 6 juin 1944 fut l'opération militaire amphibie décisive permettant la libération de l'Europe.",
+      "temporal_date": "1944-06-06",
+      "temporal_precision": "day",
+      "spatial_locations": ["Normandie", "France"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["débarquement", "france"]
+    },
+    {
+      "reec_id": "reec:ww2-006",
+      "label": "Bombardements atomiques",
+      "aliases": ["Hiroshima", "Nagasaki"],
+      "type": "Event",
+      "subtype": "Événement militaire",
+      "category": "Bombardement",
+      "summary_short": "Bombardements atomiques du Japon en août 1945",
+      "summary_detailed": "Les bombardements atomiques d'Hiroshima et Nagasaki causèrent plus de 200 000 morts et précipitèrent la capitulation japonaise.",
+      "temporal_start_date": "1945-08-06",
+      "temporal_end_date": "1945-08-09",
+      "temporal_precision": "day",
+      "spatial_locations": ["Japon"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["nucléaire", "japon"]
+    },
+    {
+      "reec_id": "reec:industry-001",
+      "label": "Révolution industrielle",
+      "aliases": ["Industrialisation"],
+      "type": "Context",
+      "subtype": "Période historique",
+      "category": "Transformation économique",
+      "summary_short": "Transformation économique des XVIIIe-XIXe siècles",
+      "summary_detailed": "La Révolution industrielle transforma l'économie agricole en économie industrielle mécanisée, débutant en Grande-Bretagne.",
+      "temporal_start_date": "1760",
+      "temporal_end_date": "1840",
+      "temporal_precision": "year",
+      "spatial_locations": ["Grande-Bretagne", "Europe"],
+      "metadata_confidence": 0.98,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["industrie", "économie"]
+    },
+    {
+      "reec_id": "reec:industry-002",
+      "label": "James Watt",
+      "aliases": ["Watt"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Inventeur",
+      "summary_short": "Ingénieur qui perfectionna la machine à vapeur",
+      "summary_detailed": "James Watt améliora la machine à vapeur, invention déterminante dans le déclenchement de la Révolution industrielle.",
+      "temporal_start_date": "1736",
+      "temporal_end_date": "1819",
+      "temporal_precision": "year",
+      "spatial_locations": ["Écosse"],
+      "metadata_confidence": 0.98,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["invention", "vapeur"]
+    },
+    {
+      "reec_id": "reec:industry-003",
+      "label": "George Stephenson",
+      "aliases": ["Stephenson"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Ingénieur",
+      "summary_short": "Pionnier du chemin de fer",
+      "summary_detailed": "George Stephenson construisit la première ligne ferroviaire publique et la locomotive Rocket, révolutionnant le transport.",
+      "temporal_start_date": "1781",
+      "temporal_end_date": "1848",
+      "temporal_precision": "year",
+      "spatial_locations": ["Grande-Bretagne"],
+      "metadata_confidence": 0.98,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["transport", "chemin de fer"]
+    },
+    {
+      "reec_id": "reec:industry-004",
+      "label": "Karl Marx",
+      "aliases": ["Marx"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Philosophe",
+      "summary_short": "Philosophe critique du capitalisme industriel",
+      "summary_detailed": "Karl Marx développa une critique radicale du capitalisme dans Le Capital, témoin des conditions de la Révolution industrielle.",
+      "temporal_start_date": "1818",
+      "temporal_end_date": "1883",
+      "temporal_precision": "year",
+      "spatial_locations": ["Allemagne", "Londres"],
+      "metadata_confidence": 0.98,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["philosophie", "socialisme"]
+    },
+    {
+      "reec_id": "reec:industry-005",
+      "label": "Invention de la machine à vapeur",
+      "aliases": ["Machine à vapeur"],
+      "type": "Event",
+      "subtype": "Découverte",
+      "category": "Invention",
+      "summary_short": "Perfectionnement de la machine à vapeur en 1769",
+      "summary_detailed": "En 1769, James Watt breveta une version améliorée de la machine à vapeur, devenant le moteur de la Révolution industrielle.",
+      "temporal_date": "1769",
+      "temporal_precision": "year",
+      "spatial_locations": ["Grande-Bretagne"],
+      "metadata_confidence": 0.98,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["invention", "énergie"]
+    },
+    {
+      "reec_id": "reec:industry-006",
+      "label": "Classe ouvrière",
+      "aliases": ["Prolétariat"],
+      "type": "Context",
+      "subtype": "Groupe social",
+      "category": "Classe sociale",
+      "summary_short": "Nouvelle classe sociale née de l'industrialisation",
+      "summary_detailed": "La classe ouvrière émergea durant la Révolution industrielle, constituée de travailleurs salariés dans les usines.",
+      "temporal_start_date": "1760",
+      "temporal_end_date": "1900",
+      "temporal_precision": "year",
+      "spatial_locations": ["Europe"],
+      "metadata_confidence": 0.98,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["classe sociale", "travail"]
+    },
+    {
+      "reec_id": "reec:revolution-001",
+      "label": "Révolution française",
+      "aliases": ["Révolution", "1789"],
+      "type": "Context",
+      "subtype": "Période historique",
+      "category": "Révolution",
+      "summary_short": "Bouleversement politique de 1789 à 1799",
+      "summary_detailed": "La Révolution française débuta avec la prise de la Bastille en 1789 et se termina avec le coup d'État de Napoléon en 1799.",
+      "temporal_start_date": "1789-07-14",
+      "temporal_end_date": "1799-11-09",
+      "temporal_precision": "day",
+      "spatial_locations": ["France", "Paris"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["révolution", "france"]
+    },
+    {
+      "reec_id": "reec:revolution-002",
+      "label": "Napoléon Bonaparte",
+      "aliases": ["Napoléon", "Bonaparte"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Chef d'État",
+      "summary_short": "Empereur des Français de 1804 à 1815",
+      "summary_detailed": "Napoléon Bonaparte domina la politique européenne et mena les Guerres napoléoniennes. Son Code civil influença le monde entier.",
+      "temporal_start_date": "1799",
+      "temporal_end_date": "1821",
+      "temporal_precision": "year",
+      "spatial_locations": ["France", "Europe"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["empire", "guerre"]
+    },
+    {
+      "reec_id": "reec:revolution-003",
+      "label": "Louis XVI",
+      "aliases": ["Louis Seize"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Chef d'État",
+      "summary_short": "Dernier roi de France de l'Ancien Régime",
+      "summary_detailed": "Louis XVI fut guillotiné le 21 janvier 1793 après la chute de la monarchie lors de la Révolution française.",
+      "temporal_start_date": "1774",
+      "temporal_end_date": "1793",
+      "temporal_precision": "year",
+      "spatial_locations": ["France", "Versailles"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["monarchie", "révolution"]
+    },
+    {
+      "reec_id": "reec:revolution-004",
+      "label": "Maximilien de Robespierre",
+      "aliases": ["Robespierre"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Homme politique",
+      "summary_short": "Figure de la Terreur",
+      "summary_detailed": "Robespierre incarna la Terreur (1793-1794) avant d'être guillotiné le 28 juillet 1794.",
+      "temporal_start_date": "1789",
+      "temporal_end_date": "1794",
+      "temporal_precision": "year",
+      "spatial_locations": ["France", "Paris"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["terreur", "jacobins"]
+    },
+    {
+      "reec_id": "reec:revolution-005",
+      "label": "Duc de Wellington",
+      "aliases": ["Wellington"],
+      "type": "Entity",
+      "subtype": "Personnalité",
+      "category": "Militaire",
+      "summary_short": "Vainqueur de Waterloo",
+      "summary_detailed": "Le duc de Wellington vainquit Napoléon à Waterloo le 18 juin 1815, mettant fin aux Guerres napoléoniennes.",
+      "temporal_start_date": "1769",
+      "temporal_end_date": "1852",
+      "temporal_precision": "year",
+      "spatial_locations": ["Royaume-Uni", "Belgique"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["militaire", "waterloo"]
+    },
+    {
+      "reec_id": "reec:revolution-006",
+      "label": "Prise de la Bastille",
+      "aliases": ["14 juillet 1789"],
+      "type": "Event",
+      "subtype": "Événement politique",
+      "category": "Insurrection",
+      "summary_short": "Début de la Révolution française",
+      "summary_detailed": "La prise de la Bastille le 14 juillet 1789 marqua le début effectif de la Révolution et devint la fête nationale française.",
+      "temporal_date": "1789-07-14",
+      "temporal_precision": "day",
+      "spatial_locations": ["Paris"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["révolution", "symbole"]
+    },
+    {
+      "reec_id": "reec:revolution-007",
+      "label": "Bataille de Waterloo",
+      "aliases": ["Waterloo", "18 juin 1815"],
+      "type": "Event",
+      "subtype": "Événement militaire",
+      "category": "Bataille",
+      "summary_short": "Défaite finale de Napoléon",
+      "summary_detailed": "La bataille de Waterloo du 18 juin 1815 marqua la défaite définitive de Napoléon et son exil à Sainte-Hélène.",
+      "temporal_date": "1815-06-18",
+      "temporal_precision": "day",
+      "spatial_locations": ["Waterloo", "Belgique"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["bataille", "défaite"]
+    },
+    {
+      "reec_id": "reec:revolution-008",
+      "label": "Guerres napoléoniennes",
+      "aliases": ["Guerres de Napoléon"],
+      "type": "Context",
+      "subtype": "Période historique",
+      "category": "Conflit",
+      "summary_short": "Conflits européens de 1803 à 1815",
+      "summary_detailed": "Les Guerres napoléoniennes opposèrent l'Empire français aux coalitions européennes et redessinèrent la carte de l'Europe.",
+      "temporal_start_date": "1803",
+      "temporal_end_date": "1815",
+      "temporal_precision": "year",
+      "spatial_locations": ["Europe"],
+      "metadata_confidence": 1.0,
+      "metadata_verification_status": "verified",
+      "metadata_tags": ["guerre", "europe"]
+    }
+  ],
+  "extraction_metadata": {
+    "total_reecs": 18,
+    "entities": 10,
+    "events": 4,
+    "contexts": 4,
+    "extraction_date": "2025-12-16T15:00:00.000000Z",
+    "extraction_method": "Claude Sonnet 4.5 (automated)",
+    "source_document": "Multi-source historical compilation",
+    "total_relations": 36,
+    "confidence_global": 0.97
+  },
+  "relations": [
+    {
+      "source_reec_id": "reec:ww2-002",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "participe_à",
+      "description": "Churchill dirigea le Royaume-Uni durant la Seconde Guerre mondiale",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:ww2-003",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "participe_à",
+      "description": "Roosevelt dirigea les États-Unis durant la Seconde Guerre mondiale",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:ww2-004",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "déclenche",
+      "description": "Hitler déclencha la Seconde Guerre mondiale",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:ww2-005",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "partie_de",
+      "description": "Le Débarquement fut une opération majeure de la guerre",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:ww2-006",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "termine",
+      "description": "Les bombardements atomiques mirent fin à la guerre",
+      "confidence": 0.98
+    },
+    {
+      "source_reec_id": "reec:ww2-002",
+      "target_reec_id": "reec:ww2-003",
+      "relation_type": "allie_de",
+      "description": "Churchill et Roosevelt furent alliés",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:ww2-006",
+      "target_reec_id": "reec:ww2-003",
+      "relation_type": "ordonne_par",
+      "description": "Roosevelt ordonna les bombardements atomiques",
+      "confidence": 0.95
+    },
+    {
+      "source_reec_id": "reec:industry-002",
+      "target_reec_id": "reec:industry-001",
+      "relation_type": "participe_à",
+      "description": "Watt fut un acteur majeur de la Révolution industrielle",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:industry-003",
+      "target_reec_id": "reec:industry-001",
+      "relation_type": "participe_à",
+      "description": "Stephenson contribua à la Révolution industrielle",
+      "confidence": 0.98
+    },
+    {
+      "source_reec_id": "reec:industry-004",
+      "target_reec_id": "reec:industry-001",
+      "relation_type": "critique",
+      "description": "Marx critiqua les effets de la Révolution industrielle",
+      "confidence": 0.98
+    },
+    {
+      "source_reec_id": "reec:industry-005",
+      "target_reec_id": "reec:industry-001",
+      "relation_type": "déclenche",
+      "description": "La machine à vapeur déclencha la Révolution industrielle",
+      "confidence": 0.98
+    },
+    {
+      "source_reec_id": "reec:industry-006",
+      "target_reec_id": "reec:industry-001",
+      "relation_type": "créé_par",
+      "description": "La classe ouvrière fut créée par la Révolution industrielle",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:industry-002",
+      "target_reec_id": "reec:industry-005",
+      "relation_type": "réalise",
+      "description": "Watt perfectionna la machine à vapeur",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:industry-004",
+      "target_reec_id": "reec:industry-006",
+      "relation_type": "théorise",
+      "description": "Marx théorisa la lutte de la classe ouvrière",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-002",
+      "target_reec_id": "reec:revolution-001",
+      "relation_type": "termine",
+      "description": "Napoléon mit fin à la Révolution française",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-003",
+      "target_reec_id": "reec:revolution-001",
+      "relation_type": "victime_de",
+      "description": "Louis XVI fut victime de la Révolution",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-004",
+      "target_reec_id": "reec:revolution-001",
+      "relation_type": "participe_à",
+      "description": "Robespierre fut une figure centrale de la Révolution",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-006",
+      "target_reec_id": "reec:revolution-001",
+      "relation_type": "marque_début",
+      "description": "La Bastille marqua le début de la Révolution",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-002",
+      "target_reec_id": "reec:revolution-008",
+      "relation_type": "mène",
+      "description": "Napoléon mena les Guerres napoléoniennes",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-007",
+      "target_reec_id": "reec:revolution-008",
+      "relation_type": "termine",
+      "description": "Waterloo mit fin aux Guerres napoléoniennes",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-005",
+      "target_reec_id": "reec:revolution-007",
+      "relation_type": "commande",
+      "description": "Wellington commanda à Waterloo",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-005",
+      "target_reec_id": "reec:revolution-002",
+      "relation_type": "vainc",
+      "description": "Wellington vainquit Napoléon",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-002",
+      "target_reec_id": "reec:revolution-007",
+      "relation_type": "défait_à",
+      "description": "Napoléon fut vaincu à Waterloo",
+      "confidence": 1.0
+    },
+    {
+      "source_reec_id": "reec:revolution-001",
+      "target_reec_id": "reec:industry-001",
+      "relation_type": "contemporain_de",
+      "description": "La Révolution française fut contemporaine de la Révolution industrielle",
+      "confidence": 0.95
+    },
+    {
+      "source_reec_id": "reec:revolution-008",
+      "target_reec_id": "reec:industry-001",
+      "relation_type": "utilise",
+      "description": "Les Guerres napoléoniennes utilisèrent les innovations industrielles",
+      "confidence": 0.9
+    },
+    {
+      "source_reec_id": "reec:revolution-001",
+      "target_reec_id": "reec:industry-006",
+      "relation_type": "influence",
+      "description": "La Révolution française influença la conscience de classe",
+      "confidence": 0.85
+    },
+    {
+      "source_reec_id": "reec:industry-001",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "influence",
+      "description": "La Révolution industrielle créa les capacités pour les conflits mondiaux",
+      "confidence": 0.9
+    },
+    {
+      "source_reec_id": "reec:industry-004",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "influence",
+      "description": "Marx influença les idéologies du XXe siècle menant aux guerres",
+      "confidence": 0.8
+    },
+    {
+      "source_reec_id": "reec:industry-006",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "participe_à",
+      "description": "La classe ouvrière participa massivement à la guerre",
+      "confidence": 0.95
+    },
+    {
+      "source_reec_id": "reec:revolution-008",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "précède",
+      "description": "Les guerres napoléoniennes précédèrent les conflits mondiaux modernes",
+      "confidence": 0.85
+    },
+    {
+      "source_reec_id": "reec:revolution-002",
+      "target_reec_id": "reec:ww2-004",
+      "relation_type": "inspire",
+      "description": "Napoléon inspira les ambitions de conquête d'Hitler",
+      "confidence": 0.75
+    },
+    {
+      "source_reec_id": "reec:revolution-005",
+      "target_reec_id": "reec:ww2-002",
+      "relation_type": "précurseur_de",
+      "description": "Wellington fut un précurseur des chefs militaires comme Churchill",
+      "confidence": 0.7
+    },
+    {
+      "source_reec_id": "reec:revolution-001",
+      "target_reec_id": "reec:ww2-003",
+      "relation_type": "influence",
+      "description": "Les idéaux de la Révolution influencèrent Roosevelt",
+      "confidence": 0.8
+    },
+    {
+      "source_reec_id": "reec:industry-002",
+      "target_reec_id": "reec:revolution-008",
+      "relation_type": "permet",
+      "description": "La machine à vapeur de Watt permit la mobilité des armées napoléoniennes",
+      "confidence": 0.75
+    },
+    {
+      "source_reec_id": "reec:revolution-004",
+      "target_reec_id": "reec:ww2-004",
+      "relation_type": "précède",
+      "description": "Robespierre précéda Hitler dans l'utilisation de la terreur d'État",
+      "confidence": 0.7
+    },
+    {
+      "source_reec_id": "reec:industry-003",
+      "target_reec_id": "reec:ww2-001",
+      "relation_type": "influence",
+      "description": "Les chemins de fer de Stephenson furent cruciaux pour la logistique militaire",
+      "confidence": 0.85
+    }
+  ]
+}
