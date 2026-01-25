@@ -66,6 +66,7 @@ const useGraphStore = create((set, get) => ({
   maxLayers: 0,
   simulationActive: false,
   simulationPaused: false,
+  simulationStable: false,
   
   // History state
   history: [],
@@ -314,6 +315,7 @@ const useGraphStore = create((set, get) => ({
 
   setLayoutMode: (mode) => {
     set({ layoutMode: mode });
+    get().wakeSimulation();
   },
 
   setAdvancedFilter: (key, value) => {
@@ -438,10 +440,14 @@ const useGraphStore = create((set, get) => ({
       }));
 
     set({ nodes, edges });
+    get().wakeSimulation();
   },
   
   setDraggedNode: (nodeId) => {
     set({ draggedNodeId: nodeId });
+    if (nodeId) {
+      get().wakeSimulation();
+    }
   },
   
   pinAllNodes: (layout) => {
@@ -480,6 +486,7 @@ const useGraphStore = create((set, get) => ({
     }
     
     set({ unpinnedDuringDrag: unpinnedSet });
+    get().wakeSimulation();
   },
   
   repinNodes: (layout) => {
@@ -526,6 +533,7 @@ const useGraphStore = create((set, get) => ({
       newPinnedNodes.add(nodeId);
     }
     set({ pinnedNodes: newPinnedNodes });
+    get().wakeSimulation();
     
     // Sauvegarder dans l'historique
     setTimeout(() => get().saveToHistory(), 100);
@@ -545,6 +553,7 @@ const useGraphStore = create((set, get) => ({
       }
     });
     set({ pinnedNodes: new Set() });
+    get().wakeSimulation();
     
     // Sauvegarder dans l'historique
     setTimeout(() => get().saveToHistory(), 100);
@@ -575,6 +584,21 @@ const useGraphStore = create((set, get) => ({
   
   setSimulationPaused: (paused) => {
     set({ simulationPaused: paused });
+    if (!paused) {
+      set({ simulationStable: false });
+    }
+  },
+  
+  setSimulationStable: (stable) => {
+    set({ simulationStable: stable });
+  },
+
+  wakeSimulation: () => {
+    const { layoutMode } = get();
+    // Ne réveiller que si on est en mode force
+    if (get().simulationStable && layoutMode === 'force') {
+      set({ simulationStable: false });
+    }
   },
   
   setCameraControlsRef: (ref) => {

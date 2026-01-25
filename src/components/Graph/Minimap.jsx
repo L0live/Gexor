@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Moon } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
 
 const Minimap = () => {
@@ -6,6 +7,9 @@ const Minimap = () => {
   const positions = useGraphStore(state => state.positions);
   const selectedNode = useGraphStore(state => state.selectedNode);
   const selectNode = useGraphStore(state => state.selectNode);
+  const simulationStable = useGraphStore(state => state.simulationStable);
+  const simulationPaused = useGraphStore(state => state.simulationPaused);
+  const layoutMode = useGraphStore(state => state.layoutMode);
   
   // Calculer les limites pour le cadrage
   const bounds = useMemo(() => {
@@ -72,6 +76,14 @@ const Minimap = () => {
       <div className="absolute top-1 left-2 text-[10px] text-white/40 uppercase tracking-widest font-bold pointer-events-none">
         Minimap
       </div>
+
+      {/* Indicateur de simulation stable/endormie */}
+      {layoutMode === 'force' && simulationStable && !simulationPaused && (
+        <Moon
+          className="absolute bottom-2 right-2 w-4 h-4 text-blue-400"
+          title="Simulation en veille (stable)"
+        />
+      )}
     </div>
   );
 };

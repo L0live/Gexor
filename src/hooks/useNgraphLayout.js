@@ -12,6 +12,7 @@ const useNgraphLayout = () => {
   const setLayoutRunning = useGraphStore(state => state.setLayoutRunning);
   const setLayoutProgress = useGraphStore(state => state.setLayoutProgress);
   const setLayoutReady = useGraphStore(state => state.setLayoutReady);
+  const wakeSimulation = useGraphStore(state => state.wakeSimulation);
 
   const [layout, setLayout] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -125,6 +126,15 @@ const useNgraphLayout = () => {
       
       setLayout(layoutInstance);
       setIsInitialized(true);
+    }
+
+    // S'assurer que les états de "pinned" sont synchronisés avec le mode et le store
+    const activeLayout = layout || (graphRef.current && layout); // On utilise layout du state ou instance locale
+    if (activeLayout) {
+      const { pinnedNodes } = useGraphStore.getState();
+      activeLayout.forEachBody((body, nodeId) => {
+        body.pinned = pinnedNodes.has(nodeId) || layoutMode !== 'force';
+      });
     }
     
     // Mettre à jour la référence des nodes précédents
@@ -277,6 +287,7 @@ const useNgraphLayout = () => {
       return;
     }
     
+    wakeSimulation();
     setLayoutRunning(true);
     setLayoutProgress(0);
     let step = 0;

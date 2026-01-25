@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
 
-const DynamicOrbitControls = ({ isDragging }) => {
+const DynamicOrbitControls = ({ isDragging }) => { // To change as DynamicTrackballControls with trackball instead of orbit
   const controlsRef = useRef();
   const { nodes, positions, filters, centerOnNodeId, setCameraControlsRef, clearCenterOnNode, pinnedNodes } = useGraphStore();
   const targetInitialized = useRef(false);

@@ -70,7 +70,8 @@ const NexReecGraph = ({ initialData }) => {
     importGraph,
     allTags = [],
     resetAllSettings,
-    resetFilters
+    resetFilters,
+    wakeSimulation
   } = useGraphStore();
   
   const [initialized, setInitialized] = useState(false);
@@ -262,18 +263,67 @@ const NexReecGraph = ({ initialData }) => {
               </div>
             </div>
           ) : (
-            <Canvas
-              camera={{ position: [0, 50, 100], fov: 50 }}
-              style={{ background: '#0f172a' }}
-              gl={{ antialias: true, alpha: true }}
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  clearSelection();
-                }
-              }}
-            >
-              <Scene />
-            </Canvas>
+            <>
+              {/* Grille 3D Statique (Calque de fond) */}
+              <div 
+                className="absolute inset-0 pointer-events-none overflow-hidden" 
+                style={{ perspective: '1000px', background: !selectedNode ? '#0b101eff' : 
+                    selectedNode.type === 'Entity' ? '#08101faf' : // Teinte Navy très sombre
+                    selectedNode.type === 'Event' ? '#140b21af' :  // Teinte Prune très sombre
+                    selectedNode.type === 'Context' ? '#0a1711af' : // Teinte Forêt très sombre
+                    '#0f172a' }}
+              >
+                <div 
+                  className="absolute left-1/2 -translate-x-1/2 bottom-[-10%] w-[250vw] h-[300vh]" 
+                  style={{ 
+                    backgroundImage: `
+                      linear-gradient(to right, rgba(150, 150, 150, 0.1) 0px, rgba(100, 100, 100, 0.05) 2px, transparent 5px),
+                      linear-gradient(to bottom, rgba(150, 150, 150, 0.1) 0px, rgba(100, 100, 100, 0.05) 2px, transparent 5px)
+                    `,
+                    backgroundSize: '60px 60px',
+                    transform: 'rotateX(75deg)',
+                    transformOrigin: 'bottom center',
+                    transformStyle: 'preserve-3d', // <--- IMPORTANT : Autorise les enfants 3D
+                    backfaceVisibility: 'hidden',
+                    WebkitFontSmoothing: 'antialiased',
+                    boxShadow: 'inset 0 100 100px rgba(0, 0, 0, 0.5)'
+                  }} 
+                >
+                  {/* Image à l'horizon */}
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: '50%',
+                      width: '100%',
+                      height: '200vh',
+                      transform: 'translate(-50%, -100%) rotateX(-75deg)', // <--- Redresse l'image face caméra
+                      transformOrigin: 'bottom center',
+                      backgroundImage: 'url("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/World_Map_1689.JPG/500px-World_Map_1689.JPG")', // <--- VOTRE IMAGE ICI
+                      backgroundSize: 'contain',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'bottom center',
+                      filter: 'brightness(0.7) contrast(1.2) saturate(1.3)',
+                      maskImage: 'linear-gradient(to top, black 0px, transparent 100%)',
+                      // boxShadow: 'inset 0 0 200px 150px rgba(0, 0, 0, 0.5)'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <Canvas
+                camera={{ position: [0, 50, 100], fov: 50 }}
+                style={{ background: 'transparent' }}
+                gl={{ antialias: true, alpha: true }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    clearSelection();
+                  }
+                }}
+              >
+                <Scene />
+              </Canvas>
+            </>
           )}
 
           {/* Minimap */}
@@ -281,35 +331,13 @@ const NexReecGraph = ({ initialData }) => {
 
           {/* Barre de recherche flottante */}
           {layoutReady && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] z-10">
-              <div className="bg-slate-800/95 backdrop-blur-sm rounded-b-xl shadow-2xl border border-slate-700 p-1">
-                {/* Barre de recherche */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setSearchFocused(true)}
-                    onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-                    placeholder="Rechercher un REEC par nom ou alias..."
-                    className="w-full pl-10 pr-10 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-600 rounded"
-                    >
-                      <X className="w-3 h-3 text-slate-400" />
-                    </button>
-                  )}
-                </div>
-                
+            <div className="absolute bottom-1 left-1/2 w-[450px] z-10 transition-opacity duration-300 opacity-40 hover:opacity-100 focus-within:opacity-100" style={{ transform: 'translateX(-50%)' }}>
+              <div className="bg-transparent backdrop-blur-sm rounded-2xl shadow-2xl border border-transparent p-1">
                 {/* Résultats de recherche */}
-                {searchQuery && filteredReecs.length > 0 && (
-                  <div className="mt-3 max-h-64 overflow-y-auto space-y-2">
+                {searchFocused && searchQuery && filteredReecs.length > 0 && (
+                  <div className="mb-3 max-h-64 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
                     {filteredReecs.map(reec => (
-                      <div key={reec.reec_id} className="flex items-start gap-2 p-2 bg-slate-700/70 rounded hover:bg-slate-700 transition-colors">
+                      <div key={reec.reec_id} className="flex items-center gap-2 p-2 bg-slate-700/70 rounded-lg hover:bg-slate-700 transition-colors">
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-slate-200 truncate">{reec.label}</div>
                           <div className="text-xs text-slate-400">{reec.type} • {reec.subtype}</div>
@@ -319,7 +347,7 @@ const NexReecGraph = ({ initialData }) => {
                             e.preventDefault();
                             handleAddReec(reec.reec_id);
                           }}
-                          className="p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors flex-shrink-0"
+                          className="p-1 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex-shrink-0"
                           title="Ajouter au graphe"
                         >
                           <Plus className="w-4 h-4 text-white" />
@@ -329,17 +357,17 @@ const NexReecGraph = ({ initialData }) => {
                   </div>
                 )}
                 
-                {searchQuery && filteredReecs.length === 0 && (
-                  <div className="text-sm text-slate-400 text-center py-3 mt-3">
+                {searchFocused && searchQuery && filteredReecs.length === 0 && (
+                  <div className="text-sm text-slate-400 text-center py-3 mb-3">
                     Aucun résultat
                   </div>
                 )}
                 
                 {/* Top REECs (affichés automatiquement au focus) */}
                 {searchFocused && !searchQuery && (
-                  <div className="mt-3 max-h-72 overflow-y-auto space-y-2">
+                  <div className="mb-3 max-h-72 overflow-y-auto space-y-2">
                     {topReecs.slice(0, 3).map(reec => (
-                      <div key={reec.reec_id} className="flex items-start gap-2 p-2 bg-slate-700/70 rounded hover:bg-slate-700 transition-colors">
+                      <div key={reec.reec_id} className="flex items-center gap-2 p-2 bg-slate-700/70 rounded-lg hover:bg-slate-700 transition-colors">
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-slate-200 truncate">{reec.label}</div>
                           <div className="text-xs text-slate-400">
@@ -351,7 +379,7 @@ const NexReecGraph = ({ initialData }) => {
                             e.preventDefault();
                             handleAddReec(reec.reec_id);
                           }}
-                          className="p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors flex-shrink-0"
+                          className="p-1 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex-shrink-0"
                           title="Ajouter au graphe"
                         >
                           <Plus className="w-4 h-4 text-white" />
@@ -360,6 +388,28 @@ const NexReecGraph = ({ initialData }) => {
                     ))}
                   </div>
                 )}
+
+                {/* Barre de recherche */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                    placeholder="Rechercher un REEC par nom ou alias..."
+                    className="w-full pl-10 pr-10 py-2 bg-slate-700 border border-transparent rounded-2xl text-slate-200 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-600 rounded"
+                    >
+                      <X className="w-3 h-3 text-slate-400" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -913,9 +963,9 @@ const NexReecGraph = ({ initialData }) => {
 
                 {/* Filtres avec statistiques - Rétractable */}
                 <div className="space-y-2">
-                  <button
+                  <div
                     onClick={() => setShowFiltersSubSection(prev => ({ ...prev, filters: !prev.filters }))}
-                    className="w-full flex items-center justify-between hover:bg-slate-700/30 p-2 rounded transition-colors"
+                    className="w-full flex items-center justify-between hover:bg-slate-700/30 p-2 rounded transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <Filter className="w-4 h-4 text-blue-400" />
@@ -940,7 +990,7 @@ const NexReecGraph = ({ initialData }) => {
                       <RefreshCcw className="w-3.5 h-3.5" />
                     </button>
                     {showFiltersSubSection.filters ? <ChevronUp className="w-3 h-3 text-slate-500" /> : <ChevronDown className="w-3 h-3 text-slate-500" />}
-                  </button>
+                  </div>
 
                   {showFiltersSubSection.filters && (
                     <div className="space-y-4 pl-2 pt-2">
@@ -1237,7 +1287,7 @@ const NexReecGraph = ({ initialData }) => {
                 {simulationPaused ? (
                   <>
                     <Play className="w-4 h-4" />
-                    Reprendre
+                    Play
                   </>
                 ) : (
                   <>
@@ -1276,6 +1326,10 @@ const NexReecGraph = ({ initialData }) => {
                         onClick={() => {
                           setLayoutMode(mode.id);
                           setShowLayoutMenu(false);
+                          if (mode.id === 'force') {
+                            setSimulationPaused(false);
+                            wakeSimulation();
+                          }
                         }}
                         className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
                           layoutMode === mode.id

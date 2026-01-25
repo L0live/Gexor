@@ -37,13 +37,31 @@ const Scene = () => {
   const { layout } = useNgraphLayout();
   const [currentMousePos, setCurrentMousePos] = useState({ x: 0, y: 0 });
   const dragStartInfoRef = useRef(null);
+  const stabilityCounterRef = useRef(0);
+  const lastModeRef = useRef(null);
   
   // Simuler la physique en continu
   useFrame(() => {
-    const { simulationActive, layoutReady, simulationPaused } = useGraphStore.getState();
+    const { 
+      simulationActive, 
+      layoutReady, 
+      simulationPaused, 
+      simulationStable,
+      setSimulationStable,
+      layoutMode
+    } = useGraphStore.getState();
+
+    // Reset le compteur si on change de mode
+    if (lastModeRef.current !== layoutMode) {
+      stabilityCounterRef.current = 0;
+      lastModeRef.current = layoutMode;
+    }
     
-    // Ne pas simuler si la simulation est en pause
-    if (simulationPaused) return;
+    // Ne pas simuler si la simulation est en pause ou déjà stable (auto-arrêtée)
+    // IMPORTANT: On ne stabilise automatiquement QUE en mode 'force'
+    if (simulationPaused || (simulationStable && layoutMode === 'force')) {
+      return;
+    }
     
     // Toujours simuler si le layout est prêt (sauf pendant la phase initiale de runSimulation)
     if (layout && (layoutReady || draggedNodeId || simulationActive)) {
@@ -115,6 +133,34 @@ const Scene = () => {
         }
       });
       
+      // Détection de stabilité par déplacement réel (beaucoup plus fiable que la vélocité)
+      // On le fait AVANT de mettre à jour le store pour comparer avec l'état précédent
+      if (!draggedNodeId && layoutMode === 'force') {
+        let maxMoveSq = 0;
+        layout.forEachBody((body, nodeId) => {
+          if (!body.pinned && storePositions[nodeId]) {
+            const dx = body.pos.x - storePositions[nodeId].x;
+            const dy = body.pos.y - storePositions[nodeId].y;
+            const dz = body.pos.z - storePositions[nodeId].z;
+            const moveSq = dx*dx + dy*dy + dz*dz;
+            if (moveSq > maxMoveSq) maxMoveSq = moveSq;
+          }
+        });
+
+        // Si le déplacement maximum entre deux frames est extrêmement petit
+        if (maxMoveSq < 0.0001) {
+          stabilityCounterRef.current++;
+          if (stabilityCounterRef.current > 60) {
+            setSimulationStable(true);
+            stabilityCounterRef.current = 0;
+          }
+        } else {
+          stabilityCounterRef.current = 0;
+        }
+      } else {
+        stabilityCounterRef.current = 0;
+      }
+
       // Mettre à jour le store avec les nouvelles positions
       const newPositions = {};
       layout.forEachBody((body, nodeId) => {
@@ -396,6 +442,7 @@ const Scene = () => {
             isSelected={selectedEdge?.id === edge.id}
             onClick={() => selectEdge(edge.id)}
             opacityLevel={maxEdgeOpacity}
+            totalEdges={edges.length}
           />
         );
       })}
@@ -427,6 +474,7 @@ const Scene = () => {
           onDragMove={handleDragMove}
           onDragEnd={handleDragEnd}
           opacityLevel={nodeOpacity}
+          totalNodes={nodes.length}
           onClick={(e) => {
             e.stopPropagation();
             selectNode(node.id);
