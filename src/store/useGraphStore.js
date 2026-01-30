@@ -46,6 +46,8 @@ const useGraphStore = create((set, get) => ({
   showRelations: true,
   selectedNode: null,
   selectedEdge: null,
+  hoveredNodeId: null,
+  hoveredEdgeId: null,
   centralNodeId: null,
   allTags: [],
   
@@ -67,6 +69,10 @@ const useGraphStore = create((set, get) => ({
   simulationActive: false,
   simulationPaused: false,
   simulationStable: false,
+  layoutInstance: null,
+  setLayoutInstance: (layout) => set({ layoutInstance: layout }),
+  setHoveredNodeId: (id) => set({ hoveredNodeId: id }),
+  setHoveredEdgeId: (id) => set({ hoveredEdgeId: id }),
   
   // History state
   history: [],
@@ -141,12 +147,12 @@ const useGraphStore = create((set, get) => ({
         confidence: rel.confidence
       }));
     
-    // Pinner le REEC central par défaut
+    // Pinner le REEC central par défaut (et UNIQUEMENT celui-ci au début)
     const initialPinnedNodes = new Set();
     if (mostConnectedReecId) {
       initialPinnedNodes.add(mostConnectedReecId);
     }
-
+    
     // Extraire tous les tags uniques et la plage de dates
     const allTags = new Set();
     let minDate = null;
@@ -165,7 +171,8 @@ const useGraphStore = create((set, get) => ({
         }
       }
     });
-    
+
+    // S'assurer que les autres nodes ne sont pas pinnés
     set((state) => ({
       availableReecs: jsonData.reecs,
       availableRelations: jsonData.relations,
@@ -182,7 +189,9 @@ const useGraphStore = create((set, get) => ({
       edges,
       visibleReecIds: initialVisibleIds,
       pinnedNodes: initialPinnedNodes,
-      centralNodeId: mostConnectedReecId
+      centralNodeId: mostConnectedReecId,
+      layoutMode: 'force', // S'assurer qu'on commence en mode force
+      positions: {} // On reset les positions pour forcer un nouveau layout propre
     }));
     
     // Sélectionner le nœud central par défaut
@@ -298,7 +307,8 @@ const useGraphStore = create((set, get) => ({
   },
   
   setPositions: (positions) => {
-    set({ positions });
+    // Si on a des positions, on s'assure que le contenu du Set/Object est bien nouveau pour forcer le refresh
+    set({ positions: { ...positions } });
   },
   
   setLayoutRunning: (running) => {
@@ -454,7 +464,7 @@ const useGraphStore = create((set, get) => ({
     if (!layout) return;
     const pinnedSet = new Set();
     layout.forEachBody((body, nodeId) => {
-      body.pinned = true;
+      body.isPinned = true;
       pinnedSet.add(nodeId);
     });
     set({ pinnedNodes: pinnedSet, dragLayout: layout });
@@ -462,18 +472,8 @@ const useGraphStore = create((set, get) => ({
   
   unpinNode: (nodeId, layout) => {
     if (!layout) return;
-    const { positions } = get();
+    const { pinnedNodes } = get();
     const unpinnedSet = new Set();
-    
-    // IMPORTANT : Synchroniser TOUTES les positions de ngraph avec le state
-    // Pas seulement celles qu'on unpin, sinon les pinnés ont des positions obsolètes
-    layout.forEachBody((body, nId) => {
-      if (positions[nId]) {
-        body.pos.x = positions[nId].x;
-        body.pos.y = positions[nId].y;
-        body.pos.z = positions[nId].z;
-      }
-    });
     
     // Unpin le node et réinitialiser sa vélocité
     const body = layout.getBody(nodeId);
@@ -481,36 +481,57 @@ const useGraphStore = create((set, get) => ({
       body.velocity.x = 0;
       body.velocity.y = 0;
       body.velocity.z = 0;
-      body.pinned = false;
-      unpinnedSet.add(nodeId);
+      
+      // On garde trace de s'il était pinné pour le re-pinner plus tard si besoin
+      if (body.isPinned || pinnedNodes.has(nodeId)) {
+        unpinnedSet.add(nodeId);
+      }
+      
+      body.isPinned = false;
     }
-    
-    set({ unpinnedDuringDrag: unpinnedSet });
+
+    set({ 
+      unpinnedDuringDrag: unpinnedSet
+    });
     get().wakeSimulation();
   },
   
   repinNodes: (layout) => {
     if (!layout) return;
     const { unpinnedDuringDrag } = get();
+    
     unpinnedDuringDrag.forEach(nodeId => {
       const body = layout.getBody(nodeId);
       if (body) {
-        body.pinned = true;
+        body.isPinned = true;
       }
     });
-    set({ draggedNodeId: null, unpinnedDuringDrag: new Set() });
+    set({ 
+      draggedNodeId: null, 
+      unpinnedDuringDrag: new Set()
+    });
   },
   
   pinDraggedNodeOnly: (layout, draggedNodeId) => {
     if (!layout || !draggedNodeId) return;
     const body = layout.getBody(draggedNodeId);
     if (body) {
-      body.pinned = true;
+      body.isPinned = true;
       body.velocity.x = 0;
       body.velocity.y = 0;
       body.velocity.z = 0;
     }
-    set({ draggedNodeId: null, simulationActive: true });
+    
+    // Si c'est un node qui n'était pas pinné, on l'ajoute maintenant
+    // (Mais pour la demande actuelle, on pourrait aussi décider de ne PAS le pinner
+    // si l'utilisateur ne l'a pas demandé explicitement, mais gardons la logique de drag=pin pour l'instant
+    // ou suivons la demande "pas de pin automatique apres un drag" de tout à l'heure)
+    // En fait, l'utilisateur a dit plus tôt "je ne veux pas qu'un node soit automatiquement epingler apres un drag, uniquement si il etait deja epingler"
+    
+    set({ 
+      draggedNodeId: null, 
+      simulationActive: true
+    });
   },
   
   toggleNodePin: (nodeId, layout) => {
@@ -522,11 +543,11 @@ const useGraphStore = create((set, get) => ({
     const newPinnedNodes = new Set(pinnedNodes);
     if (pinnedNodes.has(nodeId)) {
       // Unpin
-      body.pinned = false;
+      body.isPinned = false;
       newPinnedNodes.delete(nodeId);
     } else {
       // Pin
-      body.pinned = true;
+      body.isPinned = true;
       body.velocity.x = 0;
       body.velocity.y = 0;
       body.velocity.z = 0;
@@ -549,7 +570,7 @@ const useGraphStore = create((set, get) => ({
     pinnedNodes.forEach(nodeId => {
       const body = layout.getBody(nodeId);
       if (body) {
-        body.pinned = false;
+        body.isPinned = false;
       }
     });
     set({ pinnedNodes: new Set() });
@@ -565,7 +586,7 @@ const useGraphStore = create((set, get) => ({
     visibleNodeIds.forEach(nodeId => {
       const body = layout.getBody(nodeId);
       if (body) {
-        body.pinned = true;
+        body.isPinned = true;
         body.velocity.x = 0;
         body.velocity.y = 0;
         body.velocity.z = 0;
@@ -744,7 +765,7 @@ const useGraphStore = create((set, get) => ({
             body.pos.y = snapshot.positions[nodeId].y;
             body.pos.z = snapshot.positions[nodeId].z;
           }
-          body.pinned = snapshot.pinnedNodes.has(nodeId);
+          body.isPinned = snapshot.pinnedNodes.has(nodeId);
           body.velocity.x = 0;
           body.velocity.y = 0;
           body.velocity.z = 0;
@@ -818,7 +839,7 @@ const useGraphStore = create((set, get) => ({
             body.pos.y = snapshot.positions[nodeId].y;
             body.pos.z = snapshot.positions[nodeId].z;
           }
-          body.pinned = snapshot.pinnedNodes.has(nodeId);
+          body.isPinned = snapshot.pinnedNodes.has(nodeId);
           body.velocity.x = 0;
           body.velocity.y = 0;
           body.velocity.z = 0;
@@ -844,7 +865,7 @@ const useGraphStore = create((set, get) => ({
     // Mettre à jour le layout si fourni
     if (layout) {
       layout.forEachBody((body, nodeId) => {
-        body.pinned = (nodeId === centralNodeId);
+        body.isPinned = (nodeId === centralNodeId);
       });
     }
 

@@ -21,8 +21,8 @@ const FilterSection = ({
 }) => {
   const typeColor = {
     Entity: { bg: 'bg-blue-500', text: 'text-blue-400', hover: 'hover:bg-blue-600/30', from: 'bg-blue-600/20' },
-    Event: { bg: 'bg-purple-500', text: 'text-purple-400', hover: 'hover:bg-purple-600/30', from: 'bg-purple-600/20' },
-    Context: { bg: 'bg-green-500', text: 'text-green-400', hover: 'hover:bg-green-600/30', from: 'bg-green-600/20' }
+    Event: { bg: 'bg-green-500', text: 'text-green-400', hover: 'hover:bg-green-600/30', from: 'bg-green-600/20' },
+    Context: { bg: 'bg-purple-500', text: 'text-purple-400', hover: 'hover:bg-purple-600/30', from: 'bg-purple-600/20' }
   }[type];
 
   const maxOpacity = type === 'Relations' ? 0.5 : 1;

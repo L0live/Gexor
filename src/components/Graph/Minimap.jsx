@@ -62,7 +62,7 @@ const Minimap = () => {
             <circle
               key={node.id}
               cx={pos.x}
-              cy={pos.z}
+              cy={pos.z - 10}
               r={isSelected ? 12 / scale : 6 / scale}
               fill={colorMap[node.type] || '#64748b'}
               stroke={isSelected ? 'white' : 'none'}
@@ -73,16 +73,18 @@ const Minimap = () => {
           );
         })}
       </svg>
-      <div className="absolute top-1 left-2 text-[10px] text-white/40 uppercase tracking-widest font-bold pointer-events-none">
+      <div className="absolute bottom-1 left-2 text-[10px] text-white/40 uppercase tracking-widest font-bold pointer-events-none">
         Minimap
       </div>
 
       {/* Indicateur de simulation stable/endormie */}
       {layoutMode === 'force' && simulationStable && !simulationPaused && (
-        <Moon
-          className="absolute bottom-2 right-2 w-4 h-4 text-blue-400"
+        <div 
+          className="absolute bottom-2 right-2"
           title="Simulation en veille (stable)"
-        />
+        >
+          <Moon className="w-4 h-4 text-blue-400" />
+        </div>
       )}
     </div>
   );

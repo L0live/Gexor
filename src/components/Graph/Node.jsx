@@ -1,12 +1,13 @@
 import React, { useRef, useMemo, useState } from 'react';
-import { Billboard } from '@react-three/drei';
+import { Billboard, Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import useGraphStore from '../../store/useGraphStore';
 
 const colorMap = {
   'Entity': '#3b82f6',
-  'Event': '#8b5cf6',
-  'Context': '#0f9c6dff',
+  'Event': '#10b981',
+  'Context': '#8b5cf6',
   'Default': '#64748b'
 };
 
@@ -25,13 +26,9 @@ const getLodTexture = (type) => {
 
   const centerX = size / 2;
   const centerY = size / 2;
-  const radius = size * 0.4;
+  const radius = size * 0.4; // Retour à 0.4 pour garder la taille visuelle originale
 
-  // Même ombre que le high-res pour la cohérence
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-  ctx.shadowBlur = 20;
-  ctx.shadowOffsetY = 1;
-
+  // Suppression de l'ombre pour correspondre aux nodes instanciés plus vifs
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -41,15 +38,23 @@ const getLodTexture = (type) => {
   return lodTextures[color];
 };
 
-const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDragMove, isDragging, isPinned, filterMode, opacityLevel, totalNodes = 100 }) => {
+const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDragEnd, isDragging, isPinned, filterMode, opacityLevel, totalNodes = 100 }) => {
   const spriteRef = useRef();
   const billboardRef = useRef();
   const dragStartInfo = useRef(null);
   const { camera } = useThree();
   const [lodLevel, setLodLevel] = useState(0); // 0: Close (Label), 1: Far (Circle only)
   const [hovered, setHovered] = useState(false);
+  const globalHoveredNodeId = useGraphStore(state => state.hoveredNodeId);
+  const setGlobalHoveredNodeId = useGraphStore(state => state.setHoveredNodeId);
+  
+  // Le node est considéré survolé soit via ses propres événements (Billboard), 
+  // soit via l'instancier (Global store)
+  const isHovered = hovered || globalHoveredNodeId === node.id;
+  
   const lodAlpha = useRef(1); // 1: Full High Detail, 0: Full Low Detail
   const [inFrustum, setInFrustum] = useState(true);
+  const [distanceToCamera, setDistanceToCamera] = useState(0);
   
   const highResMatRef = useRef();
   const lowResMatRef = useRef();
@@ -70,26 +75,55 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   useFrame((state) => {
     if (!billboardRef.current || !visible) return;
 
-    nodePosition.set(position.x, position.y, position.z);
+    // Get position from layout if possible, else use the prop
+    const layout = useGraphStore.getState().layoutInstance;
+    if (layout) {
+      const body = layout.getBody(node.id);
+      if (body) {
+        nodePosition.set(body.pos.x, body.pos.y, body.pos.z);
+      } else if (position) {
+        nodePosition.set(position.x, position.y, position.z);
+      }
+    } else if (position) {
+      nodePosition.set(position.x, position.y, position.z);
+    }
+    
+    // Forcer la position du Billboard directement
+    if (billboardRef.current) {
+        billboardRef.current.position.copy(nodePosition);
+    }
+    
     const scale = getScale();
 
     // 1. Check distance and update Alpha
     const dist = state.camera.position.distanceTo(nodePosition);
-    const targetAlpha = (dist > lodThreshold && !isSelected && !isDragging && !hovered) ? 0 : 1;
+    if (Math.abs(dist - distanceToCamera) > 10) {
+      setDistanceToCamera(dist);
+    }
+    
+    // LoD Hybride : Si on est trop loin, le composant React (étiquette) se cache totalement 
+    // pour laisser l'InstancedNode prendre le relais.
+    if (dist > lodThreshold && !isSelected && !isDragging && !isHovered) {
+      if (billboardRef.current.visible) billboardRef.current.visible = false;
+      return; 
+    } else {
+      if (!billboardRef.current.visible) billboardRef.current.visible = true;
+    }
+
+    // On force le mode détaillé (targetAlpha = 1) si selectionné, draggé ou survolé
+    const targetAlpha = (dist > lodThreshold * 0.8 && !isSelected && !isDragging && !isHovered) ? 0 : 1;
     
     // Lerp pour transition douce
     lodAlpha.current = THREE.MathUtils.lerp(lodAlpha.current, targetAlpha, 0.1);
 
     // Mettre à jour les opacités des matériaux directement
     if (highResMatRef.current) {
-        // Le label (High Res) fade In/Out
         highResMatRef.current.opacity = lodAlpha.current * opacityLevel;
-        highResMatRef.current.visible = lodAlpha.current > 0.01;
+        highResMatRef.current.visible = highResMatRef.current.opacity > 0.01;
     }
     if (lowResMatRef.current) {
-        // Le cercle (Low Res) reste OPAQUE tout au long pour éviter le trou de transparence
         lowResMatRef.current.opacity = opacityLevel;
-        lowResMatRef.current.visible = true;
+        lowResMatRef.current.visible = opacityLevel > 0.01;
     }
 
     // On ne change le lodLevel d'état (pour le useMemo texture) qu'aux extrêmes
@@ -109,7 +143,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   
   // Créer le canvas texture- seulement si on a besoin du High Detail
   const texture = useMemo(() => {
-    if (lodLevel !== 0 && !isSelected && !isDragging) return null;
+    if (lodLevel !== 0 && !isSelected && !isDragging && !isHovered) return null;
     const canvas = document.createElement('canvas');
     const size = 256;
     canvas.width = size;
@@ -122,7 +156,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
 
     // Draw label - white text on transparent background (Circle is handled by lowResTexture)
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
@@ -149,17 +183,13 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     const totalHeight = lines.length * lineHeight;
     let yStart = centerY - totalHeight / 2 + lineHeight / 2;
     
-    if (lines.length > 2) {
-      ctx.font = 'bold 28px Arial';
-    }
-    
     lines.forEach((line) => {
       ctx.fillText(line, centerX, yStart);
       yStart += lineHeight;
     });
 
     return new THREE.CanvasTexture(canvas);
-  }, [node.label, node.type, lodLevel, isSelected, isDragging]);
+  }, [node.label, node.type, lodLevel, isSelected, isDragging, isHovered]);
 
   const lowResTexture = useMemo(() => getLodTexture(node.type), [node.type]);
   
@@ -218,10 +248,14 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   
   const scale = getScale();
   
+  // On rendu quand même le Billboard pour que le useFrame puisse prendre le relais
+  // même si la prop position initiale est absente
+  const initialPos = position ? [position.x, position.y, position.z] : [0, 0, 0];
+
   return (
     <Billboard
       ref={billboardRef}
-      position={[position.x, position.y, position.z]}
+      position={initialPos}
       follow={true}
       lockX={false}
       lockY={false}
@@ -233,11 +267,13 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
       onPointerOver={(e) => {
         e.stopPropagation();
         setHovered(true);
+        setGlobalHoveredNodeId(node.id); // Sync with store
         document.body.style.cursor = isDragging ? 'grabbing' : 'grab';
       }}
       onPointerOut={(e) => {
         e.stopPropagation();
         setHovered(false);
+        setGlobalHoveredNodeId(null); // Sync with store
         document.body.style.cursor = 'default';
       }}
     >
@@ -256,6 +292,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
             depthWrite={true}
             alphaTest={0.05}
             opacity={opacityLevel}
+            toneMapped={false}
           />
         </sprite>
       )}
@@ -271,8 +308,9 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
               depthTest={true}
               depthWrite={true}
               alphaTest={0.05}
-              opacity={opacityLevel}
+              opacity={opacityLevel * 0.9} // Légère transparence pour matcher l'instancier
               visible={true}
+              toneMapped={false}
           />
       </sprite>
       
@@ -292,8 +330,32 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
           />
         </sprite>
       )}
+
+      {/* Tooltip HTML quand le node est survolé et qu'on est en distance de LoD (quand le label interne est petit/illisible) */}
+      {isHovered && distanceToCamera > lodThreshold * 0.77 && (
+        <Html 
+          position={[0, scale * 0.6, 0]} 
+          center
+          style={{ pointerEvents: 'none', zIndex: 1000 }}
+        >
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.85)',
+            color: 'white',
+            padding: '4px 10px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: '500',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            pointerEvents: 'none'
+          }}>
+            {node.label}
+          </div>
+        </Html>
+      )}
     </Billboard>
-);
+  );
 };
 
 export default Node;

@@ -13,6 +13,7 @@ const useNgraphLayout = () => {
   const setLayoutProgress = useGraphStore(state => state.setLayoutProgress);
   const setLayoutReady = useGraphStore(state => state.setLayoutReady);
   const wakeSimulation = useGraphStore(state => state.wakeSimulation);
+  const setLayoutInstance = useGraphStore(state => state.setLayoutInstance);
 
   const [layout, setLayout] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -110,30 +111,37 @@ const useNgraphLayout = () => {
         }
       });
       
-      // Restaurer les positions existantes
-      if (Object.keys(currentPositions).length > 0) {
-        const { pinnedNodes } = useGraphStore.getState();
-        layoutInstance.forEachBody((body, nodeId) => {
-          if (currentPositions[nodeId]) {
-            body.pos.x = currentPositions[nodeId].x;
-            body.pos.y = currentPositions[nodeId].y;
-            body.pos.z = currentPositions[nodeId].z;
-            // Restaurer l'état de pin manuel, ou pinner si on n'est pas en mode force
-            body.pinned = pinnedNodes.has(nodeId) || layoutMode !== 'force';
-          }
-        });
-      }
+      const { pinnedNodes } = useGraphStore.getState();
+      
+      // Restaurer les positions existantes et appliquer le pinning
+      layoutInstance.forEachBody((body, nodeId) => {
+        if (currentPositions[nodeId]) {
+          body.pos.x = currentPositions[nodeId].x;
+          body.pos.y = currentPositions[nodeId].y;
+          body.pos.z = currentPositions[nodeId].z;
+        } else if (pinnedNodes.has(nodeId)) {
+          // Si le node est pinné mais n'a pas encore de position (initialisation),
+          // on le positionne au centre (0,0,0) pour éviter un déploiement aléatoire
+          body.pos.x = 0;
+          body.pos.y = 0;
+          body.pos.z = 0;
+        }
+        
+        // Appliquer l'état de pinning (primordial même sans positions précédentes)
+        body.isPinned = pinnedNodes.has(nodeId) || layoutMode !== 'force';
+      });
       
       setLayout(layoutInstance);
+      setLayoutInstance(layoutInstance);
       setIsInitialized(true);
     }
 
-    // S'assurer que les états de "pinned" sont synchronisés avec le mode et le store
-    const activeLayout = layout || (graphRef.current && layout); // On utilise layout du state ou instance locale
-    if (activeLayout) {
-      const { pinnedNodes } = useGraphStore.getState();
-      activeLayout.forEachBody((body, nodeId) => {
-        body.pinned = pinnedNodes.has(nodeId) || layoutMode !== 'force';
+    // S'assurer que les états de "pinned" sont synchronisés avec le mode et le store pour les mises à jour suivantes
+    if (layout) {
+      const { pinnedNodes, draggedNodeId } = useGraphStore.getState();
+      layout.forEachBody((body, nodeId) => {
+        // Technically unpin if it's being dragged, so physics doesn't fight the manual position update
+        body.isPinned = (pinnedNodes.has(nodeId) && nodeId !== draggedNodeId) || layoutMode !== 'force';
       });
     }
     
@@ -263,7 +271,7 @@ const useNgraphLayout = () => {
         body.velocity.y = 0;
         body.velocity.z = 0;
         // Pinner les nodes dans les layouts statiques
-        body.pinned = true;
+        body.isPinned = true;
       }
     });
 

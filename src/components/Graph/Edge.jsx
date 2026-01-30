@@ -1,10 +1,18 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Line } from '@react-three/drei';
+import { Line, Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
+import useGraphStore from '../../store/useGraphStore';
+
 const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacityLevel, totalEdges = 100 }) => {
   const [hovered, setHovered] = useState(false);
+  const globalHoveredEdgeId = useGraphStore(state => state.hoveredEdgeId);
+  const setGlobalHoveredEdgeId = useGraphStore(state => state.setHoveredEdgeId);
+
+  // L'edge est survolé soit via ses propres événements, soit via l'instancier
+  const isHovered = hovered || globalHoveredEdgeId === edge.id;
+
   const lineRef = useRef();
   const groupRef = useRef();
   const arrowMatRef = useRef();
@@ -44,7 +52,8 @@ const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacit
     const distToCam = state.camera.position.distanceTo(midPoint);
     
     // Transition fluide pour la tête de flèche lors du survol/sélection
-    const targetAlpha = (isSelected || hovered) ? 1 : (distToCam > lod1Threshold ? 0 : 1);
+    // On force le détail si survolé ou sélectionné
+    const targetAlpha = (isSelected || isHovered) ? 1 : (distToCam > lod1Threshold ? 0 : 1);
     lodAlpha.current = THREE.MathUtils.lerp(lodAlpha.current, targetAlpha, 0.1);
 
     if (arrowMatRef.current) {
@@ -53,8 +62,14 @@ const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacit
     }
 
     let newLod = 0;
-    if (distToCam > lod2Threshold) newLod = 2;
-    else if (distToCam > lod1Threshold) newLod = 1;
+    // Si survolé ou sélectionné, on reste en LOD 0 (Détail)
+    if (isSelected || isHovered) {
+      newLod = 0;
+    } else if (distToCam > lod2Threshold) {
+      newLod = 2;
+    } else if (distToCam > lod1Threshold) {
+      newLod = 1;
+    }
 
     if (newLod !== lodLevel) setLodLevel(newLod);
 
@@ -115,12 +130,12 @@ const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacit
 
   if (!valid) return null;
 
-  const color = isSelected ? '#60a5fa' : (hovered ? '#64748b' : '#475569');
-  const opacity = isSelected ? 0.7 : (hovered ? 0.4 : opacityLevel);
+  const color = isSelected ? '#60a5fa' : (isHovered ? '#64748b' : '#475569');
+  const opacity = isSelected ? 0.7 : (isHovered ? 0.4 : opacityLevel);
   
   // Toujours afficher le détail max si sélectionné ou survolé
-  const effectiveLod = (isSelected || hovered) ? 0 : lodLevel;
-  const isVisible = visible && inFrustum && (effectiveLod < 2 || isSelected || hovered);
+  const effectiveLod = (isSelected || isHovered) ? 0 : lodLevel;
+  const isVisible = visible && inFrustum && (effectiveLod < 2 || isSelected || isHovered);
 
   return (
     <group ref={groupRef} visible={isVisible}>
@@ -128,7 +143,7 @@ const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacit
         ref={lineRef}
         points={points}
         color={color}
-        lineWidth={isSelected ? 3.5 : (hovered ? 3.5 : 2.5)}
+        lineWidth={isSelected ? 3.5 : (isHovered ? 3.5 : 2.5)}
         transparent
         opacity={opacity}
         depthTest={true}
@@ -141,11 +156,13 @@ const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacit
         onPointerOver={(e) => {
           e.stopPropagation();
           setHovered(true);
+          setGlobalHoveredEdgeId(edge.id);
           document.body.style.cursor = 'pointer';
         }}
         onPointerOut={(e) => {
           e.stopPropagation();
           setHovered(false);
+          setGlobalHoveredEdgeId(null);
           document.body.style.cursor = 'default';
         }}
       />
@@ -163,11 +180,13 @@ const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacit
           onPointerOver={(e) => {
             e.stopPropagation();
             setHovered(true);
+            setGlobalHoveredEdgeId(edge.id);
             document.body.style.cursor = 'pointer';
           }}
           onPointerOut={(e) => {
             e.stopPropagation();
             setHovered(false);
+            setGlobalHoveredEdgeId(null);
             document.body.style.cursor = 'default';
           }}
         >
@@ -181,6 +200,29 @@ const Edge = ({ edge, sourcePos, targetPos, visible, isSelected, onClick, opacit
             depthWrite={false}
           />
         </mesh>
+      )}
+
+      {/* Tooltip HTML quand la relation est survolée */}
+      {isHovered && (
+        <Html 
+          position={[midPoint.x, midPoint.y, midPoint.z]} 
+          center 
+          // distanceFactor={15} 
+          style={{ pointerEvents: 'none' }}
+        >
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.2)'
+          }}>
+            {edge.label || edge.type || 'Relation'}
+          </div>
+        </Html>
       )}
     </group>
   );

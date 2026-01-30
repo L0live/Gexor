@@ -269,8 +269,8 @@ const NexReecGraph = ({ initialData }) => {
                 className="absolute inset-0 pointer-events-none overflow-hidden" 
                 style={{ perspective: '1000px', background: !selectedNode ? '#0b101eff' : 
                     selectedNode.type === 'Entity' ? '#08101faf' : // Teinte Navy très sombre
-                    selectedNode.type === 'Event' ? '#140b21af' :  // Teinte Prune très sombre
-                    selectedNode.type === 'Context' ? '#0a1711af' : // Teinte Forêt très sombre
+                    selectedNode.type === 'Event' ? '#0a1711af' :  // Teinte Forêt très sombre (Green)
+                    selectedNode.type === 'Context' ? '#140b21af' : // Teinte Prune très sombre (Purple)
                     '#0f172a' }}
               >
                 <div 
@@ -296,7 +296,7 @@ const NexReecGraph = ({ initialData }) => {
                       top: 0,
                       left: '50%',
                       width: '100%',
-                      height: '200vh',
+                      height: '180vh',
                       transform: 'translate(-50%, -100%) rotateX(-75deg)', // <--- Redresse l'image face caméra
                       transformOrigin: 'bottom center',
                       backgroundImage: 'url("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/World_Map_1689.JPG/500px-World_Map_1689.JPG")', // <--- VOTRE IMAGE ICI
@@ -312,7 +312,7 @@ const NexReecGraph = ({ initialData }) => {
               </div>
 
               <Canvas
-                camera={{ position: [0, 50, 100], fov: 50 }}
+                camera={{ position: [0, 150, 100], fov: 50 }}
                 style={{ background: 'transparent' }}
                 gl={{ antialias: true, alpha: true }}
                 onClick={(e) => {
@@ -414,6 +414,56 @@ const NexReecGraph = ({ initialData }) => {
             </div>
           )}
 
+          {/* Bouton Layout - Carré et rétractable */}
+          <div className="absolute bottom-0 left-0 z-20 p-1 bg-slate-700/20 rounded-tr-xl flex flex-col items-center">
+            {/* Menu de Layout rétractable (s'ouvre vers le haut) */}
+            {showLayoutMenu && (
+              <div className="relative bottom-0 right-0 overflow-hidden z-50 animate-in fade-in slide-in-from-bottom duration-200">
+                {[
+                  { id: 'force', label: 'Physique (Force)', icon: <Orbit className="w-5 h-5" /> },
+                  { id: 'hierarchical', label: 'Hiérarchique', icon: <ListChevronsDownUp className="w-5 h-5" /> },
+                  { id: 'circular', label: 'Circulaire', icon: <Orbit className="w-5 h-5 rotate-45" /> },
+                  { id: 'cluster', label: 'Clusters', icon: <Network className="w-5 h-5" /> },
+                  { id: 'temporal', label: 'Temporel', icon: <Calendar className="w-5 h-5" /> }
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    onClick={() => {
+                      setLayoutMode(mode.id);
+                      setShowLayoutMenu(false);
+                      if (mode.id === 'force') {
+                        setSimulationPaused(false);
+                        wakeSimulation();
+                      }
+                    }}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
+                      layoutMode === mode.id
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                    }`}
+                    title={mode.label}
+                  >
+                    <div className={layoutMode === mode.id ? 'text-white' : 'text-slate-500'}>
+                      {mode.icon}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            <button
+              onClick={() => setShowLayoutMenu(!showLayoutMenu)}
+              className={`p-3 rounded-xl transition-colors ${
+                showLayoutMenu 
+                  ? 'bg-blue-600/20 text-blue-400 hover:text-blue-300' 
+                  : 'hover:bg-slate-600/20 text-slate-400 hover:text-slate-300'
+              }`}
+              title={`Changer le mode de layout\nMode actuel: ${layoutMode.charAt(0).toUpperCase() + layoutMode.slice(1)}`}
+            >
+              <Layers className="w-5.5 h-5.5" />
+            </button>
+          </div>
+
           {/* Actions rapides sur le node sélectionné */}
           {selectedNode && (
             <div className="absolute top-6 right-6 z-20 flex flex-col items-end gap-4">
@@ -458,7 +508,7 @@ const NexReecGraph = ({ initialData }) => {
                           y: selectedNodePos.y,
                           z: selectedNodePos.z
                         };
-                      });
+                      });!
                       
                       // Mettre à jour les positions avant d'ajouter les nodes
                       setPositions(newPositions);
@@ -556,8 +606,8 @@ const NexReecGraph = ({ initialData }) => {
             <div className="flex flex-col">
               <div className={`sticky top-0 z-10 p-6 bg-slate-800 ${
                 selectedNode.type === 'Entity' ? 'bg-gradient-to-br from-blue-600/20 to-blue-500/10 border-l-4 border-blue-500' :
-                selectedNode.type === 'Event' ? 'bg-gradient-to-br from-purple-600/20 to-purple-500/10 border-l-4 border-purple-500' :
-                'bg-gradient-to-br from-green-600/20 to-green-500/10 border-l-4 border-green-500'
+                selectedNode.type === 'Event' ? 'bg-gradient-to-br from-green-600/20 to-green-500/10 border-l-4 border-green-500' :
+                'bg-gradient-to-br from-purple-600/20 to-purple-500/10 border-l-4 border-purple-500'
               }`}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
@@ -630,8 +680,8 @@ const NexReecGraph = ({ initialData }) => {
                       }}
                       className={`flex-1 h-1.5 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer ${
                         selectedNode.type === 'Entity' ? '[&::-webkit-slider-thumb]:bg-blue-500 [&::-moz-range-thumb]:bg-blue-500' :
-                        selectedNode.type === 'Event' ? '[&::-webkit-slider-thumb]:bg-purple-500 [&::-moz-range-thumb]:bg-purple-500' :
-                        '[&::-webkit-slider-thumb]:bg-green-500 [&::-moz-range-thumb]:bg-green-500'
+                        selectedNode.type === 'Event' ? '[&::-webkit-slider-thumb]:bg-green-500 [&::-moz-range-thumb]:bg-green-500' :
+                        '[&::-webkit-slider-thumb]:bg-purple-500 [&::-moz-range-thumb]:bg-purple-500'
                       }`}
                     />
                     <Eye 
@@ -1015,7 +1065,7 @@ const NexReecGraph = ({ initialData }) => {
 
                       <FilterSection
                         type="Event"
-                        color="bg-purple-500"
+                        color="bg-green-500"
                         description="Événements majeurs ayant marqué la période étudiée."
                         nodes={nodes}
                         filters={filters}
@@ -1034,7 +1084,7 @@ const NexReecGraph = ({ initialData }) => {
 
                       <FilterSection
                         type="Context"
-                        color="bg-green-500"
+                        color="bg-purple-500"
                         description="Éléments contextuels définissant le cadre historique."
                         nodes={nodes}
                         filters={filters}
@@ -1296,56 +1346,6 @@ const NexReecGraph = ({ initialData }) => {
                   </>
                 )}
               </button>
-
-              {/* Bouton Layout - Carré et rétractable */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-                  className={`w-11 h-11 rounded-lg flex items-center justify-center transition-all ${
-                    showLayoutMenu 
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                  }`}
-                  title={`Changer le mode de layout\nMode actuel: ${layoutMode.charAt(0).toUpperCase() + layoutMode.slice(1)}`}
-                >
-                  <Layers className="w-5 h-5" />
-                </button>
-
-                {/* Menu de Layout rétractable (s'ouvre vers le haut) */}
-                {showLayoutMenu && (
-                  <div className="absolute bottom-full right-0 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    {[
-                      { id: 'force', label: 'Physique (Force)', icon: <Orbit className="w-5 h-5" /> },
-                      { id: 'hierarchical', label: 'Hiérarchique', icon: <ListChevronsDownUp className="w-5 h-5" /> },
-                      { id: 'circular', label: 'Circulaire', icon: <Orbit className="w-5 h-5 rotate-45" /> },
-                      { id: 'cluster', label: 'Clusters', icon: <Network className="w-5 h-5" /> },
-                      { id: 'temporal', label: 'Temporel', icon: <Calendar className="w-5 h-5" /> }
-                    ].map(mode => (
-                      <button
-                        key={mode.id}
-                        onClick={() => {
-                          setLayoutMode(mode.id);
-                          setShowLayoutMenu(false);
-                          if (mode.id === 'force') {
-                            setSimulationPaused(false);
-                            wakeSimulation();
-                          }
-                        }}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${
-                          layoutMode === mode.id
-                            ? 'bg-blue-600 text-white'
-                            : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-                        }`}
-                        title={mode.label}
-                      >
-                        <div className={layoutMode === mode.id ? 'text-white' : 'text-slate-500'}>
-                          {mode.icon}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
