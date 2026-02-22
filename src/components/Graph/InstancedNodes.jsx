@@ -1,57 +1,86 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
+import { COLOR_MAP, MAX_INSTANCES, NODE_RADIUS } from '../../constants/graphConstants';
+import { getRadialDisplayPos } from '../../utils/radialLayout';
+import { readPosition } from '../../utils/sharedPositions';
 
-const colorMap = {
-  'Entity': '#3b82f6',
-  'Event': '#10b981',
-  'Context': '#8b5cf6',
-  'Default': '#64748b'
-};
-
-const InstancedNodes = () => {
-  const nodes = useGraphStore(state => state.nodes);
-  const filters = useGraphStore(state => state.filters);
-  const layout = useGraphStore(state => state.layoutInstance);
+const InstancedNodes = ({ groupId = null }) => {
+  const allNodes = useGraphStore(state => state.nodes);
+  const nodeGroupMemberships = useGraphStore(state => state.nodeGroupMemberships);
+  
+  // Use group-specific filters if groupId is provided
+  const filters = useGraphStore(state => groupId ? (state.groupFilters[groupId] || state.filters) : state.filters);
+  const opacityLevels = useGraphStore(state => groupId ? (state.groupOpacityLevels[groupId] || state.opacityLevels) : state.opacityLevels);
+  
   const positions = useGraphStore(state => state.positions);
   const selectedNode = useGraphStore(state => state.selectedNode);
-  const opacityLevels = useGraphStore(state => state.opacityLevels);
   const selectNode = useGraphStore(state => state.selectNode);
   const hoveredNodeId = useGraphStore(state => state.hoveredNodeId);
   const setHoveredNodeId = useGraphStore(state => state.setHoveredNodeId);
 
-  const meshRef = useRef();
+  // Filter nodes for this specific group instance
+  const nodes = useMemo(() => {
+    if (!groupId) {
+      // Orphans (not in any group)
+      return allNodes.filter(n => !nodeGroupMemberships[n.id] || nodeGroupMemberships[n.id].length === 0);
+    }
+    return allNodes.filter(n => (nodeGroupMemberships[n.id] || []).includes(groupId));
+  }, [allNodes, nodeGroupMemberships, groupId]);
 
-  // Objets temporaires pour éviter les allocations
+  // Seuil de LoD (doit être le même que dans Node.jsx)
+  const lodThreshold = useMemo(() => {
+    const factor = Math.max(0.2, 1 - (allNodes.length / 1000));
+    return 400 * factor;
+  }, [allNodes.length]);
+
+  const categories = ['Entity', 'Event', 'Context', 'Default'];
+
+  return (
+    <>
+      {categories.map(cat => (
+        <NodeCategoryGroup
+          key={cat}
+          type={cat}
+          nodes={nodes.filter(n => cat === 'Default' ? !['Entity', 'Event', 'Context'].includes(n.type) : n.type === cat)}
+          filters={filters}
+          positions={positions}
+          selectedNode={selectedNode}
+          opacityLevel={opacityLevels[cat] ?? 1.0}
+          selectNode={selectNode}
+          hoveredNodeId={hoveredNodeId}
+          setHoveredNodeId={setHoveredNodeId}
+          lodThreshold={lodThreshold}
+        />
+      ))}
+    </>
+  );
+};
+
+const NodeCategoryGroup = ({ 
+  type, nodes, filters, positions, selectedNode, 
+  opacityLevel, selectNode, hoveredNodeId, setHoveredNodeId, lodThreshold 
+}) => {
+  const meshRef = useRef();
+  const highlightMeshRef = useRef();
+  const boundsFrameRef = useRef(0);
+
   const _obj = useMemo(() => new THREE.Object3D(), []);
   const _color = useMemo(() => new THREE.Color(), []);
   const _v3 = useMemo(() => new THREE.Vector3(), []);
 
-  // Filtrer les nodes visibles (seulement ceux dont le type est actif)
   const visibleNodes = useMemo(() => {
-    return nodes.filter(node => filters[node.type]);
-  }, [nodes, filters]);
+    return nodes.filter(node => 
+      (filters[node.type] || (type === 'Default' && filters['Default'])) &&
+      (node.confiance >= (filters.minConfiance || 0))
+    );
+  }, [nodes, filters, type]);
 
-  // Récupérer les données du node survolé
-  const hoveredNode = useMemo(() => {
-    return hoveredNodeId ? nodes.find(n => n.id === hoveredNodeId) : null;
-  }, [hoveredNodeId, nodes]);
-
-  // Seuil de LoD (doit être le même que dans Node.jsx)
-  const lodThreshold = useMemo(() => {
-    const total = nodes.length;
-    const factor = Math.max(0.2, 1 - (total / 2000));
-    return 400 * factor;
-  }, [nodes.length]);
-
-  // Initialiser les couleurs au montage ou quand le nombre de nodes change
   useEffect(() => {
     if (!meshRef.current) return;
-    
-    // On alloue de l'espace pour 5000 instances max
-    const colors = new Float32Array(5000 * 3);
+    const count = MAX_INSTANCES;
+    const colors = new Float32Array(count * 3);
     const attr = new THREE.InstancedBufferAttribute(colors, 3);
     attr.setUsage(THREE.DynamicDrawUsage);
     meshRef.current.instanceColor = attr;
@@ -61,19 +90,17 @@ const InstancedNodes = () => {
     if (!meshRef.current) return;
 
     const count = visibleNodes.length;
-    const safeCount = Math.min(count, 5000);
+    const safeCount = Math.min(count, MAX_INSTANCES);
     const camPos = state.camera.position;
+
+    // Cache store state once per frame for radial plugin
+    const storeState = useGraphStore.getState();
 
     for (let i = 0; i < safeCount; i++) {
       const node = visibleNodes[i];
       let pos;
-      
-      if (layout) {
-        const body = layout.getBody(node.id);
-        pos = body ? body.pos : positions[node.id];
-      } else {
-        pos = positions[node.id];
-      }
+      // SAB hot path (zero alloc) → Zustand fallback
+      pos = readPosition(node.id) || positions[node.id];
 
       if (!pos) {
         _obj.matrix.makeScale(0, 0, 0);
@@ -81,13 +108,13 @@ const InstancedNodes = () => {
         continue;
       }
 
-      _v3.set(pos.x, pos.y, pos.z);
+      // Radial plugin: blend display position toward radial target (pure visual)
+      const radialPos = getRadialDisplayPos(node.id, pos, storeState);
+
+      _v3.set(radialPos.x, radialPos.y, radialPos.z);
       const dist = camPos.distanceTo(_v3);
       const isSelected = selectedNode?.id === node.id;
 
-      // Niveau Instancié (Loin) : 
-      // On affiche l'instance si on est plus loin que 90% du seuil.
-      // Ça permet un overlap léger avec le fondu du Node.jsx pour une transition fluide.
       if (dist < lodThreshold * 0.9 || isSelected) {
         _obj.matrix.makeScale(0, 0, 0);
         meshRef.current.setMatrixAt(i, _obj.matrix);
@@ -95,30 +122,52 @@ const InstancedNodes = () => {
       }
 
       _obj.position.copy(_v3);
-      // Taille pour les points lointains
-      // On utilise node.size (normalement 8) multiplié par 2 car circleGeometry(0.5) a un diamètre de 1
-      const size = (node.size || 8) * 1.5; 
+      const size = (node.size || NODE_RADIUS) * 1.5;
       _obj.scale.set(size, size, 1); 
-      _obj.quaternion.copy(state.camera.quaternion); // Toujours face caméra (Billboarding)
+      _obj.quaternion.copy(state.camera.quaternion);
       _obj.updateMatrix();
       meshRef.current.setMatrixAt(i, _obj.matrix);
 
-      // Mettre à jour la couleur
-      const c = colorMap[node.type] || colorMap['Default'];
+      const c = COLOR_MAP[node.type] || COLOR_MAP['Default'];
       _color.set(c);
       meshRef.current.setColorAt(i, _color);
+
+      if (highlightMeshRef.current) {
+        if (opacityLevel > 1.0) {
+          _obj.scale.set(size * 1.15, size * 1.15, 1);
+          _obj.updateMatrix();
+          highlightMeshRef.current.setMatrixAt(i, _obj.matrix);
+        } else {
+          _obj.scale.set(0, 0, 0);
+          _obj.updateMatrix();
+          highlightMeshRef.current.setMatrixAt(i, _obj.matrix);
+        }
+      }
     }
 
     meshRef.current.count = safeCount;
     meshRef.current.instanceMatrix.needsUpdate = true;
     if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
-    meshRef.current.computeBoundingSphere();
+    
+    // Throttle expensive computeBoundingSphere to every 30 frames
+    boundsFrameRef.current++;
+    if (boundsFrameRef.current >= 30) {
+      boundsFrameRef.current = 0;
+      meshRef.current.computeBoundingSphere();
+    }
+    
+    if (highlightMeshRef.current) {
+      highlightMeshRef.current.count = safeCount;
+      highlightMeshRef.current.instanceMatrix.needsUpdate = true;
+      if (boundsFrameRef.current === 0) {
+        highlightMeshRef.current.computeBoundingSphere();
+      }
+    }
   });
 
   const handlePointerMove = (e) => {
     e.stopPropagation();
-    const index = e.instanceId;
-    const node = visibleNodes[index];
+    const node = visibleNodes[e.instanceId];
     if (node && hoveredNodeId !== node.id) {
       setHoveredNodeId(node.id);
       document.body.style.cursor = 'pointer';
@@ -132,30 +181,47 @@ const InstancedNodes = () => {
 
   const handleClick = (e) => {
     e.stopPropagation();
-    const index = e.instanceId;
-    const node = visibleNodes[index];
-    if (node) {
-      selectNode(node.id);
-    }
+    const node = visibleNodes[e.instanceId];
+    if (node) selectNode(node.id);
   };
 
   return (
-    <instancedMesh 
-      ref={meshRef} 
-      args={[null, null, 5000]} 
-      frustumCulled={true}
-      onClick={handleClick}
-      onPointerMove={handlePointerMove}
-      onPointerOut={handlePointerOut}
-    >
-      <circleGeometry args={[0.5, 16]} />
-      <meshBasicMaterial 
-        transparent 
-        opacity={0.9}
-        depthWrite={false} 
-        toneMapped={false}
-      />
-    </instancedMesh>
+    <>
+      <instancedMesh 
+        ref={meshRef} 
+        args={[null, null, MAX_INSTANCES]} 
+        frustumCulled={true}
+        onClick={handleClick}
+        onPointerMove={handlePointerMove}
+        onPointerOut={handlePointerOut}
+        visible={opacityLevel > 0.001}
+      >
+        <circleGeometry args={[0.5, 16]} />
+        <meshBasicMaterial 
+          transparent 
+          opacity={Math.min(1.0, opacityLevel)}
+          depthWrite={false} 
+          toneMapped={false}
+        />
+      </instancedMesh>
+      
+      <instancedMesh
+        ref={highlightMeshRef}
+        args={[null, null, MAX_INSTANCES]}
+        frustumCulled={true}
+        visible={opacityLevel > 1.0}
+      >
+        <circleGeometry args={[0.5, 16]} />
+        <meshBasicMaterial
+          transparent
+          depthWrite={false}
+          toneMapped={false}
+          blending={THREE.AdditiveBlending}
+          color="#ffffff"
+          opacity={opacityLevel > 1.0 ? Math.min(1.0, (opacityLevel - 1.0) * 2.0) : 0} 
+        />
+      </instancedMesh>
+    </>
   );
 };
 

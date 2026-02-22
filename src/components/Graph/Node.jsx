@@ -3,19 +3,14 @@ import { Billboard, Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
-
-const colorMap = {
-  'Entity': '#3b82f6',
-  'Event': '#10b981',
-  'Context': '#8b5cf6',
-  'Default': '#64748b'
-};
+import { COLOR_MAP } from '../../constants/graphConstants';
+import { getRadialDisplayPos } from '../../utils/radialLayout';
 
 // Generics textures cache for LoD
 const lodTextures = {};
 
 const getLodTexture = (type) => {
-  const color = colorMap[type] || colorMap['Default'];
+  const color = COLOR_MAP[type] || COLOR_MAP['Default'];
   if (lodTextures[color]) return lodTextures[color];
 
   const canvas = document.createElement('canvas');
@@ -38,6 +33,31 @@ const getLodTexture = (type) => {
   return lodTextures[color];
 };
 
+const borderTextures = {};
+const getBorderTexture = (type) => {
+  const color = COLOR_MAP[type] || COLOR_MAP['Default'];
+  if (borderTextures[color]) return borderTextures[color];
+
+  const canvas = document.createElement('canvas');
+  const size = 128;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const radius = size * 0.41; // Slightly larger for the stroke
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 12; // Thick enough to be seen
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  borderTextures[color] = new THREE.CanvasTexture(canvas);
+  return borderTextures[color];
+};
+
 const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDragEnd, isDragging, isPinned, filterMode, opacityLevel, totalNodes = 100 }) => {
   const spriteRef = useRef();
   const billboardRef = useRef();
@@ -45,6 +65,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   const { camera } = useThree();
   const [lodLevel, setLodLevel] = useState(0); // 0: Close (Label), 1: Far (Circle only)
   const [hovered, setHovered] = useState(false);
+  const [shouldShow, setShouldShow] = useState(true);
   const globalHoveredNodeId = useGraphStore(state => state.hoveredNodeId);
   const setGlobalHoveredNodeId = useGraphStore(state => state.setHoveredNodeId);
   
@@ -58,13 +79,13 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   
   const highResMatRef = useRef();
   const lowResMatRef = useRef();
+  const borderMatRef = useRef();
 
   // Calculez les seuils adaptatifs basés sur le nombre total de nodes
   // Plus il y a de nodes, plus on passe vite en LoD 1
   const lodThreshold = useMemo(() => {
-    const base = 400; // Distance de base
-    const factor = Math.max(0.2, 1 - (totalNodes / 2000));
-    return base * factor;
+    const factor = Math.max(0.2, 1 - (totalNodes / 1000));
+    return 400 * factor;
   }, [totalNodes]);
 
   const frustum = useMemo(() => new THREE.Frustum(), []);
@@ -75,17 +96,13 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   useFrame((state) => {
     if (!billboardRef.current || !visible) return;
 
-    // Get position from layout if possible, else use the prop
-    const layout = useGraphStore.getState().layoutInstance;
-    if (layout) {
-      const body = layout.getBody(node.id);
-      if (body) {
-        nodePosition.set(body.pos.x, body.pos.y, body.pos.z);
-      } else if (position) {
-        nodePosition.set(position.x, position.y, position.z);
-      }
-    } else if (position) {
-      nodePosition.set(position.x, position.y, position.z);
+    // Get position from store positions (layout runs in Web Worker)
+    const storeState = useGraphStore.getState();
+    let rawPos = storeState.positions[node.id] || position;
+    if (rawPos) {
+      // Radial plugin: blend display position toward radial target (pure visual)
+      const displayPos = getRadialDisplayPos(node.id, rawPos, storeState);
+      nodePosition.set(displayPos.x, displayPos.y, displayPos.z);
     }
     
     // Forcer la position du Billboard directement
@@ -103,12 +120,12 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     
     // LoD Hybride : Si on est trop loin, le composant React (étiquette) se cache totalement 
     // pour laisser l'InstancedNode prendre le relais.
-    if (dist > lodThreshold && !isSelected && !isDragging && !isHovered) {
-      if (billboardRef.current.visible) billboardRef.current.visible = false;
-      return; 
-    } else {
-      if (!billboardRef.current.visible) billboardRef.current.visible = true;
+    const isCloseEnough = dist <= lodThreshold || isSelected || isDragging || isHovered;
+    if (shouldShow !== isCloseEnough) {
+        setShouldShow(isCloseEnough);
     }
+    
+    if (!isCloseEnough) return;
 
     // On force le mode détaillé (targetAlpha = 1) si selectionné, draggé ou survolé
     const targetAlpha = (dist > lodThreshold * 0.8 && !isSelected && !isDragging && !isHovered) ? 0 : 1;
@@ -116,14 +133,25 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     // Lerp pour transition douce
     lodAlpha.current = THREE.MathUtils.lerp(lodAlpha.current, targetAlpha, 0.1);
 
-    // Mettre à jour les opacités des matériaux directement
+    // Mettre à jour les opacités et le highlight (brightness)
+    const clampedOpacity = Math.min(1.0, opacityLevel);
+    // Le brightness est désormais appliqué uniquement au contour (border)
+    const borderOpacity = opacityLevel > 1.0 ? Math.min(1.0, (opacityLevel - 1.0) * 2.0) : 0;
+
     if (highResMatRef.current) {
-        highResMatRef.current.opacity = lodAlpha.current * opacityLevel;
-        highResMatRef.current.visible = highResMatRef.current.opacity > 0.01;
+        highResMatRef.current.opacity = lodAlpha.current * clampedOpacity;
+        highResMatRef.current.visible = highResMatRef.current.opacity > 0.001;
+        // On remet la couleur à blanc (normal)
+        highResMatRef.current.color.setRGB(1, 1, 1);
     }
     if (lowResMatRef.current) {
-        lowResMatRef.current.opacity = opacityLevel;
-        lowResMatRef.current.visible = opacityLevel > 0.01;
+        lowResMatRef.current.opacity = clampedOpacity;
+        lowResMatRef.current.visible = lowResMatRef.current.opacity > 0.001;
+        lowResMatRef.current.color.setRGB(1, 1, 1);
+    }
+    if (borderMatRef.current) {
+        borderMatRef.current.opacity = borderOpacity;
+        borderMatRef.current.visible = borderOpacity > 0.001;
     }
 
     // On ne change le lodLevel d'état (pour le useMemo texture) qu'aux extrêmes
@@ -189,9 +217,10 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     });
 
     return new THREE.CanvasTexture(canvas);
-  }, [node.label, node.type, lodLevel, isSelected, isDragging, isHovered]);
+  }, [node.label, node.type, lodLevel]);
 
   const lowResTexture = useMemo(() => getLodTexture(node.type), [node.type]);
+  const borderTexture = useMemo(() => getBorderTexture(node.type), [node.type]);
   
   // Créer la texture de l'icône de pin
   const pinTexture = useMemo(() => {
@@ -226,15 +255,22 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   }, []);
   
   const getScale = () => {
-    // Scale basé sur la confidence
+    // Scale basé sur la confiance
     const baseScale = 15;
-    const confidenceMultiplier = node.confidence || 0.8;
-    return baseScale * confidenceMultiplier * (isSelected ? 1.2 : 1.0) * (isDragging ? 1.3 : 1.0) * 1.0;
+    const confianceMultiplier = node.confiance || 0.8;
+    return baseScale * confianceMultiplier * (isSelected ? 1.2 : 1.0) * (isDragging ? 1.3 : 1.0);
   };
+  
+  const lastPointerDownTime = useRef(0);
   
   const handlePointerDown = (e) => {
     e.stopPropagation();
-    onDragStart(node.id, e.clientX, e.clientY);
+    const now = Date.now();
+    // Détection manuelle du double-clic car e.detail peut être imprécis dans R3F
+    if (now - lastPointerDownTime.current < 400 && now - lastPointerDownTime.current > 0) {
+      onDragStart(node.id, e.clientX, e.clientY);
+    }
+    lastPointerDownTime.current = now;
   };
   
   // Pas besoin de onPointerMove ici - géré via useFrame dans Scene
@@ -260,7 +296,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
       lockX={false}
       lockY={false}
       lockZ={false}
-      visible={visible && inFrustum}
+      visible={visible && inFrustum && shouldShow && opacityLevel > 0.001}
       onClick={onClick}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
@@ -290,7 +326,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
             transparent={true}
             depthTest={true}
             depthWrite={true}
-            alphaTest={0.05}
+            alphaTest={0.001}
             opacity={opacityLevel}
             toneMapped={false}
           />
@@ -307,13 +343,30 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
               transparent={true}
               depthTest={true}
               depthWrite={true}
-              alphaTest={0.05}
+              alphaTest={0.001}
               opacity={opacityLevel * 0.9} // Légère transparence pour matcher l'instancier
               visible={true}
               toneMapped={false}
           />
       </sprite>
-      
+      {/* Contour Glow (Highlight) */}
+      <sprite
+          scale={[scale * 1.05, scale * 1.05, 1]}
+          renderOrder={10}
+      >
+          <spriteMaterial
+              ref={borderMatRef}
+              map={borderTexture}
+              transparent={true}
+              depthTest={true}
+              depthWrite={false}
+              alphaTest={0.01}
+              opacity={0}
+              visible={false}
+              toneMapped={false}
+              blending={THREE.AdditiveBlending}
+          />
+      </sprite>      
       {/* Overlay icône de pin si le node est pinné */}
       {isPinned && visible && (
         <sprite

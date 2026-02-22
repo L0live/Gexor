@@ -25,7 +25,7 @@
       "source_quotes": [
         "conflit armé le plus vaste que l'humanité ait connu"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -56,7 +56,7 @@
       "source_quotes": [
         "figure emblématique de la résistance britannique"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "politique",
@@ -86,7 +86,7 @@
       "source_quotes": [
         "dirigea les États-Unis durant la Grande Dépression et la Seconde Guerre mondiale"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "politique",
@@ -116,7 +116,7 @@
       "source_quotes": [
         "opération militaire amphibie et aéroportée alliée"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -145,7 +145,7 @@
       "source_quotes": [
         "tournant majeur dans la guerre"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -176,7 +176,7 @@
       "source_quotes": [
         "transformation économique, sociale et technologique"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "industrie",
@@ -206,7 +206,7 @@
       "source_quotes": [
         "améliorations apportées à la machine à vapeur"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "invention",
@@ -235,7 +235,7 @@
       "source_quotes": [
         "système de production en usine"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "textile",
@@ -262,7 +262,7 @@
       "source_quotes": [
         "moteur de la Révolution industrielle"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "invention",
@@ -291,7 +291,7 @@
       "source_quotes": [
         "première ligne ferroviaire publique au monde"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "transport",
@@ -319,7 +319,7 @@
       "source_quotes": [
         "ensemble des programmes et réformes"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "économie",
@@ -348,7 +348,7 @@
       "source_quotes": [
         "système économique caractérisé par la propriété privée des moyens de production"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "économie",
@@ -366,7 +366,7 @@
     "extraction_method": "Claude Sonnet 4.5 (automated)",
     "source_document": "Multi-source historical compilation",
     "total_relations": 18,
-    "confidence_global": 0.97
+    "confiance_global": 0.97
   },
   "relations": [
     {
@@ -374,126 +374,126 @@
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "participe_à",
       "description": "Churchill dirigea le Royaume-Uni durant la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "participe_à",
       "description": "Roosevelt dirigea les États-Unis durant la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-777777777777",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "partie_de",
       "description": "Le Débarquement de Normandie fut une opération majeure de la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-888888888888",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "partie_de",
       "description": "La Bataille de Stalingrad fut un tournant de la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-555555555555",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "relation_type": "allie_de",
       "description": "Churchill et Roosevelt furent alliés durant la guerre",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-777777777777",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-555555555555",
       "relation_type": "ordonne_par",
       "description": "Churchill participa à la planification du Débarquement",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-222222222222",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "participe_à",
       "description": "James Watt fut un acteur majeur de la Révolution industrielle",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-333333333333",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "participe_à",
       "description": "Arkwright contribua à la Révolution industrielle par ses innovations textiles",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-444444444444",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "déclenche",
       "description": "L'invention de la machine à vapeur déclencha la Révolution industrielle",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-555555555555",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "partie_de",
       "description": "Le développement ferroviaire fait partie de la Révolution industrielle",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-222222222222",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-444444444444",
       "relation_type": "réalise",
       "description": "James Watt perfectionna la machine à vapeur",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-444444444444",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-555555555555",
       "relation_type": "permet",
       "description": "La machine à vapeur permit le développement du chemin de fer",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "relation_type": "initie_par",
       "description": "Roosevelt initia le New Deal",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "émerge_de",
       "description": "Le capitalisme industriel émergea de la Révolution industrielle",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "Le capitalisme industriel influença les causes économiques de la Seconde Guerre mondiale",
-      "confidence": 0.85
+      "confiance": 0.85
     },
     {
       "source_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "précède",
       "description": "Le New Deal précéda et prépara l'économie américaine pour la guerre",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "La Révolution industrielle créa les capacités de production nécessaires aux conflits mondiaux",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "target_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "relation_type": "partie_de",
       "description": "Roosevelt fut président durant la période du New Deal",
-      "confidence": 1.0
+      "confiance": 1.0
     }
   ]
 }

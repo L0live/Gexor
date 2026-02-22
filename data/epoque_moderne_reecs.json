@@ -25,7 +25,7 @@
         "la découverte de l'Amérique par Christophe Colomb",
         "arrivée de Christophe Colomb dans le Nouveau Monde au 12 octobre"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "exploration",
@@ -56,7 +56,7 @@
         "François Ier, considéré comme le premier grand roi de l'Époque moderne en France",
         "avènement du roi François Ier en 1515"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "monarchie",
@@ -84,7 +84,7 @@
       "source_quotes": [
         "début de la Réforme en Allemagne, initiée par Martin Luther"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "réforme",
@@ -113,7 +113,7 @@
       "source_quotes": [
         "invention de l'imprimerie à caractères mobiles par Gutenberg"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "invention",
@@ -142,7 +142,7 @@
       "source_quotes": [
         "Ce « traicté de la paix faicte entre le Tres chrestien Roi de France et le Roi d'Angleterre » fut signé par Charles VIII en novembre 1492"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "monarchie",
@@ -172,7 +172,7 @@
       "source_quotes": [
         "arrivé de Vasco de Gama en Inde au 20 mai"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "exploration",
@@ -201,7 +201,7 @@
       "source_quotes": [
         "Fernand de Magellan découvre et passe le détroit qui porte aujourd'hui son nom. Les survivants de son expédition boucleront le premier tour du monde"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "exploration",
@@ -231,7 +231,7 @@
       "source_quotes": [
         "la Révolution française, qui commença le 14 juillet 1789 avec la prise de la Bastille et s'acheva par le coup d'État du 18 Brumaire an VIII (9 novembre 1799)"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "révolution",
@@ -262,7 +262,7 @@
         "fin de l'Empire romain d'Orient avec la chute de Constantinople au 29 mai",
         "L'artillerie utilisée durant la bataille rend obsolètes les forteresses médiévales"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "byzantin",
@@ -293,7 +293,7 @@
         "arrivée de Christophe Colomb dans le Nouveau Monde au 12 octobre",
         "l'intégration de deux mondes humains qui s'étaient presque totalement ignorés pendant plus de 20 000 ans"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "exploration",
@@ -322,7 +322,7 @@
       "source_quotes": [
         "La signature des traités de Westphalie, en 1648, consacre le début d'une nouvelle ère, en mettant fin à la guerre de Trente Ans"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "traité",
@@ -351,7 +351,7 @@
       "source_quotes": [
         "les Guerres d'Italie. Celles-ci dureront 65 ans (entrecoupées de trêves) et se termineront en 1559 avec le traité du Cateau-Cambrésis"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -382,7 +382,7 @@
         "L'Époque moderne, ou les « Temps modernes », couvre l'époque historique qui débute à la fin du Moyen Âge",
         "L'Époque moderne couvre trois siècles, de la fin du XVe siècle à la fin du XVIIIe siècle"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "histoire",
@@ -413,7 +413,7 @@
         "La Renaissance est un courant artistique et intellectuel où les artistes ont introduit l'esthétique antique",
         "La Renaissance, née en Italie, gagne l'ensemble des pays d'Europe et durera plus d'un siècle"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "art",
@@ -441,7 +441,7 @@
       "source_quotes": [
         "La fin de l'Époque moderne antérieure coïncide avec la fin de l'Ancien Régime"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "france",
@@ -472,7 +472,7 @@
       "source_quotes": [
         "la Réforme protestante (En Allemagne, Luther, 1517 et en France, Calvin, 1532) entraîne la fin de l'emprise de l'Église catholique romaine"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "religion",
@@ -503,7 +503,7 @@
       "source_quotes": [
         "Au XVIIIe siècle, caractérisé par les philosophes des « Lumières » et le « despotisme éclairé », la monarchie absolue a atteint ses limites"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "philosophie",
@@ -534,7 +534,7 @@
       "source_quotes": [
         "La survenue des grandes découvertes (à partir de 1492) enrichit considérablement les débuts de cette nouvelle époque"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "exploration",
@@ -552,7 +552,7 @@
     "extraction_method": "Claude Sonnet 4.5 (automated)",
     "source_document": "Époque moderne - Wikipedia FR",
     "total_relations": 21,
-    "confidence_global": 0.97
+    "confiance_global": 0.97
   },
   "relations": [
     {
@@ -560,147 +560,147 @@
       "target_reec_id": "reec:4542cbfd-8696-4d7c-b5ea-081b69713ddb",
       "relation_type": "participe_à",
       "description": "Christophe Colomb réalisa la découverte de l'Amérique",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:4542cbfd-8696-4d7c-b5ea-081b69713ddb",
       "target_reec_id": "reec:19cf5e4e-447d-485f-90ed-a59219d08c30",
       "relation_type": "partie_de",
       "description": "La découverte de l'Amérique fait partie des Grandes Découvertes",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:4542cbfd-8696-4d7c-b5ea-081b69713ddb",
       "target_reec_id": "reec:4aca96b9-debc-4c8b-9cff-61e9409520f8",
       "relation_type": "marque_début",
       "description": "La découverte de l'Amérique marque le début de l'Époque moderne",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:dffe6ee5-160e-4e76-beb6-034a1b9c3f60",
       "target_reec_id": "reec:7c0b2daf-d31f-45f8-bbd7-c5af798a52dc",
       "relation_type": "contemporain_de",
       "description": "François Ier fut contemporain et promoteur de la Renaissance",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:dffe6ee5-160e-4e76-beb6-034a1b9c3f60",
       "target_reec_id": "reec:541d9e45-5cc8-47b4-901d-9942655150b6",
       "relation_type": "participe_à",
       "description": "François Ier participa aux Guerres d'Italie",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:2e77e8fa-e094-464a-8ed9-aa3c125d2580",
       "target_reec_id": "reec:8cd82dba-33ce-4a53-91e0-2d6be5e63f43",
       "relation_type": "initie",
       "description": "Martin Luther initia la Réforme protestante",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:8cd82dba-33ce-4a53-91e0-2d6be5e63f43",
       "target_reec_id": "reec:4aca96b9-debc-4c8b-9cff-61e9409520f8",
       "relation_type": "partie_de",
       "description": "La Réforme protestante fut un mouvement majeur de l'Époque moderne",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:91b1760a-6265-4421-9451-a83c12d2bfd4",
       "target_reec_id": "reec:7c0b2daf-d31f-45f8-bbd7-c5af798a52dc",
       "relation_type": "influence",
       "description": "L'invention de Gutenberg facilita la diffusion des idées de la Renaissance",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:66171802-300a-440a-be2e-c21936446635",
       "target_reec_id": "reec:541d9e45-5cc8-47b4-901d-9942655150b6",
       "relation_type": "initie",
       "description": "Charles VIII initia les Guerres d'Italie",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:cefd3fcc-e80f-4523-9927-c23206d86aa6",
       "target_reec_id": "reec:19cf5e4e-447d-485f-90ed-a59219d08c30",
       "relation_type": "participe_à",
       "description": "Vasco de Gama participa aux Grandes Découvertes",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:384e414e-609f-4504-8bbd-ab3ba22c1975",
       "target_reec_id": "reec:19cf5e4e-447d-485f-90ed-a59219d08c30",
       "relation_type": "participe_à",
       "description": "Magellan participa aux Grandes Découvertes",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:82fdb290-84e1-4436-bbf4-56d69aa78709",
       "target_reec_id": "reec:4aca96b9-debc-4c8b-9cff-61e9409520f8",
       "relation_type": "termine",
       "description": "La Révolution française marque la fin de l'Époque moderne",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:82fdb290-84e1-4436-bbf4-56d69aa78709",
       "target_reec_id": "reec:ec01631d-5aa6-4af6-9344-f64e4c78d23c",
       "relation_type": "termine",
       "description": "La Révolution française mit fin à l'Ancien Régime",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:4fc450f0-cb04-48a5-b3f3-ba638fd3df30",
       "target_reec_id": "reec:82fdb290-84e1-4436-bbf4-56d69aa78709",
       "relation_type": "influence",
       "description": "Les Lumières influencèrent la Révolution française",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b8b87985-6d11-455d-8901-2f65b79bf06a",
       "target_reec_id": "reec:7c0b2daf-d31f-45f8-bbd7-c5af798a52dc",
       "relation_type": "cause_de",
       "description": "La chute de Constantinople déclencha en partie la Renaissance",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:b8b87985-6d11-455d-8901-2f65b79bf06a",
       "target_reec_id": "reec:4aca96b9-debc-4c8b-9cff-61e9409520f8",
       "relation_type": "marque_début",
       "description": "La chute de Constantinople marque le début de l'Époque moderne",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:7c0b2daf-d31f-45f8-bbd7-c5af798a52dc",
       "target_reec_id": "reec:4fc450f0-cb04-48a5-b3f3-ba638fd3df30",
       "relation_type": "precede",
       "description": "La Renaissance précéda le Siècle des Lumières",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:19cf5e4e-447d-485f-90ed-a59219d08c30",
       "target_reec_id": "reec:4aca96b9-debc-4c8b-9cff-61e9409520f8",
       "relation_type": "partie_de",
       "description": "Les Grandes Découvertes font partie de l'Époque moderne",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:ec01631d-5aa6-4af6-9344-f64e4c78d23c",
       "target_reec_id": "reec:4aca96b9-debc-4c8b-9cff-61e9409520f8",
       "relation_type": "partie_de",
       "description": "L'Ancien Régime est une partie de l'Époque moderne",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:61eb15a9-62d8-4f26-8540-3f0377d8c694",
       "target_reec_id": "reec:4aca96b9-debc-4c8b-9cff-61e9409520f8",
       "relation_type": "partie_de",
       "description": "Les traités de Westphalie se situent dans l'Époque moderne",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:bdb13bae-625d-4917-9c48-a5a1b35eaaf1",
       "target_reec_id": "reec:cefd3fcc-e80f-4523-9927-c23206d86aa6",
       "relation_type": "contemporain_de",
       "description": "Colomb et Vasco de Gama furent contemporains",
-      "confidence": 0.95
+      "confiance": 0.95
     }
   ]
 }

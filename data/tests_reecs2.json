@@ -25,7 +25,7 @@
       "source_quotes": [
         "conflit armé le plus vaste que l'humanité ait connu"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -56,7 +56,7 @@
       "source_quotes": [
         "figure emblématique de la résistance britannique"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "politique",
@@ -86,7 +86,7 @@
       "source_quotes": [
         "dirigea les États-Unis durant la Grande Dépression et la Seconde Guerre mondiale"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "politique",
@@ -116,7 +116,7 @@
       "source_quotes": [
         "opération militaire amphibie et aéroportée alliée"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -145,7 +145,7 @@
       "source_quotes": [
         "tournant majeur dans la guerre"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -176,7 +176,7 @@
       "source_quotes": [
         "transformation économique, sociale et technologique"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "industrie",
@@ -206,7 +206,7 @@
       "source_quotes": [
         "améliorations apportées à la machine à vapeur"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "invention",
@@ -235,7 +235,7 @@
       "source_quotes": [
         "système de production en usine"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "textile",
@@ -262,7 +262,7 @@
       "source_quotes": [
         "moteur de la Révolution industrielle"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "invention",
@@ -291,7 +291,7 @@
       "source_quotes": [
         "première ligne ferroviaire publique au monde"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "transport",
@@ -319,7 +319,7 @@
       "source_quotes": [
         "ensemble des programmes et réformes"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "économie",
@@ -348,7 +348,7 @@
       "source_quotes": [
         "système économique caractérisé par la propriété privée des moyens de production"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "économie",
@@ -380,7 +380,7 @@
         "chef de la France Libre",
         "Appel du 18 juin 1940"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "résistance",
@@ -410,7 +410,7 @@
       "source_quotes": [
         "déclencha la Seconde Guerre mondiale"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "nazisme",
@@ -440,7 +440,7 @@
       "source_quotes": [
         "dirigea l'Union soviétique"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "urss",
@@ -470,7 +470,7 @@
       "source_quotes": [
         "attaque surprise provoqua l'entrée en guerre des États-Unis"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -500,7 +500,7 @@
       "source_quotes": [
         "tournant dans la guerre du Pacifique"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "guerre",
@@ -531,7 +531,7 @@
       "source_quotes": [
         "décider du sort de l'Allemagne et de l'Europe d'après-guerre"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "diplomatie",
@@ -562,7 +562,7 @@
       "source_quotes": [
         "environ six millions de Juifs furent assassinés"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "génocide",
@@ -591,7 +591,7 @@
       "source_quotes": [
         "lutte contre l'Axe et ses relais collaborationnistes"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "résistance",
@@ -622,7 +622,7 @@
       "source_quotes": [
         "seules utilisations d'armes nucléaires en combat"
       ],
-      "metadata_confidence": 1.0,
+      "metadata_confiance": 1.0,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "nucléaire",
@@ -651,7 +651,7 @@
       "source_quotes": [
         "père du chemin de fer"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "transport",
@@ -681,7 +681,7 @@
       "source_quotes": [
         "critique radicale du capitalisme"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "philosophie",
@@ -710,7 +710,7 @@
       "source_quotes": [
         "domina l'industrie de l'acier"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "industrie",
@@ -739,7 +739,7 @@
       "source_quotes": [
         "l'homme le plus riche de l'histoire moderne"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "pétrole",
@@ -769,7 +769,7 @@
       "source_quotes": [
         "protestation contre la mécanisation"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "protestation",
@@ -800,7 +800,7 @@
       "source_quotes": [
         "concentration de la population dans les villes"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "urbanisation",
@@ -830,7 +830,7 @@
       "source_quotes": [
         "nouvelle classe sociale durant la Révolution industrielle"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "classe sociale",
@@ -858,7 +858,7 @@
       "source_quotes": [
         "révolutionna les communications"
       ],
-      "metadata_confidence": 0.95,
+      "metadata_confiance": 0.95,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "communication",
@@ -889,7 +889,7 @@
       "source_quotes": [
         "abolition progressive de l'esclavage"
       ],
-      "metadata_confidence": 0.98,
+      "metadata_confiance": 0.98,
       "metadata_verification_status": "verified",
       "metadata_tags": [
         "droits humains",
@@ -907,7 +907,7 @@
     "extraction_method": "Claude Sonnet 4.5 (automated)",
     "source_document": "Multi-source historical compilation",
     "total_relations": 52,
-    "confidence_global": 0.97
+    "confiance_global": 0.97
   },
   "relations": [
     {
@@ -915,448 +915,448 @@
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "participe_à",
       "description": "Churchill dirigea le Royaume-Uni durant la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "participe_à",
       "description": "Roosevelt dirigea les États-Unis durant la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-777777777777",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "partie_de",
       "description": "Le Débarquement de Normandie fut une opération majeure de la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-888888888888",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "partie_de",
       "description": "La Bataille de Stalingrad fut un tournant de la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-555555555555",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "relation_type": "allie_de",
       "description": "Churchill et Roosevelt furent alliés durant la guerre",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-777777777777",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-555555555555",
       "relation_type": "ordonne_par",
       "description": "Churchill participa à la planification du Débarquement",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-222222222222",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "participe_à",
       "description": "James Watt fut un acteur majeur de la Révolution industrielle",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-333333333333",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "participe_à",
       "description": "Arkwright contribua à la Révolution industrielle par ses innovations textiles",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-444444444444",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "déclenche",
       "description": "L'invention de la machine à vapeur déclencha la Révolution industrielle",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-555555555555",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "partie_de",
       "description": "Le développement ferroviaire fait partie de la Révolution industrielle",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-222222222222",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-444444444444",
       "relation_type": "réalise",
       "description": "James Watt perfectionna la machine à vapeur",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-444444444444",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-555555555555",
       "relation_type": "permet",
       "description": "La machine à vapeur permit le développement du chemin de fer",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "relation_type": "initie_par",
       "description": "Roosevelt initia le New Deal",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "émerge_de",
       "description": "Le capitalisme industriel émergea de la Révolution industrielle",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "Le capitalisme industriel influença les causes économiques de la Seconde Guerre mondiale",
-      "confidence": 0.85
+      "confiance": 0.85
     },
     {
       "source_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "précède",
       "description": "Le New Deal précéda et prépara l'économie américaine pour la guerre",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "La Révolution industrielle créa les capacités de production nécessaires aux conflits mondiaux",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "target_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "relation_type": "partie_de",
       "description": "Roosevelt fut président durant la période du New Deal",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-999999999999",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "participe_à",
       "description": "De Gaulle participa à la Seconde Guerre mondiale en dirigeant la France Libre",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-999999999999",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-101010101010",
       "relation_type": "dirige",
       "description": "De Gaulle dirigea la Résistance française depuis Londres",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-aaaaaaaaaaaa",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "déclenche",
       "description": "Hitler déclencha la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-aaaaaaaaaaaa",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-ffffffffffff",
       "relation_type": "responsable_de",
       "description": "Hitler fut responsable de l'Holocauste",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-bbbbbbbbbbbb",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "participe_à",
       "description": "Staline dirigea l'URSS durant la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-bbbbbbbbbbbb",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-eeeeeeeeeeee",
       "relation_type": "participe_à",
       "description": "Staline participa à la Conférence de Yalta",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-555555555555",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-eeeeeeeeeeee",
       "relation_type": "participe_à",
       "description": "Churchill participa à la Conférence de Yalta",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-eeeeeeeeeeee",
       "relation_type": "participe_à",
       "description": "Roosevelt participa à la Conférence de Yalta",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-cccccccccccc",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "déclenche",
       "description": "Pearl Harbor déclencha l'entrée des États-Unis dans la guerre",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-cccccccccccc",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "relation_type": "affecte",
       "description": "Pearl Harbor poussa Roosevelt à déclarer la guerre au Japon",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-dddddddddddd",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "partie_de",
       "description": "Midway fut une bataille décisive de la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-dddddddddddd",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-cccccccccccc",
       "relation_type": "suit",
       "description": "Midway suivit Pearl Harbor dans la guerre du Pacifique",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-ffffffffffff",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "partie_de",
       "description": "L'Holocauste eut lieu durant la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-101010101010",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "partie_de",
       "description": "La Résistance française combattit durant la Seconde Guerre mondiale",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-101010101010",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-777777777777",
       "relation_type": "facilite",
       "description": "La Résistance facilita le Débarquement de Normandie",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-111111111110",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "termine",
       "description": "Les bombardements atomiques mirent fin à la Seconde Guerre mondiale",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-111111111110",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-666666666666",
       "relation_type": "ordonne_par",
       "description": "Roosevelt (puis Truman) ordonna les bombardements atomiques",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-bbbbbbbbbbbb",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-888888888888",
       "relation_type": "participe_à",
       "description": "Staline participa à la Bataille de Stalingrad",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-aaaaaaaaaaaa",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-bbbbbbbbbbbb",
       "relation_type": "oppose_à",
       "description": "Hitler et Staline s'opposèrent sur le front de l'Est",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-666666666666",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-555555555555",
       "relation_type": "réalise",
       "description": "Stephenson construisit la première ligne ferroviaire",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-666666666666",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "participe_à",
       "description": "Stephenson contribua à la Révolution industrielle",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-777777777777",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "critique",
       "description": "Marx critiqua les effets de la Révolution industrielle",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-777777777777",
       "target_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "relation_type": "critique",
       "description": "Marx critiqua le capitalisme industriel",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-777777777777",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-cccccccccccc",
       "relation_type": "théorise",
       "description": "Marx théorisa la lutte de la classe ouvrière",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-888888888888",
       "target_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "relation_type": "incarne",
       "description": "Carnegie incarna le capitalisme industriel américain",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-999999999999",
       "target_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "relation_type": "incarne",
       "description": "Rockefeller incarna le capitalisme industriel américain",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-888888888888",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-999999999999",
       "relation_type": "contemporain_de",
       "description": "Carnegie et Rockefeller furent contemporains",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-aaaaaaaaaaaa",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "réagit_à",
       "description": "Le luddisme fut une réaction contre la Révolution industrielle",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-bbbbbbbbbbbb",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "conséquence_de",
       "description": "L'urbanisation fut une conséquence de la Révolution industrielle",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-cccccccccccc",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "créé_par",
       "description": "La classe ouvrière fut créée par la Révolution industrielle",
-      "confidence": 1.0
+      "confiance": 1.0
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-cccccccccccc",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-bbbbbbbbbbbb",
       "relation_type": "lié_à",
       "description": "La classe ouvrière vécut l'urbanisation",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-aaaaaaaaaaaa",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-cccccccccccc",
       "relation_type": "composé_de",
       "description": "Le luddisme fut composé de membres de la classe ouvrière",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-dddddddddddd",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "partie_de",
       "description": "Le télégraphe fit partie des inventions de la Révolution industrielle",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-eeeeeeeeeeee",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-111111111111",
       "relation_type": "lié_à",
       "description": "L'abolition de l'esclavage fut liée à la Révolution industrielle",
-      "confidence": 0.85
+      "confiance": 0.85
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-eeeeeeeeeeee",
       "target_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "relation_type": "transforme",
       "description": "L'abolition transforma le système capitaliste industriel",
-      "confidence": 0.8
+      "confiance": 0.8
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-444444444444",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-555555555555",
       "relation_type": "permet",
       "description": "La machine à vapeur permit le développement du chemin de fer",
-      "confidence": 0.98
+      "confiance": 0.98
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-222222222222",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-666666666666",
       "relation_type": "influence",
       "description": "Watt influença Stephenson dans le développement ferroviaire",
-      "confidence": 0.85
+      "confiance": 0.85
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-777777777777",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "Les critiques de Marx influencèrent les idéologies du XXe siècle dont certaines menèrent aux conflits mondiaux",
-      "confidence": 0.8
+      "confiance": 0.8
     },
     {
       "source_reec_id": "reec:d4e5f6g7-4444-5555-6666-777777777777",
       "target_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "relation_type": "influence",
       "description": "Le capitalisme industriel influença les politiques du New Deal",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-888888888888",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "L'industrie de l'acier de Carnegie fournit les matériaux pour l'effort de guerre",
-      "confidence": 0.85
+      "confiance": 0.85
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-999999999999",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "L'industrie pétrolière de Rockefeller fut cruciale pour la mobilité militaire moderne",
-      "confidence": 0.85
+      "confiance": 0.85
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-dddddddddddd",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "influence",
       "description": "Le télégraphe permit les communications militaires modernes",
-      "confidence": 0.9
+      "confiance": 0.9
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-cccccccccccc",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "participe_à",
       "description": "La classe ouvrière participa massivement à la Seconde Guerre mondiale",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:b2c3d4e5-2222-3333-4444-bbbbbbbbbbbb",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-444444444444",
       "relation_type": "affecte",
       "description": "L'urbanisation créa les grandes villes qui furent ciblées durant la guerre",
-      "confidence": 0.85
+      "confiance": 0.85
     },
     {
       "source_reec_id": "reec:c3d4e5f6-3333-4444-5555-666666666666",
       "target_reec_id": "reec:b2c3d4e5-2222-3333-4444-cccccccccccc",
       "relation_type": "aide",
       "description": "Le New Deal aida la classe ouvrière",
-      "confidence": 0.95
+      "confiance": 0.95
     },
     {
       "source_reec_id": "reec:a1b2c3d4-1111-2222-3333-999999999999",
       "target_reec_id": "reec:a1b2c3d4-1111-2222-3333-555555555555",
       "relation_type": "allie_de",
       "description": "De Gaulle et Churchill furent alliés",
-      "confidence": 1.0
+      "confiance": 1.0
     }
   ]
 }

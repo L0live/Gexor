@@ -1,21 +1,20 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
-import useNgraphLayout from '../../hooks/useNgraphLayout';
 import Node from './Node';
-import Edge from './Edge';
 import InstancedEdges from './InstancedEdges';
 import InstancedNodes from './InstancedNodes';
 import DynamicTrackballControls from './DynamicTrackballControls';
+import RadialSpheres from './RadialSpheres';
+import { setRadialActive } from '../../utils/radialLayout';
+import { writePosition } from '../../utils/sharedPositions';
 
 const Scene = () => {
   const nodes = useGraphStore(state => state.nodes);
   const edges = useGraphStore(state => state.edges);
   const filters = useGraphStore(state => state.filters);
-  const filterModes = useGraphStore(state => state.filterModes);
   const opacityLevels = useGraphStore(state => state.opacityLevels);
-  const showRelations = useGraphStore(state => state.showRelations);
   const positions = useGraphStore(state => state.positions);
   const selectedNode = useGraphStore(state => state.selectedNode);
   const selectedEdge = useGraphStore(state => state.selectedEdge);
@@ -24,23 +23,46 @@ const Scene = () => {
   const draggedNodeId = useGraphStore(state => state.draggedNodeId);
   const setDraggedNode = useGraphStore(state => state.setDraggedNode);
   const unpinNode = useGraphStore(state => state.unpinNode);
-  const repinNodes = useGraphStore(state => state.repinNodes);
-  const pinAllNodes = useGraphStore(state => state.pinAllNodes);
-  const dragLayout = useGraphStore(state => state.dragLayout);
   const setPositions = useGraphStore(state => state.setPositions);
   const cameraControlsRef = useGraphStore(state => state.cameraControlsRef);
-  const computeNodeLayers = useGraphStore(state => state.computeNodeLayers);
   const pinDraggedNodeOnly = useGraphStore(state => state.pinDraggedNodeOnly);
   const pinnedNodes = useGraphStore(state => state.pinnedNodes);
+  const groupFilters = useGraphStore(state => state.groupFilters);
+  const groupOpacityLevels = useGraphStore(state => state.groupOpacityLevels);
+  const nodeGroupMemberships = useGraphStore(state => state.nodeGroupMemberships);
   const individualNodeOpacity = useGraphStore(state => state.individualNodeOpacity);
   const individualEdgeOpacity = useGraphStore(state => state.individualEdgeOpacity);
+  const autoDragNode = useGraphStore(state => state.autoDragNode);
+  const setAutoDragNode = useGraphStore(state => state.setAutoDragNode);
   
-  const { camera } = useThree();
-  const { layout } = useNgraphLayout();
+  const { camera, size, gl } = useThree();
+  const layoutReady = useGraphStore(state => state.layoutReady);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const dragStartInfoRef = useRef(null);
-  const stabilityCounterRef = useRef(0);
-  const lastModeRef = useRef(null);
+  const radialFrameCounterRef = useRef(0);
+
+  // Convertir des coordonnées écran en position 3D dans le monde
+  const getWorldPosFromScreen = useCallback((clientX, clientY, depthReference = new THREE.Vector3(0, 0, 0)) => {
+    if (!camera || !size) return new THREE.Vector3(0, 0, 0);
+    
+    // Calculer les coordonnées NDC (-1 à +1) par rapport au canvas Three.js
+    // Note : On utilise window.innerWidth/Height si le canvas fait toute la page, 
+    // ou size.width/height si le canvas est dans un conteneur. 
+    // Ici size est plus fiable car fourni par @react-three/fiber.
+    const rect = gl.domElement?.getBoundingClientRect();
+    const x = rect ? ((clientX - rect.left) / rect.width) * 2 - 1 : (clientX / size.width) * 2 - 1;
+    const y = rect ? -((clientY - rect.top) / rect.height) * 2 + 1 : -(clientY / size.height) * 2 + 1;
+    
+    const vector = new THREE.Vector3(x, y, 0.5);
+    vector.unproject(camera);
+    const dir = vector.sub(camera.position).normalize();
+    
+    // Calculer la distance au plan perpendiculaire à la caméra passant par depthReference
+    const planeNormal = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).normalize();
+    const dist = (depthReference.clone().sub(camera.position).dot(planeNormal)) / dir.dot(planeNormal);
+    
+    return new THREE.Vector3().copy(camera.position).add(dir.multiplyScalar(dist));
+  }, [camera, size]);
 
   // Convertir le mouvement écran en déplacement 3D en tenant compte de la rotation caméra et du zoom
   const screenToWorldDelta = useCallback((clientDelta, draggedNodePos) => {
@@ -96,45 +118,40 @@ const Scene = () => {
 
   // Gestion du drag fin
   const handleDragEnd = useCallback((nodeId) => {
-    const { draggedNodeId: currentId } = useGraphStore.getState();
-    if (!layout || !currentId) return;
+    const { draggedNodeId: currentId, layoutInstance: worker } = useGraphStore.getState();
+    if (!currentId) return;
     
-    const { pinDraggedNodeOnly, setPositions, saveToHistory } = useGraphStore.getState();
+    const { pinDraggedNodeOnly, saveToHistory } = useGraphStore.getState();
     document.body.style.cursor = 'default';
     
-    // 1. Forcer une dernière fois la position physique via la souris pour éviter tout saut
-    const body = layout.getBody(currentId);
+    // 1. Compute final drag position from mouse
     const startInfo = dragStartInfoRef.current;
-    if (body && startInfo) {
+    if (startInfo && worker?.postMessage) {
       const currentMouse = mousePosRef.current;
       const worldDelta = screenToWorldDelta(
         { x: currentMouse.x - startInfo.startX, y: currentMouse.y - startInfo.startY }, 
         { x: startInfo.nodeStartX, y: startInfo.nodeStartY, z: startInfo.nodeStartZ }
       );
-      body.pos.x = startInfo.nodeStartX + worldDelta.x;
-      body.pos.y = startInfo.nodeStartY + worldDelta.y;
-      body.pos.z = startInfo.nodeStartZ + worldDelta.z;
-      body.velocity.x = body.velocity.y = body.velocity.z = 0;
+      const finalPos = {
+        x: startInfo.nodeStartX + worldDelta.x,
+        y: startInfo.nodeStartY + worldDelta.y,
+        z: startInfo.nodeStartZ + worldDelta.z
+      };
+      // Send final position to worker
+      worker.postMessage({ type: 'setBodyPosition', nodeId: currentId, ...finalPos });
     }
 
-    // 2. Synchronisation FINALE du layout vers le store
-    // On capture la position exacte à l'instant T et on stoppe toute vélocité résiduelle
-    const newPositions = {};
-    layout.forEachBody((b, id) => {
-      newPositions[id] = { x: b.pos.x, y: b.pos.y, z: b.pos.z };
-      // Stopper la vélocité pour éviter le "rebond" ou "snap-back" violent au lâcher
-      b.velocity.x = 0;
-      b.velocity.y = 0;
-      b.velocity.z = 0;
-    });
-    setPositions(newPositions);
+    // 2. Reset all velocities + clear drag state in worker
+    if (worker?.postMessage) {
+      worker.postMessage({ type: 'resetVelocity', nodeId: 'all' });
+      worker.postMessage({ type: 'setDraggedNode', nodeId: null });
+    }
     
     // 3. Rétablir le statut isPinned si le node l'était déjà
     if (startInfo?.wasPinned) {
-      pinDraggedNodeOnly(layout, currentId);
-    } else {
-      // S'assurer qu'il reste débloqué si il ne l'était pas
-      body.isPinned = false;
+      pinDraggedNodeOnly(currentId);
+    } else if (worker?.postMessage) {
+      worker.postMessage({ type: 'unpinNode', nodeId: currentId });
     }
     
     // 4. Libérer le node dans le store UI
@@ -146,30 +163,35 @@ const Scene = () => {
       setTimeout(() => saveToHistory(), 100);
     }
     
-    // 6. Stabiliser les voisins (repin après 3s)
-    const { setSimulationActive, setSimulationStable } = useGraphStore.getState();
+    // 6. Wake simulation
+    const { wakeSimulation, setSimulationActive } = useGraphStore.getState();
     setSimulationActive(true);
-    setSimulationStable(false);
+    wakeSimulation();
     
     setTimeout(() => {
       const { repinNodes, setSimulationActive: stopSim } = useGraphStore.getState();
-      repinNodes(layout);
+      repinNodes();
       stopSim(false);
     }, 3000);
-  }, [layout, setPositions, setDraggedNode, pinDraggedNodeOnly, screenToWorldDelta]);
+  }, [setDraggedNode, pinDraggedNodeOnly, screenToWorldDelta]);
 
   const handleDragStart = useCallback((nodeId, clientX, clientY) => {
-    const { isPinned, saveToHistory, positions: currentPositions } = useGraphStore.getState();
+    const { isPinned, saveToHistory, positions: currentPositions, layoutInstance: worker } = useGraphStore.getState();
     const wasPinned = isPinned(nodeId);
     let shouldSave = wasPinned || !isConnectedToPinnedNode(nodeId);
     
     if (shouldSave) saveToHistory();
     
     setDraggedNode(nodeId);
-    unpinNode(nodeId, layout);
-    computeNodeLayers(nodeId, edges, nodes.length);
+    unpinNode(nodeId);
     
+    // Position from the store (worker keeps physics in sync)
     const nodePos = currentPositions[nodeId] || { x: 0, y: 0, z: 0 };
+    
+    // Tell worker about drag
+    if (worker?.postMessage) {
+      worker.postMessage({ type: 'setDraggedNode', nodeId, x: nodePos.x, y: nodePos.y, z: nodePos.z });
+    }
     
     dragStartInfoRef.current = {
       startX: clientX,
@@ -178,9 +200,57 @@ const Scene = () => {
       nodeStartY: nodePos.y,
       nodeStartZ: nodePos.z,
       wasPinned,
-      shouldSave
+      shouldSave,
+      startTime: Date.now()
     };
-  }, [layout, isConnectedToPinnedNode, edges, nodes.length, setDraggedNode, unpinNode, computeNodeLayers]);
+  }, [isConnectedToPinnedNode, edges, nodes.length, setDraggedNode, unpinNode]);
+
+  // Gérer le drag automatique (ajout depuis l'UI)
+  useEffect(() => {
+    if (autoDragNode) {
+      const { nodeId, clientX, clientY } = autoDragNode;
+      let attempts = 0;
+      
+      const checkAndStart = () => {
+        const { positions: currentPositions, layoutInstance: worker } = useGraphStore.getState();
+        // Wait until the worker has produced a position for this node
+        if (currentPositions[nodeId]) {
+          // Réveil forcé de la simulation
+          const { setSimulationActive, wakeSimulation, selectedNode: selNode } = useGraphStore.getState();
+          setSimulationActive(true);
+          wakeSimulation();
+          
+          // Positionner le node au curseur avant de commencer le drag
+          const depthRef = selNode && currentPositions[selNode.id] 
+            ? new THREE.Vector3(currentPositions[selNode.id].x, currentPositions[selNode.id].y, currentPositions[selNode.id].z)
+            : new THREE.Vector3(0, 0, 0);
+          
+          const worldPos = getWorldPosFromScreen(clientX, clientY, depthRef);
+          
+          // Tell worker to position the body
+          if (worker?.postMessage) {
+            worker.postMessage({ type: 'setBodyPosition', nodeId, x: worldPos.x, y: worldPos.y, z: worldPos.z });
+          }
+          
+          handleDragStart(nodeId, clientX, clientY);
+          setAutoDragNode(null);
+          return true;
+        }
+        return false;
+      };
+
+      if (!checkAndStart()) {
+        const interval = setInterval(() => {
+          attempts++;
+          if (checkAndStart() || attempts > 20) {
+            clearInterval(interval);
+            if (attempts > 20) setAutoDragNode(null);
+          }
+        }, 50);
+        return () => clearInterval(interval);
+      }
+    }
+  }, [autoDragNode, handleDragStart, setAutoDragNode]);
 
   // Tracker la souris
   useEffect(() => {
@@ -190,6 +260,13 @@ const Scene = () => {
     const handleMouseUp = (e) => {
       const { draggedNodeId: currentId } = useGraphStore.getState();
       if (currentId) {
+        // Ignorer le mouseup s'il survient trop vite après le début du drag (cas du double-clic)
+        // Cela permet au node de rester "collé" à la souris pour un placement libre
+        const duration = Date.now() - (dragStartInfoRef.current?.startTime || 0);
+        if (duration < 200) {
+          return;
+        }
+        
         e.stopPropagation();
         handleDragEnd(currentId);
       }
@@ -202,134 +279,129 @@ const Scene = () => {
     };
   }, [handleDragEnd]);
 
-  // Simuler la physique en continu
-  useFrame(() => {
-    const { 
-      simulationActive, 
-      layoutReady, 
-      simulationPaused, 
-      simulationStable,
-      setSimulationStable,
-      layoutMode,
-      nodeLayersMap,
-      maxLayers,
-      positions: storePositions,
-      draggedNodeId: currentDraggedId,
-      pinnedNodes: currentPinnedNodes
-    } = useGraphStore.getState();
-
-    if (lastModeRef.current !== layoutMode) {
-      stabilityCounterRef.current = 0;
-      lastModeRef.current = layoutMode;
-    }
+  // Gérer le clic molette pour le recentrage
+  useEffect(() => {
+    const glElement = gl.domElement;
     
-    // Ne pas simuler si pause ou stable, sauf si on drag ou simulation forcée
-    if (!currentDraggedId && !simulationActive && (simulationPaused || (simulationStable && layoutMode === 'force'))) {
-      return;
-    }
-    
-    if (layout && (layoutReady || currentDraggedId || simulationActive)) {
-      const currentMousePos = mousePosRef.current;
-      
-      // 1. Appliquer la position du drag depuis la souris (Avant le step)
-      if (currentDraggedId && dragStartInfoRef.current) {
-        const body = layout.getBody(currentDraggedId);
-        if (body) {
-          const info = dragStartInfoRef.current;
-          const worldDelta = screenToWorldDelta(
-            { x: currentMousePos.x - info.startX, y: currentMousePos.y - info.startY }, 
-            { x: info.nodeStartX, y: info.nodeStartY, z: info.nodeStartZ }
-          );
-          body.pos.x = info.nodeStartX + worldDelta.x;
-          body.pos.y = info.nodeStartY + worldDelta.y;
-          body.pos.z = info.nodeStartZ + worldDelta.z;
-          body.velocity.x = body.velocity.y = body.velocity.z = 0;
-          body.isPinned = false; // S'assurer qu'il n'est pas bloqué pendant qu'on le bouge
-        }
-      }
-      
-      // 2. S'assurer que les nodes pinnés sont bien bloqués dans le moteur physique
-      currentPinnedNodes.forEach(nodeId => {
-        if (nodeId === currentDraggedId) return;
-        const body = layout.getBody(nodeId);
-        if (body) {
-          body.isPinned = true;
-          // on ne force plus body.pos.x = storePositions[nodeId].x; 
-          // car ngraph garde la position en mémoire et Step 7 synchronise le store.
-        }
-      });
-      
-      // 3. Appliquer les atténuations de force (layers)
-      layout.forEachBody((body, nodeId) => {
-        if (body.isPinned || nodeId === currentDraggedId) return;
-        const layer = nodeLayersMap[nodeId];
-        if (layer !== undefined && layer <= maxLayers) {
-          const forceFactor = Math.max(0, (layer - 1) / maxLayers);
-          body.velocity.x *= (0.1 + forceFactor * 0.9);
-          body.velocity.y *= (0.1 + forceFactor * 0.9);
-          body.velocity.z *= (0.1 + forceFactor * 0.9);
-        }
-      });
-      
-      // 4. Avancer la simulation
-      layout.step();
-      
-      // 5. Re-forcer la position du drag APRÈS le step pour éviter le tremblement visuel
-      if (currentDraggedId && dragStartInfoRef.current) {
-        const body = layout.getBody(currentDraggedId);
-        if (body) {
-          const info = dragStartInfoRef.current;
-          const currentMousePos = mousePosRef.current;
-          const worldDelta = screenToWorldDelta(
-            { x: currentMousePos.x - info.startX, y: currentMousePos.y - info.startY }, 
-            { x: info.nodeStartX, y: info.nodeStartY, z: info.nodeStartZ }
-          );
-          body.pos.x = info.nodeStartX + worldDelta.x;
-          body.pos.y = info.nodeStartY + worldDelta.y;
-          body.pos.z = info.nodeStartZ + worldDelta.z;
-        }
-      }
+    const handlePointerDown = (e) => {
+      // Bouton 1 = clic molette (middle click)
+      if (e.button === 1) {
+        const state = useGraphStore.getState();
+        const { 
+          selectedNode, 
+          selectedEdge, 
+          nodes, 
+          filters,
+          positions, 
+          triggerCenterOnNode, 
+          triggerCenterOnPosition 
+        } = state;
 
-      // 6. Détection de stabilité
-      if (!currentDraggedId && layoutMode === 'force') {
-        let maxMoveSq = 0;
-        layout.forEachBody((body, nodeId) => {
-          if (!body.isPinned && storePositions[nodeId]) {
-            const dx = body.pos.x - storePositions[nodeId].x;
-            const dy = body.pos.y - storePositions[nodeId].y;
-            const dz = body.pos.z - storePositions[nodeId].z;
-            const moveSq = dx*dx + dy*dy + dz*dz;
-            if (moveSq > maxMoveSq) maxMoveSq = moveSq;
-          }
-        });
-        if (maxMoveSq < 0.0001) {
-          if (++stabilityCounterRef.current > 60) {
-            setSimulationStable(true);
-            stabilityCounterRef.current = 0;
+        if (selectedNode) {
+          triggerCenterOnNode(selectedNode.id);
+        } else if (selectedEdge) {
+          // Recentrer sur le milieu de l'arête sélectionnée
+          const sourcePos = positions[selectedEdge.source];
+          const targetPos = positions[selectedEdge.target];
+          if (sourcePos && targetPos) {
+            triggerCenterOnPosition({
+              x: (sourcePos.x + targetPos.x) / 2,
+              y: (sourcePos.y + targetPos.y) / 2,
+              z: (sourcePos.z + targetPos.z) / 2
+            });
           }
         } else {
-          stabilityCounterRef.current = 0;
+          // Recentrer sur le centre de masse global (nodes visibles)
+          let sumX = 0, sumY = 0, sumZ = 0, count = 0;
+          
+          nodes.forEach(node => {
+            if (filters[node.type]) {
+              const pos = positions[node.id];
+              if (pos) {
+                sumX += pos.x;
+                sumY += pos.y;
+                sumZ += pos.z;
+                count++;
+              }
+            }
+          });
+
+          if (count > 0) {
+            triggerCenterOnPosition({
+              x: sumX / count,
+              y: sumY / count,
+              z: sumZ / count
+            });
+          }
         }
-      } else {
-        stabilityCounterRef.current = 0;
+      }
+    };
+
+    glElement.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      glElement.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [gl, nodes, positions, filters]);
+
+  // Drag position override + radial update (physics is handled by the Web Worker)
+  useFrame(() => {
+    const { 
+      draggedNodeId: currentDraggedId,
+      pinnedNodes: currentPinnedNodes,
+      layoutInstance: worker
+    } = useGraphStore.getState();
+
+    // ── Drag: compute expected position from mouse & push to store + worker ──
+    if (currentDraggedId && dragStartInfoRef.current) {
+      const currentMousePos = mousePosRef.current;
+      const info = dragStartInfoRef.current;
+      const worldDelta = screenToWorldDelta(
+        { x: currentMousePos.x - info.startX, y: currentMousePos.y - info.startY },
+        { x: info.nodeStartX, y: info.nodeStartY, z: info.nodeStartZ }
+      );
+      const dragPos = {
+        x: info.nodeStartX + worldDelta.x,
+        y: info.nodeStartY + worldDelta.y,
+        z: info.nodeStartZ + worldDelta.z
+      };
+
+      // Optimistic update: write drag position to SAB (zero-copy) + store
+      writePosition(currentDraggedId, dragPos.x, dragPos.y, dragPos.z);
+      const currentPositions = useGraphStore.getState().positions;
+      useGraphStore.getState().setPositions({
+        ...currentPositions,
+        [currentDraggedId]: dragPos
+      });
+
+      // Tell worker so physics reacts
+      if (worker?.postMessage) {
+        worker.postMessage({ type: 'setBodyPosition', nodeId: currentDraggedId, ...dragPos });
+      }
+    }
+
+    // ── Radial plugin — update target positions (purely visual) ──
+    {
+      const {
+        pinnedSettings: currentPinnedSettings,
+        updateRadialTargets,
+      } = useGraphStore.getState();
+
+      let hasRadialGroup = false;
+      for (const gId of currentPinnedNodes) {
+        if (currentPinnedSettings[gId]?.renderMode === 'radial') { hasRadialGroup = true; break; }
       }
 
-      // 7. Synchronisation finale vers le store (positions)
-      const currentPosStore = useGraphStore.getState().positions;
-      const newPositions = { ...currentPosStore }; 
-      let hasSignificantMove = false;
-      
-      layout.forEachBody((body, nodeId) => {
-        const oldPos = currentPosStore[nodeId];
-        newPositions[nodeId] = { x: body.pos.x, y: body.pos.y, z: body.pos.z };
-        if (!oldPos || Math.abs(body.pos.x - oldPos.x) > 0.001 || Math.abs(body.pos.y - oldPos.y) > 0.001) {
-          hasSignificantMove = true;
+      if (hasRadialGroup) {
+        radialFrameCounterRef.current++;
+        if (radialFrameCounterRef.current >= 10) {
+          radialFrameCounterRef.current = 0;
+          updateRadialTargets();
         }
-      });
-      
-      const { simulationStable: isStable, setPositions: setPos, simulationActive: isActive } = useGraphStore.getState();
-      if (hasSignificantMove || isActive || !isStable || currentDraggedId) {
-        setPos(newPositions);
+      } else {
+        if (radialFrameCounterRef.current !== 0) {
+          radialFrameCounterRef.current = 0;
+          setRadialActive(false);
+        }
       }
     }
   });
@@ -342,25 +414,49 @@ const Scene = () => {
       {/* Contrôles trackball dynamiques */}
       <DynamicTrackballControls isDragging={!!draggedNodeId} />
       
-      {/* Edges Instanciés */}
-      <InstancedEdges />
-      
-      {/* Nodes Instanciés (Loin) */}
-      <InstancedNodes />
+      {/* Rendu des Groupes (Edges & Nodes Instanciés) */}
+      {Array.from(pinnedNodes).map(pinnedId => (
+        <group key={pinnedId}>
+          <InstancedEdges groupId={pinnedId} />
+          <InstancedNodes groupId={pinnedId} />
+        </group>
+      ))}
+
+      {/* Sphères radiales (wireframe) pour les groupes en mode radial */}
+      <RadialSpheres />
+
+      {/* Rendu des Orphelins (Nodes non rattachés à un groupe) */}
+      <InstancedEdges groupId={null} />
+      <InstancedNodes groupId={null} />
       
       {/* Nodes (React - Proche) */}
       {nodes.map((node) => {
-        // Affichage basé sur le filtre global
-        const visible = filters[node.type];
+        // Déterminer la visibilité et l'opacité
+        // Un node est visible s'il est visible dans n'importe quel groupe auquel il appartient
+        // Sinon s'il n'est dans aucun groupe, on utilise le filtre global
+        const memberships = nodeGroupMemberships[node.id] || [];
+        let isVisible = false;
+        let maxOpacity = 0;
+
+        if (memberships.length > 0) {
+          // Si le node appartient à des groupes, il est visible si visible dans au moins un groupe
+          memberships.forEach(gid => {
+            const gFilters = groupFilters[gid] || filters;
+            const gOpacityLevels = groupOpacityLevels[gid] || opacityLevels;
+            if (gFilters[node.type]) {
+              isVisible = true;
+              const op = (gOpacityLevels[node.type] ?? 1.0) * (individualNodeOpacity[node.id] ?? 1);
+              if (op > maxOpacity) maxOpacity = op;
+            }
+          });
+        } else {
+          // Pas de groupe (orphelin)
+          isVisible = filters[node.type];
+          maxOpacity = (opacityLevels[node.type] ?? 1.0) * (individualNodeOpacity[node.id] ?? 1);
+        }
         
         // Ne pas rendre du tout les nodes non visibles
-        if (!visible) return null;
-        
-        // Opacité: minimum entre type et individuel
-        const nodeOpacity = Math.min(
-          opacityLevels[node.type],
-          individualNodeOpacity[node.id] ?? 1
-        );
+        if (!isVisible) return null;
         
         return (
         <Node
@@ -373,7 +469,7 @@ const Scene = () => {
           isPinned={pinnedNodes.has(node.id)}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          opacityLevel={nodeOpacity}
+          opacityLevel={maxOpacity}
           totalNodes={nodes.length}
           onClick={(e) => {
             e.stopPropagation();

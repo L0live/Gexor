@@ -6,7 +6,16 @@ import useGraphStore from '../../store/useGraphStore';
 
 const DynamicTrackballControls = ({ isDragging }) => {
   const controlsRef = useRef();
-  const { positions, centerOnNodeId, setCameraControlsRef, clearCenterOnNode, centralNodeId, simulationStable } = useGraphStore();
+  const { 
+    positions, 
+    centerOnNodeId, 
+    centerOnPosition,
+    setCameraControlsRef, 
+    clearCenterOnNode, 
+    clearCenterOnPosition,
+    centralNodeId, 
+    simulationStable 
+  } = useGraphStore();
   const userInteracted = useRef(false);
   const targetPosition = useRef(new THREE.Vector3());
   const isAnimating = useRef(false);
@@ -32,20 +41,23 @@ const DynamicTrackballControls = ({ isDragging }) => {
     };
   }, []);
   
-  // Déclencher l'animation quand centerOnNodeId change
+  // Déclencher l'animation quand centerOnNodeId ou centerOnPosition change
   useEffect(() => {
-    if (!controlsRef.current || !centerOnNodeId) return;
+    if (!controlsRef.current) return;
     
-    const nodePos = positions[centerOnNodeId];
-    if (!nodePos) return;
-    
-    // Définir la nouvelle position cible et démarrer l'animation
-    targetPosition.current.set(nodePos.x, nodePos.y, nodePos.z);
-    isAnimating.current = true;
-    
-    // Nettoyer après avoir déclenché l'animation
-    clearCenterOnNode();
-  }, [centerOnNodeId, positions, clearCenterOnNode]);
+    if (centerOnNodeId) {
+      const nodePos = positions[centerOnNodeId];
+      if (nodePos) {
+        targetPosition.current.set(nodePos.x, nodePos.y, nodePos.z);
+        isAnimating.current = true;
+      }
+      clearCenterOnNode();
+    } else if (centerOnPosition) {
+      targetPosition.current.set(centerOnPosition.x, centerOnPosition.y, centerOnPosition.z);
+      isAnimating.current = true;
+      clearCenterOnPosition();
+    }
+  }, [centerOnNodeId, centerOnPosition, positions, clearCenterOnNode, clearCenterOnPosition]);
   
   // Animer la transition du target ET suivre le node central tant que la simulation n'est pas stable
   useFrame(() => {
@@ -86,7 +98,7 @@ const DynamicTrackballControls = ({ isDragging }) => {
       noZoom={isDragging}
       noRotate={isDragging}
       minDistance={50}
-      maxDistance={800}
+      maxDistance={3000}
       rotateSpeed={4.0}
       panSpeed={0.2}
       zoomSpeed={2.0}

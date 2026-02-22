@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Moon } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
+import { COLOR_MAP } from '../../constants/graphConstants';
 
 const Minimap = () => {
   const nodes = useGraphStore(state => state.nodes);
@@ -9,7 +10,6 @@ const Minimap = () => {
   const selectNode = useGraphStore(state => state.selectNode);
   const simulationStable = useGraphStore(state => state.simulationStable);
   const simulationPaused = useGraphStore(state => state.simulationPaused);
-  const layoutMode = useGraphStore(state => state.layoutMode);
   
   // Calculer les limites pour le cadrage
   const bounds = useMemo(() => {
@@ -39,7 +39,20 @@ const Minimap = () => {
   const scale = size / Math.max(bounds.width, bounds.height, 1);
 
   return (
-    <div className="absolute bottom-4 right-4 w-[150px] h-[150px] bg-black/60 border border-white/20 rounded-lg overflow-hidden backdrop-blur-md pointer-events-auto">
+    <div className="absolute top-4 right-4 w-[150px] h-[150px] bg-black/60 border border-white/20 rounded-lg overflow-hidden backdrop-blur-md pointer-events-auto">
+      <div className="absolute top-2 left-2 text-[10px] text-white/40 uppercase tracking-widest font-bold pointer-events-none">
+        Minimap
+      </div>
+
+      {/* Indicateur de simulation stable/endormie */}
+      {simulationStable && !simulationPaused && (
+        <div 
+          className="absolute top-2 right-2"
+          title="Simulation en veille (stable)"
+        >
+          <Moon className="w-4 h-4 text-blue-400" />
+        </div>
+      )}
       <svg 
         width={size} 
         height={size} 
@@ -52,19 +65,14 @@ const Minimap = () => {
           if (!pos) return null;
           
           const isSelected = selectedNode?.id === node.id;
-          const colorMap = {
-            'Entity': '#3b82f6',
-            'Event': '#8b5cf6',
-            'Context': '#10b981'
-          };
           
           return (
             <circle
               key={node.id}
               cx={pos.x}
-              cy={pos.z - 10}
+              cy={pos.z + 10}
               r={isSelected ? 12 / scale : 6 / scale}
-              fill={colorMap[node.type] || '#64748b'}
+              fill={COLOR_MAP[node.type] || COLOR_MAP.Default}
               stroke={isSelected ? 'white' : 'none'}
               strokeWidth={2 / scale}
               className="cursor-pointer hover:brightness-125 transition-all"
@@ -73,19 +81,6 @@ const Minimap = () => {
           );
         })}
       </svg>
-      <div className="absolute bottom-1 left-2 text-[10px] text-white/40 uppercase tracking-widest font-bold pointer-events-none">
-        Minimap
-      </div>
-
-      {/* Indicateur de simulation stable/endormie */}
-      {layoutMode === 'force' && simulationStable && !simulationPaused && (
-        <div 
-          className="absolute bottom-2 right-2"
-          title="Simulation en veille (stable)"
-        >
-          <Moon className="w-4 h-4 text-blue-400" />
-        </div>
-      )}
     </div>
   );
 };

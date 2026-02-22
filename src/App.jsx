@@ -1,9 +1,6 @@
 import NexReecGraph from './NexReecGraph';
-// import JSONfile from '../data/epoque_moderne_reecs.json'; // fichier de test json
-// import JSONfile from '../data/tests_reecs.json'; // fichier de test json
-// import JSONfile from '../data/tests_reecs2.json'; // fichier de test json
-import JSONfile from '../data/tests_reecs3.json'; // fichier de test json
-// import JSONfile from '../data/tests_reecs4.json'; // fichier de test json
+// import JSONfile from '../data/epoque_moderne_reecs.json';
+import JSONfile from '../data/reecs_ultra_massive_v2.json';
 
 function App() {
   return <NexReecGraph initialData={JSONfile} />;
