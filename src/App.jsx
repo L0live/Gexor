@@ -1,9 +1,12 @@
-import NexReecGraph from './NexReecGraph';
-// import JSONfile from '../data/epoque_moderne_reecs.json';
-import JSONfile from '../data/reecs_ultra_massive_v2.json';
+import Gexor from './Gexor';
+import StartScreen from './components/UI/StartScreen';
+import useGraphStore from './store/useGraphStore';
 
 function App() {
-  return <NexReecGraph initialData={JSONfile} />;
+  const loadedNodes = useGraphStore(s => s.loadedNodes);
+  const hasData = Object.keys(loadedNodes).length > 0;
+
+  return hasData ? <Gexor /> : <StartScreen />;
 }
 
 export default App;

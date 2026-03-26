@@ -1,72 +1,24 @@
 /**
- * pinSlice — Pinning system, groups, drag, BFS exploration
+ * pinSlice — Pinning system (position lock), drag management
+ *
+ * Pin is purely a position lock. Per-node settings (depth, direction,
+ * radial) are managed in nodeSettings on dataSlice.
  */
-import { DEFAULT_RADIAL_STRENGTH, DEFAULT_RADIAL_SPACING, DEFAULT_RADIAL_SPACING_MODE } from '../../constants/graphConstants';
 
-const defaultPinSettings = (overrides = {}) => ({
-  depth: 1,
-  renderMode: 'force',          // 'force' | 'radial'
-  radialStrength: DEFAULT_RADIAL_STRENGTH,
-  radialSpacingMode: DEFAULT_RADIAL_SPACING_MODE, // 'fixed' | 'proportional'
-  radialSpacing: DEFAULT_RADIAL_SPACING,
-  ...overrides
-});
+// Debounce: collapse rapid pin operations into a single history snapshot
+let _saveHistoryTimer = null;
+const _debouncedSaveHistory = (get) => {
+  if (_saveHistoryTimer) clearTimeout(_saveHistoryTimer);
+  _saveHistoryTimer = setTimeout(() => {
+    _saveHistoryTimer = null;
+    get().saveToHistory();
+  }, 150);
+};
 
 export const createPinSlice = (set, get) => ({
   pinnedNodes: new Set(),
-  pinnedSettings: {},
   draggedNodeId: null,
   unpinnedDuringDrag: new Set(),
-
-  setGroupDepth: (nodeId, depth) => {
-    set((state) => ({
-      pinnedSettings: {
-        ...state.pinnedSettings,
-        [nodeId]: { ...state.pinnedSettings[nodeId], depth }
-      }
-    }));
-    get().updateGraphData();
-  },
-
-  setGroupRenderMode: (nodeId, mode) => {
-    set((state) => ({
-      pinnedSettings: {
-        ...state.pinnedSettings,
-        [nodeId]: { ...state.pinnedSettings[nodeId], renderMode: mode }
-      }
-    }));
-    get().wakeSimulation();
-  },
-
-  setRadialStrength: (nodeId, value) => {
-    set((state) => ({
-      pinnedSettings: {
-        ...state.pinnedSettings,
-        [nodeId]: { ...state.pinnedSettings[nodeId], radialStrength: value }
-      }
-    }));
-    get().wakeSimulation();
-  },
-
-  setRadialSpacingMode: (nodeId, mode) => {
-    set((state) => ({
-      pinnedSettings: {
-        ...state.pinnedSettings,
-        [nodeId]: { ...state.pinnedSettings[nodeId], radialSpacingMode: mode }
-      }
-    }));
-    get().wakeSimulation();
-  },
-
-  setRadialSpacing: (nodeId, value) => {
-    set((state) => ({
-      pinnedSettings: {
-        ...state.pinnedSettings,
-        [nodeId]: { ...state.pinnedSettings[nodeId], radialSpacing: value }
-      }
-    }));
-    get().wakeSimulation();
-  },
 
   setDraggedNode: (nodeId) => {
     set({ draggedNodeId: nodeId });
@@ -77,18 +29,12 @@ export const createPinSlice = (set, get) => ({
   
   pinAllNodes: () => {
     const worker = get().layoutInstance;
-    // Build the pinned set from all currently visible nodes
     const pinnedSet = new Set();
-    const newPinnedSettings = { ...get().pinnedSettings };
     get().nodes.forEach(n => {
       pinnedSet.add(n.id);
-      if (!newPinnedSettings[n.id]) {
-        newPinnedSettings[n.id] = defaultPinSettings();
-      }
     });
-    set({ pinnedNodes: pinnedSet, pinnedSettings: newPinnedSettings });
+    set({ pinnedNodes: pinnedSet });
     if (worker?.postMessage) worker.postMessage({ type: 'pinAllNodes' });
-    get().updateGraphData();
   },
   
   unpinNode: (nodeId) => {
@@ -129,38 +75,23 @@ export const createPinSlice = (set, get) => ({
   
   toggleNodePin: (nodeId) => {
     const worker = get().layoutInstance;
-    const { pinnedNodes, pinnedSettings } = get();
+    const { pinnedNodes } = get();
     
     const newPinnedNodes = new Set(pinnedNodes);
-    const newPinnedSettings = { ...pinnedSettings };
-    const newGroupFilters = { ...get().groupFilters };
-    const newGroupOpacityLevels = { ...get().groupOpacityLevels };
 
     if (pinnedNodes.has(nodeId)) {
-      // Unpin
+      // Unpin (position lock only — nodeSettings are independent)
       newPinnedNodes.delete(nodeId);
-      delete newPinnedSettings[nodeId];
-      delete newGroupFilters[nodeId];
-      delete newGroupOpacityLevels[nodeId];
       if (worker?.postMessage) worker.postMessage({ type: 'pinNode', nodeId, pinned: false });
     } else {
-      // Pin
+      // Pin (position lock only — no nodeSettings creation)
       newPinnedNodes.add(nodeId);
-      newPinnedSettings[nodeId] = defaultPinSettings();
-      newGroupFilters[nodeId] = { ...get().filters };
-      newGroupOpacityLevels[nodeId] = { ...get().opacityLevels };
       if (worker?.postMessage) worker.postMessage({ type: 'pinNode', nodeId, pinned: true });
     }
-    set({ 
-      pinnedNodes: newPinnedNodes, 
-      pinnedSettings: newPinnedSettings,
-      groupFilters: newGroupFilters,
-      groupOpacityLevels: newGroupOpacityLevels
-    });
-    get().updateGraphData();
+    set({ pinnedNodes: newPinnedNodes });
     get().wakeSimulation();
     
-    setTimeout(() => get().saveToHistory(), 100);
+    _debouncedSaveHistory(get);
   },
   
   isPinned: (nodeId) => {
@@ -173,29 +104,24 @@ export const createPinSlice = (set, get) => ({
     if (worker?.postMessage) {
       worker.postMessage({ type: 'unpinAllNodes', pinnedNodeIds: [...pinnedNodes] });
     }
-    set({ pinnedNodes: new Set(), pinnedSettings: {} });
+    set({ pinnedNodes: new Set() });
     get().updateGraphData();
     get().wakeSimulation();
     
-    setTimeout(() => get().saveToHistory(), 100);
+    _debouncedSaveHistory(get);
   },
   
   pinAllVisibleNodes: (visibleNodeIds) => {
     const worker = get().layoutInstance;
     const newPinnedNodes = new Set();
-    const newPinnedSettings = { ...get().pinnedSettings };
     visibleNodeIds.forEach(nodeId => {
       newPinnedNodes.add(nodeId);
-      if (!newPinnedSettings[nodeId]) {
-        newPinnedSettings[nodeId] = defaultPinSettings();
-      }
     });
     if (worker?.postMessage) {
       worker.postMessage({ type: 'pinNodes', nodeIds: [...visibleNodeIds] });
     }
-    set({ pinnedNodes: newPinnedNodes, pinnedSettings: newPinnedSettings });
-    get().updateGraphData();
+    set({ pinnedNodes: newPinnedNodes });
     
-    setTimeout(() => get().saveToHistory(), 100);
+    _debouncedSaveHistory(get);
   },
 });

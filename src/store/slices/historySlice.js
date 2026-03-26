@@ -1,7 +1,9 @@
 /**
  * historySlice — Undo/redo snapshots
+ *
+ * Adapted for LOD model: uses loadedNodes/loadedRelations (objects keyed by URI).
  */
-import { mapReecToNode, mapRelationToEdge } from '../utils';
+import { mapLodNodeToGraphNode, mapLodEdgeToGraphEdge } from '../utils';
 import { MAX_HISTORY_SIZE } from '../../constants/graphConstants';
 
 export const createHistorySlice = (set, get) => ({
@@ -12,9 +14,10 @@ export const createHistorySlice = (set, get) => ({
   saveToHistory: () => {
     const state = get();
     const snapshot = {
-      visibleReecIds: new Set(state.visibleReecIds),
+      visibleNodeIds: new Set(state.visibleNodeIds),
       pinnedNodes: new Set(state.pinnedNodes),
-      positions: { ...state.positions }
+      positions: { ...state.positions },
+      nodeSettings: { ...state.nodeSettings },
     };
     
     const newHistory = state.history.slice(0, state.historyIndex + 1);
@@ -38,13 +41,15 @@ export const createHistorySlice = (set, get) => ({
     const snapshot = state.history[newIndex];
     if (!snapshot) return;
     
-    const nodes = state.availableReecs
-      .filter(reec => snapshot.visibleReecIds.has(reec.reec_id))
-      .map(mapReecToNode);
+    const { loadedNodes, loadedRelations } = state;
+
+    const nodes = Object.values(loadedNodes)
+      .filter(n => snapshot.visibleNodeIds.has(n.uri))
+      .map(mapLodNodeToGraphNode);
     
-    const edges = state.availableRelations
-      .filter(rel => snapshot.visibleReecIds.has(rel.source_reec_id) && snapshot.visibleReecIds.has(rel.target_reec_id))
-      .map(mapRelationToEdge);
+    const edges = Object.values(loadedRelations)
+      .filter(rel => snapshot.visibleNodeIds.has(rel.source) && snapshot.visibleNodeIds.has(rel.target))
+      .map(mapLodEdgeToGraphEdge);
     
     get()._applySnapshot(snapshot, nodes, edges, newIndex);
   },
@@ -57,32 +62,35 @@ export const createHistorySlice = (set, get) => ({
     const snapshot = state.history[newIndex];
     if (!snapshot) return;
     
-    const nodes = state.availableReecs
-      .filter(reec => snapshot.visibleReecIds.has(reec.reec_id))
-      .map(mapReecToNode);
+    const { loadedNodes, loadedRelations } = state;
+
+    const nodes = Object.values(loadedNodes)
+      .filter(n => snapshot.visibleNodeIds.has(n.uri))
+      .map(mapLodNodeToGraphNode);
     
-    const edges = state.availableRelations
-      .filter(rel => snapshot.visibleReecIds.has(rel.source_reec_id) && snapshot.visibleReecIds.has(rel.target_reec_id))
-      .map(mapRelationToEdge);
+    const edges = Object.values(loadedRelations)
+      .filter(rel => snapshot.visibleNodeIds.has(rel.source) && snapshot.visibleNodeIds.has(rel.target))
+      .map(mapLodEdgeToGraphEdge);
     
     get()._applySnapshot(snapshot, nodes, edges, newIndex);
   },
 
   _applySnapshot: (snapshot, nodes, edges, newIndex) => {
-    const state = get();
     set({
-      visibleReecIds: new Set(snapshot.visibleReecIds),
+      visibleNodeIds: new Set(snapshot.visibleNodeIds),
       pinnedNodes: new Set(snapshot.pinnedNodes),
       positions: { ...snapshot.positions },
+      nodeSettings: snapshot.nodeSettings ? { ...snapshot.nodeSettings } : {},
       nodes,
       edges,
-      rawReecs: state.availableReecs.filter(reec => snapshot.visibleReecIds.has(reec.reec_id)),
-      rawRelations: state.availableRelations.filter(rel => 
-        snapshot.visibleReecIds.has(rel.source_reec_id) && snapshot.visibleReecIds.has(rel.target_reec_id)
-      ),
+      rawNodes: [],
+      rawRelations: [],
       historyIndex: newIndex
     });
-    
+
+    // Recalculate graph with restored nodeSettings
+    get().updateGraphData?.();
+
     setTimeout(() => {
       const layout = get().layoutInstance;
       if (layout?.postMessage) {

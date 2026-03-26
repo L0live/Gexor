@@ -24,7 +24,25 @@
 // Updated by updateRadialTargets in uiSlice via setRadialActive().
 let _radialActive = false;
 export function setRadialActive(v) { _radialActive = v; }
-export function isRadialActive() { return _radialActive; }
+
+// Cached radial strength — O(1) lookup instead of O(n) loop through nodeSettings.
+// Updated by updateRadialCache(), called from uiSlice.updateRadialTargets().
+let _radialStrengthCache = 0;
+
+/**
+ * Update the cached radial strength from the current nodeSettings.
+ * Call this whenever nodeSettings changes (from uiSlice.updateRadialTargets).
+ * @param {Object} nodeSettings
+ */
+export function updateRadialCache(nodeSettings) {
+  _radialStrengthCache = 0;
+  for (const settings of Object.values(nodeSettings)) {
+    if (settings?.renderMode === 'radial' && (settings.radialStrength || 0) > 0) {
+      _radialStrengthCache = settings.radialStrength;
+      break;
+    }
+  }
+}
 
 export function getRadialDisplayPos(nodeId, physicsPos, storeState) {
   // Fast path: no radial groups active at all
@@ -33,39 +51,8 @@ export function getRadialDisplayPos(nodeId, physicsPos, storeState) {
   const target = storeState.radialTargets[nodeId];
   if (!target) return physicsPos;
 
-  // Determine applicable strength
-  const memberships = storeState.nodeGroupMemberships[nodeId];
-  if (!memberships || memberships.length === 0) return physicsPos;
-
-  const settings = storeState.pinnedSettings;
-  const depths = storeState.nodeGroupDepths[nodeId];
-  const selectedGroupId = storeState.selectedGroupId;
-
-  let strength = 0;
-
-  // Priority: selected group if it's radial
-  if (selectedGroupId && memberships.includes(selectedGroupId)) {
-    const s = settings[selectedGroupId];
-    if (s && s.renderMode === 'radial') {
-      strength = s.radialStrength || 0;
-    }
-  }
-
-  if (strength === 0) {
-    // Fallback: closest radial group (smallest BFS depth)
-    let bestDepth = Infinity;
-    for (let i = 0, len = memberships.length; i < len; i++) {
-      const s = settings[memberships[i]];
-      if (s && s.renderMode === 'radial') {
-        const d = depths ? (depths[memberships[i]] ?? Infinity) : Infinity;
-        if (d < bestDepth) {
-          bestDepth = d;
-          strength = s.radialStrength || 0;
-        }
-      }
-    }
-  }
-
+  // O(1) cached strength lookup — no per-frame nodeSettings iteration
+  const strength = _radialStrengthCache;
   if (strength <= 0) return physicsPos;
 
   // Lerp between physics and radial target
@@ -82,7 +69,7 @@ export function getRadialDisplayPos(nodeId, physicsPos, storeState) {
  * @param {number} n - Number of points
  * @returns {Array<{x: number, y: number, z: number}>}
  */
-export function fibonacciSphere(n) {
+function fibonacciSphere(n) {
   if (n <= 0) return [];
   if (n === 1) return [{ x: 0, y: 0, z: 0 }];
 

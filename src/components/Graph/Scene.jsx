@@ -13,8 +13,6 @@ import { writePosition } from '../../utils/sharedPositions';
 const Scene = () => {
   const nodes = useGraphStore(state => state.nodes);
   const edges = useGraphStore(state => state.edges);
-  const filters = useGraphStore(state => state.filters);
-  const opacityLevels = useGraphStore(state => state.opacityLevels);
   const positions = useGraphStore(state => state.positions);
   const selectedNode = useGraphStore(state => state.selectedNode);
   const selectedEdge = useGraphStore(state => state.selectedEdge);
@@ -27,11 +25,6 @@ const Scene = () => {
   const cameraControlsRef = useGraphStore(state => state.cameraControlsRef);
   const pinDraggedNodeOnly = useGraphStore(state => state.pinDraggedNodeOnly);
   const pinnedNodes = useGraphStore(state => state.pinnedNodes);
-  const groupFilters = useGraphStore(state => state.groupFilters);
-  const groupOpacityLevels = useGraphStore(state => state.groupOpacityLevels);
-  const nodeGroupMemberships = useGraphStore(state => state.nodeGroupMemberships);
-  const individualNodeOpacity = useGraphStore(state => state.individualNodeOpacity);
-  const individualEdgeOpacity = useGraphStore(state => state.individualEdgeOpacity);
   const autoDragNode = useGraphStore(state => state.autoDragNode);
   const setAutoDragNode = useGraphStore(state => state.setAutoDragNode);
   
@@ -291,7 +284,6 @@ const Scene = () => {
           selectedNode, 
           selectedEdge, 
           nodes, 
-          filters,
           positions, 
           triggerCenterOnNode, 
           triggerCenterOnPosition 
@@ -311,18 +303,16 @@ const Scene = () => {
             });
           }
         } else {
-          // Recentrer sur le centre de masse global (nodes visibles)
+          // Recentrer sur le centre de masse global
           let sumX = 0, sumY = 0, sumZ = 0, count = 0;
           
           nodes.forEach(node => {
-            if (filters[node.type]) {
-              const pos = positions[node.id];
-              if (pos) {
-                sumX += pos.x;
-                sumY += pos.y;
-                sumZ += pos.z;
-                count++;
-              }
+            const pos = positions[node.id];
+            if (pos) {
+              sumX += pos.x;
+              sumY += pos.y;
+              sumZ += pos.z;
+              count++;
             }
           });
 
@@ -341,7 +331,7 @@ const Scene = () => {
     return () => {
       glElement.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, [gl, nodes, positions, filters]);
+  }, [gl, nodes, positions]);
 
   // Drag position override + radial update (physics is handled by the Web Worker)
   useFrame(() => {
@@ -382,13 +372,13 @@ const Scene = () => {
     // ── Radial plugin — update target positions (purely visual) ──
     {
       const {
-        pinnedSettings: currentPinnedSettings,
+        nodeSettings: currentNodeSettings,
         updateRadialTargets,
       } = useGraphStore.getState();
 
       let hasRadialGroup = false;
-      for (const gId of currentPinnedNodes) {
-        if (currentPinnedSettings[gId]?.renderMode === 'radial') { hasRadialGroup = true; break; }
+      for (const settings of Object.values(currentNodeSettings)) {
+        if (settings?.renderMode === 'radial') { hasRadialGroup = true; break; }
       }
 
       if (hasRadialGroup) {
@@ -414,50 +404,15 @@ const Scene = () => {
       {/* Contrôles trackball dynamiques */}
       <DynamicTrackballControls isDragging={!!draggedNodeId} />
       
-      {/* Rendu des Groupes (Edges & Nodes Instanciés) */}
-      {Array.from(pinnedNodes).map(pinnedId => (
-        <group key={pinnedId}>
-          <InstancedEdges groupId={pinnedId} />
-          <InstancedNodes groupId={pinnedId} />
-        </group>
-      ))}
+      {/* Rendu des Edges & Nodes Instanciés */}
+      <InstancedEdges />
+      <InstancedNodes />
 
-      {/* Sphères radiales (wireframe) pour les groupes en mode radial */}
+      {/* Sphères radiales (wireframe) pour les nœuds en mode radial */}
       <RadialSpheres />
-
-      {/* Rendu des Orphelins (Nodes non rattachés à un groupe) */}
-      <InstancedEdges groupId={null} />
-      <InstancedNodes groupId={null} />
       
       {/* Nodes (React - Proche) */}
       {nodes.map((node) => {
-        // Déterminer la visibilité et l'opacité
-        // Un node est visible s'il est visible dans n'importe quel groupe auquel il appartient
-        // Sinon s'il n'est dans aucun groupe, on utilise le filtre global
-        const memberships = nodeGroupMemberships[node.id] || [];
-        let isVisible = false;
-        let maxOpacity = 0;
-
-        if (memberships.length > 0) {
-          // Si le node appartient à des groupes, il est visible si visible dans au moins un groupe
-          memberships.forEach(gid => {
-            const gFilters = groupFilters[gid] || filters;
-            const gOpacityLevels = groupOpacityLevels[gid] || opacityLevels;
-            if (gFilters[node.type]) {
-              isVisible = true;
-              const op = (gOpacityLevels[node.type] ?? 1.0) * (individualNodeOpacity[node.id] ?? 1);
-              if (op > maxOpacity) maxOpacity = op;
-            }
-          });
-        } else {
-          // Pas de groupe (orphelin)
-          isVisible = filters[node.type];
-          maxOpacity = (opacityLevels[node.type] ?? 1.0) * (individualNodeOpacity[node.id] ?? 1);
-        }
-        
-        // Ne pas rendre du tout les nodes non visibles
-        if (!isVisible) return null;
-        
         return (
         <Node
           key={node.id}
@@ -469,7 +424,6 @@ const Scene = () => {
           isPinned={pinnedNodes.has(node.id)}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          opacityLevel={maxOpacity}
           totalNodes={nodes.length}
           onClick={(e) => {
             e.stopPropagation();

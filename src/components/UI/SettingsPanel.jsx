@@ -1,58 +1,100 @@
 import React from 'react';
-import { 
-  Eye, EyeOff, RefreshCcw, Filter, Tag, 
-  Layers, Search, X 
-} from 'lucide-react';
+import { Eye, EyeOff, RefreshCcw, Download, Upload } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
-import UnifiedFilterSection from './UnifiedFilterSection';
-import FloatingListPanel from './FloatingListPanel';
+import { downloadGraphJSON, validateAndRestoreGraph } from '../../utils/exportImport';
+
+// ── Auto-fetch properties checkbox ──────────────────────────────────────────
+const AutoFetchCheckbox = () => {
+  const autoFetchProperties = useGraphStore(s => s.autoFetchProperties);
+  const setAutoFetchProperties = useGraphStore(s => s.setAutoFetchProperties);
+  return (
+    <label className="flex items-center gap-2 px-2 cursor-pointer group">
+      <input
+        type="checkbox"
+        checked={autoFetchProperties}
+        onChange={(e) => setAutoFetchProperties(e.target.checked)}
+        className="sr-only peer"
+      />
+      <span
+        className={`w-4 h-4 shrink-0 rounded border transition-colors flex items-center justify-center ${
+          autoFetchProperties
+            ? 'bg-blue-500 border-blue-400'
+            : 'bg-transparent border-slate-600 hover:border-slate-400'
+        }`}
+      >
+        {autoFetchProperties && (
+          <svg viewBox="0 0 10 10" className="w-full h-full text-white" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="1.5,5 4,7.5 8.5,2.5" />
+          </svg>
+        )}
+      </span>
+      <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors select-none">Charger automatiquement les propriétés</span>
+    </label>
+  );
+};
+
+// ── Agrégation threshold ────────────────────────────────────────────────────
+const AggregateThresholdSlider = () => {
+  const aggregateThreshold = useGraphStore(s => s.aggregateThreshold);
+  const setAggregateThreshold = useGraphStore(s => s.setAggregateThreshold);
+
+  return (
+    <div className="px-2 mt-3 cursor-default">
+      <div className="flex justify-between items-center text-[11px] text-slate-400 mb-2">
+        <span>Seuil d'agrégation entrant :</span>
+        <span className="font-bold text-blue-400 relative group">
+          {aggregateThreshold}
+          <div className="absolute right-0 top-full mt-1 w-48 p-2 bg-slate-800 text-[10px] text-slate-300 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            Nœuds entrants automatiquement groupés si &gt; {aggregateThreshold}
+          </div>
+        </span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="30"
+        step="1"
+        value={aggregateThreshold}
+        onChange={(e) => setAggregateThreshold(parseInt(e.target.value, 10))}
+        className="w-full accent-blue-500 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+      />
+    </div>
+  );
+};
 
 const SettingsPanel = ({
   nodes,
   edges,
-  filters,
-  opacityLevels,
   stats,
   showBackground,
   toggleBackground,
   resetAllSettings,
-  showFiltersSubSection,
-  setShowFiltersSubSection,
-  toggleFilter,
-  setOpacityLevel,
-  setAdvancedFilter,
-  selectNode,
-  selectEdge,
-  selectedNode,
-  pinnedNodes,
-  pinnedNodesInfo,
-  allTags,
-  tagSearchQuery,
-  setTagSearchQuery,
-  showAllTags,
-  setShowAllTags
 }) => {
-  const onToggleList = (key) => {
-    setShowFiltersSubSection(prev => ({
-      ...prev,
-      entityNodes: key === 'entityNodes' ? !prev.entityNodes : false,
-      eventNodes: key === 'eventNodes' ? !prev.eventNodes : false,
-      contextNodes: key === 'contextNodes' ? !prev.contextNodes : false,
-      relationsList: key === 'relationsList' ? !prev.relationsList : false,
-    }));
+  const handleExport = () => {
+    downloadGraphJSON(useGraphStore.getState());
   };
 
-  const closeAllLists = () => {
-    setShowFiltersSubSection(prev => ({
-      ...prev,
-      entityNodes: false,
-      eventNodes: false,
-      contextNodes: false,
-      relationsList: false
-    }));
+  const handleImportClick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          validateAndRestoreGraph(data, useGraphStore.setState);
+        } catch (err) {
+          console.error('Failed to parse graph:', err);
+          alert('Fichier source invalide.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
-
-  const activeListKey = ['entityNodes', 'eventNodes', 'contextNodes', 'relationsList'].find(key => showFiltersSubSection[key]);
 
   return (
     <div className="flex gap-4 items-start pointer-events-none">
@@ -68,13 +110,27 @@ const SettingsPanel = ({
                 <button
                   onClick={() => toggleBackground()}
                   className={`p-1.5 rounded-2xl transition-all ${
-                    showBackground 
-                      ? 'bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 hover:text-white' 
+                    showBackground
+                      ? 'bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 hover:text-white'
                       : 'bg-slate-600/30 hover:bg-slate-600/50 text-slate-400 hover:text-slate-200'
                   }`}
                   title={showBackground ? "Masquer le fond" : "Afficher le fond"}
                 >
                   {showBackground ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="p-1.5 bg-slate-600/30 hover:bg-slate-600/50 text-slate-300 hover:text-white rounded-2xl transition-colors"
+                  title="Exporter la session"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleImportClick}
+                  className="p-1.5 bg-slate-600/30 hover:bg-slate-600/50 text-slate-300 hover:text-white rounded-2xl transition-colors"
+                  title="Importer une session"
+                >
+                  <Upload className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => resetAllSettings()}
@@ -87,126 +143,25 @@ const SettingsPanel = ({
             </div>
           </div>
 
-          {/* Filtres avec statistiques intégrés dans UnifiedFilterSection */}
-          <div className="pt-1">
-            <UnifiedFilterSection
-              nodes={nodes}
-              edges={edges}
-              filters={filters}
-              opacityLevels={opacityLevels}
-              stats={stats}
-              showFiltersSubSection={showFiltersSubSection}
-              onToggleList={onToggleList}
-              toggleFilter={toggleFilter}
-              setOpacityLevel={setOpacityLevel}
-              selectNode={selectNode}
-              selectEdge={selectEdge}
-              setAdvancedFilter={setAdvancedFilter}
-              title="Filtres"
-              headerStats={[
-                { label: "Total", value: stats.total, color: "text-slate-300" },
-                { label: "Visibles", value: stats.visible, color: "text-white" }
-              ]}
-            />
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-3">
-            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <Tag className="w-3 h-3" /> Filtrer par Tags
-            </label>
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
-              <input
-                type="text"
-                value={tagSearchQuery}
-                onChange={(e) => setTagSearchQuery(e.target.value)}
-                placeholder="Rechercher un tag..."
-                className="w-full pl-7 pr-7 py-1.5 bg-slate-900/50 border border-slate-700 rounded text-[10px] text-slate-200 focus:outline-none focus:border-blue-500"
-              />
-              {tagSearchQuery && (
-                <button 
-                  onClick={() => setTagSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+          {/* Stats */}
+          <div className="flex gap-3 px-2">
+            <div className="flex items-center text-[10px] gap-1">
+              <span className="text-slate-500">Total:</span>
+              <span className="font-bold text-slate-300">{stats.total}</span>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {(tagSearchQuery 
-                ? (allTags || []).filter(t => t.toLowerCase().includes(tagSearchQuery.toLowerCase())) 
-                : (showAllTags ? (allTags || []) : (allTags || []).slice(0, 11))
-              ).map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => {
-                    const newTags = new Set(filters.selectedTags);
-                    if (newTags.has(tag)) newTags.delete(tag);
-                    else newTags.add(tag);
-                    setAdvancedFilter('selectedTags', newTags);
-                  }}
-                  className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-colors ${
-                    filters.selectedTags.has(tag)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
+            <div className="flex items-center text-[10px] gap-1">
+              <span className="text-slate-500">Relations:</span>
+              <span className="font-bold text-white">{stats.relations}</span>
             </div>
           </div>
 
-          {/* Groupes d'Exploration */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                <Layers className="w-3 h-3 text-yellow-500" /> Groupes Actifs
-              </label>
-              <span className="text-[10px] font-mono text-slate-500">{pinnedNodes.size}</span>
-            </div>
-            
-            {pinnedNodes.size > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {pinnedNodesInfo.map(group => (
-                  <button
-                    key={group.id}
-                    onClick={() => {
-                      selectNode(group.id);
-                      const { triggerCenterOnNode } = useGraphStore.getState();
-                      triggerCenterOnNode(group.id);
-                    }}
-                    className={`group relative flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold transition-all border ${
-                      selectedNode?.id === group.id
-                        ? 'bg-yellow-500/20 border-yellow-500/30 hover:border-yellow-500 text-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.2)]'
-                        : 'bg-slate-800/40 border-slate-700/50 text-slate-400 hover:border-slate-500 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="truncate max-w-[120px]">{group.label}</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-[10px] text-slate-600 italic py-2 px-3 bg-slate-800/20 rounded-lg border border-dashed border-slate-700/50">
-                Aucun groupe actif. Épinglez un nœud.
-              </div>
-            )}
-          </div>
+          {/* Auto-fetch properties checkbox */}
+          <AutoFetchCheckbox />
+
+          {/* Aggregate Threshold Slider */}
+          <AggregateThresholdSlider />
         </div>
       </div>
-
-      {/* Floating List Panel */}
-      {activeListKey && (
-        <FloatingListPanel
-          nodes={nodes}
-          edges={edges}
-          activeKey={activeListKey}
-          onClose={closeAllLists}
-          selectNode={selectNode}
-          selectEdge={selectEdge}
-        />
-      )}
     </div>
   );
 };

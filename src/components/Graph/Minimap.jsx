@@ -1,22 +1,44 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Moon } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
-import { COLOR_MAP } from '../../constants/graphConstants';
+import { getCategoryColor } from '../../constants/graphConstants';
+
+const MINIMAP_THROTTLE_MS = 200;
 
 const Minimap = () => {
   const nodes = useGraphStore(state => state.nodes);
-  const positions = useGraphStore(state => state.positions);
   const selectedNode = useGraphStore(state => state.selectedNode);
   const selectNode = useGraphStore(state => state.selectNode);
   const simulationStable = useGraphStore(state => state.simulationStable);
   const simulationPaused = useGraphStore(state => state.simulationPaused);
+
+  // Throttled position reads to avoid re-renders on every layout tick
+  const [throttledPositions, setThrottledPositions] = useState({});
+  const rafRef = useRef(null);
+  const lastUpdateRef = useRef(0);
+
+  useEffect(() => {
+    const update = () => {
+      const now = Date.now();
+      if (now - lastUpdateRef.current >= MINIMAP_THROTTLE_MS) {
+        const positions = useGraphStore.getState().positions;
+        setThrottledPositions(positions);
+        lastUpdateRef.current = now;
+      }
+      rafRef.current = requestAnimationFrame(update);
+    };
+    rafRef.current = requestAnimationFrame(update);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
   
   // Calculer les limites pour le cadrage
   const bounds = useMemo(() => {
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
     let hasNodes = false;
     
-    Object.values(positions).forEach(pos => {
+    Object.values(throttledPositions).forEach(pos => {
       if (pos.x < minX) minX = pos.x;
       if (pos.x > maxX) maxX = pos.x;
       if (pos.z < minZ) minZ = pos.z;
@@ -33,7 +55,7 @@ const Minimap = () => {
       width: (maxX - minX) + padding * 2,
       height: (maxZ - minZ) + padding * 2
     };
-  }, [positions]);
+  }, [throttledPositions]);
 
   const size = 150; // Taille de la minimap en pixels
   const scale = size / Math.max(bounds.width, bounds.height, 1);
@@ -61,7 +83,7 @@ const Minimap = () => {
       >
         {/* Nodes */}
         {nodes.map(node => {
-          const pos = positions[node.id];
+          const pos = throttledPositions[node.id];
           if (!pos) return null;
           
           const isSelected = selectedNode?.id === node.id;
@@ -72,7 +94,7 @@ const Minimap = () => {
               cx={pos.x}
               cy={pos.z + 10}
               r={isSelected ? 12 / scale : 6 / scale}
-              fill={COLOR_MAP[node.type] || COLOR_MAP.Default}
+              fill={getCategoryColor(node.type)}
               stroke={isSelected ? 'white' : 'none'}
               strokeWidth={2 / scale}
               className="cursor-pointer hover:brightness-125 transition-all"

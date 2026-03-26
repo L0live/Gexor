@@ -1,0 +1,420 @@
+{
+  "_meta": {
+    "version": "4.0",
+    "updated": "2026-02",
+    "description": "Propriétés Wikidata à reléguer dans un panneau secondaire plutôt que comme arêtes du graphe principal. Deux axes principaux : (A) groupes de redondance/hiérarchie — propriétés qui se déduisent les unes des autres — et (B) bruit UI — propriétés franchement inutiles dans une interface compacte.",
+    "sources": [
+      "Wikidata:List_of_properties (wikidata.org)",
+      "Wikidata:Database_reports/List_of_properties/Top100",
+      "Wikidata:WikiProject_Properties/Reports/Datatypes",
+      "Wikidata:Identifiers",
+      "Help:Data_type",
+      "Template:Wikidata_Infobox (commons.wikimedia.org)"
+    ],
+    "axes": {
+      "A_redundancy_groups": "Propriétés dont l'information est dérivable d'autres (ex: pays ← ville ← coordonnées). Afficher uniquement la plus spécifique dans le graphe.",
+      "B_noise_compact_ui": "Propriétés franchement inutiles dans une UI compacte : identifiants, métadonnées Wikimedia, symboles officiels, rites, biométrie, etc."
+    }
+  },
+
+  "couverture_automatique_par_datatype": {
+    "_note": "Ces datatypes sont INTÉGRALEMENT secondaires. Filtrés programmatiquement — aucune liste manuelle nécessaire.",
+    "external-id":       { "label": "Identifiants externes", "ratio": "~76% des propriétés Wikidata (>10 000)", "exemples": ["P214 VIAF", "P227 GND", "P244 Library of Congress", "P245 ULAN", "P268 BnF", "P345 IMDb", "P349 NDL", "P434 MusicBrainz artist", "P435 MusicBrainz release-group", "P496 ORCID", "P535 Find a Grave", "P549 MGP", "P586 IPNI author", "P599 ITU prefix", "P646 Freebase", "P648 Open Library", "P650 RKDartists", "P651 Biografisch Portaal", "P691 NKCR AUT", "P723 DBNL", "P727 Discogs", "P745 NKCR works", "P758 KULTURNAV", "P839 IMSLP", "P866 Perlentaucher", "P902 HDS", "P906 SELIBR", "P950 BNE", "P1003 ROWNR", "P1004 MusicBrainz place", "P1005 PTBNP", "P1006 NTA", "P1015 BIBSYS", "P1017 BAV", "P1036 Dewey", "P1042 ZDB", "P1043 IDEO genre", "P1044 SWB editions", "P1045 Sycomore", "P1048 NCL", "P1051 PSH", "P1052 Enciclopédia Açoriana", "P1055 NLM", "P1056 GS1 Company Prefix", "P1057 chromosome", "P1058 ERA Journal", "P1065 Internet Archive", "P1066 student of", "P1067 Thailand EGIP", "P1068 instruction manual", "P1072 readable file format", "P1073 writable file format", "P1074 fictional analog", "P1075 rector", "P1099 Lloyd's ship", "P1100 first page", "P1109 ISFDB publisher", "P1111 votes received", "P1117 pKa", "P1119 assets", "P1121 nominal level", "P1123 AFNOR", "P1125 Gaisma", "P1130 IRB", "P1138 Kunstindeks Danmark", "P1139 floors above ground", "P1143 BN Portugal", "P1144 LC authority", "P1146 ICCROM", "P1147 ISFDB series", "P1148 ISFDB publisher series", "P1150 Regensburg", "P1153 Scopus source", "P1154 TFWA", "P1155 LovdBase", "P1156 ISFDB award category", "P1157 US Congress", "P1159 CosIng", "P1160 ICD-10", "P1161 ICD-9", "P1162 UN/LOCODE", "P1163 MIME type", "P1165 homeDomain", "P1166 Joods Monument", "P1167 BHF", "P1170 Global LEI", "P1171 ratio of women", "P1172 Linked Jazz", "P1173 FAST", "P1174 visitors per year", "P1175 GovTrack", "P1176 legislation introduced by", "P1183 Alliance of Liberals", "P1184 Hans Christian Andersen Centre", "P1185 Rodovid", "P1186 MEP directory", "P1187 Drupal", "P1188 ArtQuid artist", "P1189 Chinese Library Classification", "P1190 UDC", "P1191 first performance", "P1193 prevalence", "P1194 Austrian Parliament ID", "P1195 file extension", "P1196 manner of death", "P1197 diving grade", "P1198 unemployment rate", "P1199 mode of inheritance", "P1200 lower flammable limit", "P1201 upper flammable limit", "P1203 regulated by", "P1208 NUTS", "P1209 EL", "P1210 superseded by", "P1211 INCB substance", "P1212 Atlas"] },
+    "commonsMedia":      { "label": "Médias Wikimedia Commons", "exemples": ["P18 image", "P41 drapeau", "P94 blason", "P109 signature", "P154 logo", "P158 sceau", "P181 taxon range map", "P207 bathymetry", "P208 collector map", "P242 carte localisatrice", "P367 astronome photo", "P443 prononciation audio", "P491 orbite", "P492 OMIM graph", "P493 ICD-9-CM", "P494 ICD-10", "P560 direction", "P592 ChEMBL", "P608 exhibition history", "P692 Gene Atlas Image", "P695 UN number", "P696 RTECS number", "P697 HMDB", "P698 PubMed ID", "P700 Kemler code", "P705 Ensembl transcript", "P706 situé dans le terrain", "P707 satellite bus", "P709 FIPS 5-2", "P710 participant"] },
+    "globe-coordinate":  { "label": "Coordonnées géographiques", "exemples": ["P625 coordonnées", "P1259 point of view coordinates", "P1571 centroid"] },
+    "url":               { "label": "Liens web", "exemples": ["P856 site officiel", "P953 full work available at", "P973 described at URL", "P1065 archive URL", "P1324 source code", "P1325 external data available", "P1581 official blog", "P1896 source", "P2699 URL", "P2888 exact match", "P3950 narrower external concept"] },
+    "time":              { "label": "Dates — tout datatype time", "note": "Afficher comme attributs dans le panneau de détail" },
+    "quantity":          { "label": "Valeurs numériques (population, superficie, masse…)", "note": "Jamais comme arête de graphe" },
+    "string":            { "label": "Chaînes brutes (codes, formules, numéros)", "note": "Jamais comme arête de graphe" },
+    "monolingualtext":   { "label": "Textes monolingues (noms natifs, titres officiels)", "note": "Jamais comme arête de graphe" },
+    "tabular-data":      { "label": "Données tabulaires Commons" },
+    "geo-shape":         { "label": "Formes géographiques Commons" },
+    "math":              { "label": "Expressions mathématiques LaTeX" },
+    "musical-notation":  { "label": "Notations musicales LilyPond" },
+    "wikibase-property": { "label": "Liens vers propriétés Wikidata (méta-usage)" },
+    "wikibase-lexeme":   { "label": "Liens vers lexèmes" },
+    "wikibase-form":     { "label": "Liens vers formes lexicales" },
+    "wikibase-sense":    { "label": "Liens vers sens lexicaux" }
+  },
+
+  "A_redundancy_groups": {
+    "_description": "Ces groupes contiennent des propriétés wikibase-item dont l'information est HIÉRARCHIQUEMENT DÉRIVABLE d'une autre. Règle générale : garder uniquement la propriété la plus spécifique comme arête primaire du graphe ; mettre les autres en secondaire.",
+
+    "A1_localisation_geographique_territoire": {
+      "_label": "Localisation géographique, lieux biographiques et juridiction — hiérarchie emboîtée",
+      "_rationale": "Ces propriétés décrivent la localisation d'une entité sous plusieurs angles redondants. (1) Hiérarchie géographique stricte : continent > pays > division adm. 1 > localité > adresse — tout niveau supérieur est dérivable via P131*/P17/P30. (2) Lieux biographiques : P19/P20 (naissance/mort) sont les arêtes primaires ; le pays/continent associé est dérivable par traversée. (3) Juridiction : P1001 est doublon fonctionnel de P17/P131 dans la plupart des contextes.",
+      "_hierarchy": "P625 (coordonnées) → P670/P6375 (adresse) → P131 (entité admin.) → P17 (pays) → P30 (continent)",
+      "_keep_as_primary": "P131 (localisation la plus spécifique), P19, P20 (lieux biographiques eux-mêmes)",
+      "properties": {
+        "P17":   { "label": "pays", "datatype": "wikibase-item", "note": "Dérivable de P131* via entité administrative → pays" },
+        "P30":   { "label": "continent", "datatype": "wikibase-item", "note": "Dérivable de P17 → P30" },
+        "P276":  { "label": "lieu (location générique)", "datatype": "wikibase-item", "note": "Souvent redondant avec P131" },
+        "P1376": { "label": "capitale de", "datatype": "wikibase-item", "note": "Relation inverse de P36, redondant en contexte" },
+        "P3842": { "label": "situé dans l'entité administrative actuelle", "datatype": "wikibase-item", "note": "Doublon historique de P131" },
+        "P6885": { "label": "région historique", "datatype": "wikibase-item", "note": "Complément contextuel, rarement primaire" },
+        "P706":  { "label": "situé dans le terrain (relief)", "datatype": "wikibase-item", "note": "Détail géographique physique" },
+        "P206":  { "label": "situé dans ou à côté d'un plan d'eau", "datatype": "wikibase-item", "note": "Détail géographique, secondaire" },
+        "P669":  { "label": "situé sur la rue", "datatype": "wikibase-item", "note": "Niveau adresse — très spécifique, secondaire" },
+        "P708":  { "label": "diocèse", "datatype": "wikibase-item", "note": "Division ecclésiastique — rarement pertinente en graphe généraliste" },
+        "P5607": { "label": "entité territoriale religieuse", "datatype": "wikibase-item", "note": "Idem" },
+        "P27":   { "label": "pays de nationalité / citoyenneté", "datatype": "wikibase-item", "note": "Souvent dérivable de P19→P17 ou P551→P17. Pertinent uniquement si différent du lieu de naissance (ex: exil, naturalisation).", "context_dependent": true },
+        "P551":  { "label": "lieu de résidence", "datatype": "wikibase-item", "note": "Doublon fréquent de P19 ou P937 (lieu de travail)" },
+        "P937":  { "label": "lieu de travail", "datatype": "wikibase-item", "note": "Souvent redondant avec l'institution (P108)" },
+        "P1411": { "label": "nommé pour (prix)", "datatype": "wikibase-item", "note": "Redondant avec P166 (award received)" },
+        "P119":  { "label": "lieu de sépulture", "datatype": "wikibase-item", "note": "Détail biographique terminal, rarement exploitable comme arête de graphe" },
+        "P1001": { "label": "applies to jurisdiction", "datatype": "wikibase-item", "note": "Doublon fonctionnel de P17 dans beaucoup de contextes" },
+        "P194":  { "label": "assemblée législative", "datatype": "wikibase-item", "note": "Relation gouvernance souvent dérivable" },
+        "P1906": { "label": "office held by head of government", "datatype": "wikibase-item", "note": "Doublon de P6 (head of government) sous forme inverse" },
+        "P1308": { "label": "officeholder", "datatype": "wikibase-item", "note": "Inverse de P39, redondant" }
+      }
+    },
+
+    "A2_dates_redondances": {
+      "_label": "Dates — redondances biographiques / organisationnelles",
+      "_rationale": "Plusieurs propriétés capturent des moments proches (fondation, création, début d'activité, inauguration). Toutes sont datatype:time donc déjà filtrées automatiquement, mais utile de les documenter.",
+      "_covered_by_datatype": "time",
+      "properties": {
+        "P571":  { "label": "date de fondation / création", "datatype": "time" },
+        "P576":  { "label": "date de dissolution", "datatype": "time" },
+        "P580":  { "label": "date de début", "datatype": "time" },
+        "P582":  { "label": "date de fin", "datatype": "time" },
+        "P569":  { "label": "date de naissance", "datatype": "time" },
+        "P570":  { "label": "date de mort", "datatype": "time" },
+        "P606":  { "label": "date du premier vol", "datatype": "time" },
+        "P619":  { "label": "date de lancement", "datatype": "time" },
+        "P729":  { "label": "date d'entrée en service", "datatype": "time" },
+        "P730":  { "label": "date de mise hors service", "datatype": "time" },
+        "P1619": { "label": "date d'ouverture officielle", "datatype": "time" },
+        "P1636": { "label": "date de baptême", "datatype": "time", "note": "Doublon approximatif de P569 (naissance) pour les personnes historiques" },
+        "P585":  { "label": "point in time", "datatype": "time", "note": "Date flottante, contexte-qualificateur" },
+        "P813":  { "label": "date de consultation (retrieved)", "datatype": "time", "note": "Méta-information de sourcing" },
+        "P1191": { "label": "date de première représentation", "datatype": "time" }
+      }
+    },
+
+    "A3_mesures_scalaires": {
+      "_label": "Mesures et dimensions — redondances de grandeurs physiques",
+      "_rationale": "Plusieurs propriétés mesurent des aspects proches (superficie, surface, étendue). Toutes datatype:quantity donc filtrées automatiquement.",
+      "_covered_by_datatype": "quantity",
+      "properties": {
+        "P2046": { "label": "superficie (area)", "datatype": "quantity" },
+        "P2047": { "label": "durée", "datatype": "quantity" },
+        "P2048": { "label": "hauteur", "datatype": "quantity" },
+        "P2049": { "label": "largeur", "datatype": "quantity" },
+        "P2043": { "label": "longueur", "datatype": "quantity" },
+        "P2044": { "label": "altitude", "datatype": "quantity" },
+        "P2053": { "label": "bassin versant (watershed area)", "datatype": "quantity", "note": "Doublon partiel de P2046 pour hydrographie" },
+        "P2052": { "label": "vitesse", "datatype": "quantity" },
+        "P1082": { "label": "population", "datatype": "quantity" },
+        "P4511": { "label": "image 3D", "datatype": "quantity", "note": "En fait souvent monolingualtext/string" },
+        "P2067": { "label": "masse", "datatype": "quantity" },
+        "P1104": { "label": "nombre de pages", "datatype": "quantity" },
+        "P1113": { "label": "nombre d'épisodes", "datatype": "quantity" },
+        "P1114": { "label": "quantité", "datatype": "quantity" },
+        "P2196": { "label": "étudiants inscrits", "datatype": "quantity" }
+      }
+    }
+  },
+
+  "B_noise_compact_ui": {
+    "_description": "Propriétés franchement inutiles dans une UI compacte de type graphe de connaissance. Elles parasitent la navigation sans apporter de valeur sémantique exploitable pour la traversée du graphe.",
+
+    "wikimedia_commons_meta": {
+      "_label": "Métadonnées Wikimedia / Commons — liens écosystème",
+      "_rationale": "Propriétés qui pointent vers des ressources de l'écosystème Wikimedia (catégories, galeries, modèles). Utiles pour affichage mais sans valeur pour la navigation du graphe de connaissance.",
+      "properties": {
+        "P373":  { "label": "catégorie Commons", "datatype": "string", "note": "Lien vers catégorie Commons — détail d'affichage" },
+        "P935":  { "label": "galerie Commons", "datatype": "string", "note": "Lien vers galerie Commons" },
+        "P1472": { "label": "palette de créateur Commons", "datatype": "string", "note": "Template Commons — pur écosystème Wikimedia" },
+        "P910":  { "label": "catégorie principale (topic's main category)", "datatype": "wikibase-item", "note": "Méta-lien vers catégorie Wikipedia/Commons" },
+        "P1151": { "label": "portail thématique Wikipedia", "datatype": "wikibase-item", "note": "Navigation Wikipedia — hors graphe de connaissance" },
+        "P1204": { "label": "portail Wikimedia", "datatype": "wikibase-item", "note": "Idem" },
+        "P1424": { "label": "topic's main template", "datatype": "wikibase-item", "note": "Modèle Wikipedia — méta" },
+        "P3921": { "label": "Wikimedia SPARQL query equivalent", "datatype": "string", "note": "Méta Wikidata" },
+        "P1630": { "label": "formatter URL", "datatype": "url", "note": "Propriété de propriété — méta-donnée Wikidata" },
+        "P1921": { "label": "formatter URI for RDF", "datatype": "url", "note": "Méta-donnée technique Wikidata" },
+        "P1629": { "label": "sujet de cette propriété", "datatype": "wikibase-item", "note": "Méta-propriété Wikidata" },
+        "P1687": { "label": "propriété Wikidata", "datatype": "wikibase-property", "note": "Méta-propriété Wikidata" },
+        "P2888": { "label": "exact match (OWL sameAs)", "datatype": "url", "note": "Alignement ontologique — méta" },
+        "P1709": { "label": "equivalent class", "datatype": "url", "note": "Alignement OWL — méta" },
+        "P2236": { "label": "external subproperty", "datatype": "url", "note": "Méta-ontologique" }
+      }
+    },
+
+    "images_medias": {
+      "_label": "Images, médias et fichiers — tout commonsMedia",
+      "_rationale": "Aucune valeur pour la navigation graphe. À afficher uniquement dans un panneau visuel ou un infobox. Couverts automatiquement par datatype === 'commonsMedia'.",
+      "_covered_by_datatype": "commonsMedia",
+      "properties": {
+        "P18":   { "label": "image principale", "datatype": "commonsMedia" },
+        "P41":   { "label": "image du drapeau", "datatype": "commonsMedia" },
+        "P94":   { "label": "image du blason", "datatype": "commonsMedia" },
+        "P109":  { "label": "signature", "datatype": "commonsMedia" },
+        "P154":  { "label": "logo de l'organisation", "datatype": "commonsMedia" },
+        "P158":  { "label": "sceau / cachet", "datatype": "commonsMedia" },
+        "P181":  { "label": "carte de distribution taxonomique", "datatype": "commonsMedia" },
+        "P207":  { "label": "bathymétrie", "datatype": "commonsMedia" },
+        "P242":  { "label": "carte localisatrice", "datatype": "commonsMedia" },
+        "P443":  { "label": "prononciation audio", "datatype": "commonsMedia" },
+        "P491":  { "label": "diagramme d'orbite", "datatype": "commonsMedia" },
+        "P692":  { "label": "Gene Atlas Image", "datatype": "commonsMedia" },
+        "P1442": { "label": "image de la tombe", "datatype": "commonsMedia" },
+        "P1801": { "label": "image de la plaque commémorative", "datatype": "commonsMedia" },
+        "P3383": { "label": "affiche du film", "datatype": "commonsMedia" },
+        "P4765": { "label": "Commons compatible image available at URL", "datatype": "url" }
+      }
+    },
+
+    "noms_appellations_variantes": {
+      "_label": "Noms, appellations et variantes lexicales",
+      "_rationale": "Variantes du nom propre de l'entité. Données descriptives, pas relations sémantiques. Jamais utiles comme arête de graphe.",
+      "properties": {
+        "P735":  { "label": "prénom", "datatype": "wikibase-item", "note": "Décomposition du nom — détail onomastique" },
+        "P734":  { "label": "nom de famille", "datatype": "wikibase-item", "note": "Idem" },
+        "P1559": { "label": "nom dans la langue maternelle de la personne", "datatype": "monolingualtext", "note": "Variante linguistique du nom" },
+        "P1477": { "label": "nom de naissance", "datatype": "monolingualtext", "note": "Variante temporelle du nom" },
+        "P1448": { "label": "nom officiel", "datatype": "monolingualtext", "note": "Variante officielle du nom" },
+        "P742":  { "label": "pseudonyme", "datatype": "string", "note": "Alias — détail onomastique" },
+        "P1449": { "label": "surnom (nickname)", "datatype": "monolingualtext", "note": "Alias informel" },
+        "P1950": { "label": "deuxième nom de famille (paternal)", "datatype": "wikibase-item", "note": "Spécificité hispanique" },
+        "P511":  { "label": "titre honorifique", "datatype": "wikibase-item", "note": "Préfixe de politesse — détail protocolaire" },
+        "P1035": { "label": "titre honorifique (suffixe)", "datatype": "wikibase-item", "note": "Suffixe de politesse" },
+        "P1813": { "label": "nom abrégé / court", "datatype": "monolingualtext", "note": "Abréviation" },
+        "P1549": { "label": "gentilé (demonym)", "datatype": "monolingualtext", "note": "Adjectif de nationalité" },
+        "P1705": { "label": "nom natif", "datatype": "monolingualtext", "note": "Doublon de P1559" },
+        "P2561": { "label": "nom (générique)", "datatype": "monolingualtext", "note": "Propriété fourre-tout — secondaire" },
+        "P138":  { "label": "nommé en l'honneur de (named after)", "datatype": "wikibase-item", "note": "Contexte étymologique — détail culturel, pas relation primaire", "context_dependent": true },
+        "P2976": { "label": "patronyme (prénominal)", "datatype": "wikibase-item", "note": "Détail onomastique" },
+        "P2521": { "label": "forme féminine du label", "datatype": "monolingualtext", "note": "Linguistique interne Wikidata" },
+        "P1906": { "label": "forme du nom pour officeholder", "datatype": "wikibase-item" }
+      }
+    },
+
+    "symboles_officiels": {
+      "_label": "Symboles officiels d'entités (états, organisations)",
+      "_rationale": "Hymne, drapeau, blason, monnaie, code ISO — attributs symboliques ou administratifs sans valeur pour la traversée du graphe de connaissance. Un drapeau n'est pas une arête sémantique.",
+      "properties": {
+        "P85":   { "label": "hymne", "datatype": "wikibase-item", "note": "Symbole musical — secondaire dans graphe de connaissance" },
+        "P395":  { "label": "indicatif téléphonique", "datatype": "string", "note": "Code administratif — détail technique" },
+        "P281":  { "label": "code postal", "datatype": "string", "note": "Code administratif" },
+        "P473":  { "label": "indicatif téléphonique local", "datatype": "string", "note": "Code administratif" },
+        "P474":  { "label": "code pays téléphonique", "datatype": "string", "note": "Code administratif" },
+        "P297":  { "label": "code ISO 3166-1 alpha-2", "datatype": "string", "note": "Code standard pays" },
+        "P298":  { "label": "code ISO 3166-1 alpha-3", "datatype": "string", "note": "Code standard pays — doublon de P297" },
+        "P299":  { "label": "code ISO 3166-1 numérique", "datatype": "string", "note": "Code standard pays — triplon" },
+        "P300":  { "label": "code ISO 3166-2", "datatype": "string", "note": "Code subdivision" },
+        "P501":  { "label": "code FIPS (US)", "datatype": "string", "note": "Code administratif US" },
+        "P635":  { "label": "identifiant CAS", "datatype": "string", "note": "Identifiant chimique" },
+        "P36":   { "label": "capitale", "datatype": "wikibase-item", "note": "Pertinent en graphe géographique, secondaire sinon", "context_dependent": true },
+        "P38":   { "label": "monnaie officielle", "datatype": "wikibase-item", "note": "Attribut administratif — rarement pertinent comme arête primaire" },
+        "P37":   { "label": "langue officielle", "datatype": "wikibase-item", "note": "Pertinent pour nations ; secondaire sinon", "context_dependent": true },
+        "P194":  { "label": "organe législatif", "datatype": "wikibase-item", "note": "Gouvernance — secondaire pour entités non-politiques" },
+        "P78":   { "label": "domaine de premier niveau (TLD)", "datatype": "string", "note": "Technique web" },
+        "P158":  { "label": "sceau", "datatype": "commonsMedia" },
+        "P1034": { "label": "legal form", "datatype": "wikibase-item", "note": "Statut juridique de l'organisation" },
+        "P199":  { "label": "business division", "datatype": "wikibase-item", "note": "Structure interne organisation" }
+      }
+    },
+
+    "droits_licences_statuts_legaux": {
+      "_label": "Droits, licences et statuts légaux",
+      "_rationale": "Métadonnées légales et administratives. Cruciales pour réutilisation de médias mais sans pertinence pour la navigation graphe de connaissance.",
+      "properties": {
+        "P6216": { "label": "statut des droits d'auteur", "datatype": "wikibase-item", "note": "Méta-donnée légale Commons" },
+        "P6757": { "label": "statut des droits d'auteur du créateur ou de la créatrice", "datatype": "wikibase-item", "note": "Idem — très spécialisé Commons" },
+        "P275":  { "label": "licence", "datatype": "wikibase-item", "note": "Licence de contenu — méta légale" },
+        "P7257": { "label": "licence de la couverture", "datatype": "wikibase-item", "note": "Licence image spécifique" },
+        "P3931": { "label": "titulaire des droits d'auteur", "datatype": "wikibase-item", "note": "Ayant-droit — méta légale" },
+        "P1684": { "label": "inscription (transcription)", "datatype": "monolingualtext", "note": "Texte d'une plaque ou d'un monument — très spécifique" },
+        "P571":  { "label": "date de fondation/création", "datatype": "time", "covered_by_datatype": "time" },
+        "P2699": { "label": "URL", "datatype": "url", "covered_by_datatype": "url" },
+        "P1204": { "label": "Wikimedia portal", "datatype": "wikibase-item" },
+        "P7014": { "label": "conditions d'utilisation", "datatype": "wikibase-item" },
+        "P3865": { "label": "statement of reason", "datatype": "wikibase-item" }
+      }
+    },
+
+    "religion_rituels_ceremonies": {
+      "_label": "Religion, rituels et cérémonies",
+      "_rationale": "Détails biographiques ponctuels ou attributs confessionnels rarement utiles pour la traversée du graphe. P140 (religion) est contexte-dépendant (pertinent pour études démographiques ou histoire religieuse).",
+      "properties": {
+        "P1636": { "label": "date de baptême", "datatype": "time", "note": "Doublon approximatif de P569. Détail liturgique." },
+        "P119":  { "label": "lieu de sépulture", "datatype": "wikibase-item", "note": "Détail biographique terminal — rarement exploitable comme arête" },
+        "P417":  { "label": "parrain / marraine", "datatype": "wikibase-item", "note": "Relation liturgique — très spécifique" },
+        "P140":  { "label": "religion ou vision du monde", "datatype": "wikibase-item", "note": "Pertinent pour études démographiques ou histoire", "context_dependent": true },
+        "P411":  { "label": "saint patron", "datatype": "wikibase-item", "note": "Attribut religieux — secondaire" },
+        "P822":  { "label": "animal emblème", "datatype": "wikibase-item", "note": "Symbole culturel / héraldique — secondaire" },
+        "P1049": { "label": "worship place (lieu de culte)", "datatype": "wikibase-item", "note": "Attribut institutionnel religieux" },
+        "P1031": { "label": "legal citation", "datatype": "string", "note": "Référence légale textuelle" },
+        "P6375": { "label": "adresse postale", "datatype": "monolingualtext", "note": "Adresse brute — trop spécifique pour graphe" },
+        "P670":  { "label": "numéro de rue", "datatype": "string", "note": "Numéro dans la rue — très granulaire" }
+      }
+    },
+
+    "biometrie_donnees_physiques": {
+      "_label": "Données biométriques et physiques personnelles",
+      "_rationale": "Attributs scalaires très spécifiques à un individu. Aucune utilité pour la traversée du graphe. Tous couverts par datatype:quantity sauf P21.",
+      "properties": {
+        "P2048": { "label": "hauteur (personne)", "datatype": "quantity", "covered_by_datatype": "quantity" },
+        "P2067": { "label": "masse (personne)", "datatype": "quantity", "covered_by_datatype": "quantity" },
+        "P1884": { "label": "couleur des cheveux", "datatype": "wikibase-item", "note": "Descripteur physique — jamais pertinent comme arête" },
+        "P1340": { "label": "couleur des yeux", "datatype": "wikibase-item", "note": "Descripteur physique" },
+        "P21":   { "label": "sexe ou genre", "datatype": "wikibase-item", "note": "Pertinent pour analyses démographiques ou recherche spécialisée", "context_dependent": true },
+        "P91":   { "label": "orientation sexuelle", "datatype": "wikibase-item", "note": "Données personnelles sensibles — secondaire" },
+        "P172":  { "label": "groupe ethnique", "datatype": "wikibase-item", "note": "Données sensibles — contexte-dépendant", "context_dependent": true },
+        "P1971": { "label": "nombre d'enfants", "datatype": "quantity", "covered_by_datatype": "quantity" }
+      }
+    },
+
+    "langues": {
+      "_label": "Langues — parlées, signées, d'écriture, maternelles",
+      "_rationale": "Descripteurs de compétences linguistiques. Rarement exploitables comme arêtes primaires sauf pour entités dont la langue EST l'objet (linguistiques, culturelles).",
+      "properties": {
+        "P1412": { "label": "langues parlées ou signées", "datatype": "wikibase-item", "note": "Compétence linguistique individuelle — secondaire" },
+        "P6886": { "label": "langues d'écriture", "datatype": "wikibase-item", "note": "Langue de production — secondaire sauf pour auteurs" },
+        "P103":  { "label": "langue maternelle", "datatype": "wikibase-item", "note": "Doublon fréquent de P1412 ou P27 (nationalité)" },
+        "P2936": { "label": "langue utilisée", "datatype": "wikibase-item", "note": "Générique — souvent redondant" },
+        "P407":  { "label": "langue de l'œuvre", "datatype": "wikibase-item", "note": "Pertinent pour œuvres littéraires — contexte-dépendant", "context_dependent": true },
+        "P364":  { "label": "langue originale du film/série", "datatype": "wikibase-item", "note": "Pertinent en contexte cinéma", "context_dependent": true }
+      }
+    },
+
+    "bibliographique_editorial": {
+      "_label": "Bibliographique, éditorial et catalogage",
+      "_rationale": "Données de catalogage bibliothécaire/éditorial. Pertinentes dans un contexte académique ou littéraire, mais parasites dans un graphe généraliste.",
+      "properties": {
+        "P1283": { "label": "filmographie", "datatype": "wikibase-item", "note": "Lien agrégateur — doublon des œuvres individuelles" },
+        "P953":  { "label": "full work available at (URL)", "datatype": "url", "covered_by_datatype": "url" },
+        "P996":  { "label": "document scannée (scan)", "datatype": "commonsMedia", "covered_by_datatype": "commonsMedia" },
+        "P1104": { "label": "nombre de pages", "datatype": "quantity", "covered_by_datatype": "quantity" },
+        "P123":  { "label": "éditeur (publisher)", "datatype": "wikibase-item", "note": "Pertinent en contexte littéraire/académique", "context_dependent": true },
+        "P1896": { "label": "source (URL)", "datatype": "url", "covered_by_datatype": "url" },
+        "P1325": { "label": "données externes disponibles", "datatype": "url", "covered_by_datatype": "url" },
+        "P2699": { "label": "URL", "datatype": "url", "covered_by_datatype": "url" },
+        "P854":  { "label": "reference URL", "datatype": "url", "covered_by_datatype": "url" },
+        "P813":  { "label": "retrieved (date de consultation)", "datatype": "time", "covered_by_datatype": "time" },
+        "P1343": { "label": "described by source", "datatype": "wikibase-item", "note": "Source bibliographique de l'affirmation — méta" },
+        "P958":  { "label": "section/verse/paragraph", "datatype": "string", "note": "Localisateur intra-document" },
+        "P577":  { "label": "date de publication", "datatype": "time", "covered_by_datatype": "time" },
+        "P291":  { "label": "lieu de publication", "datatype": "wikibase-item", "note": "Secondaire sauf contexte éditorial" },
+        "P655":  { "label": "traducteur", "datatype": "wikibase-item", "note": "Rôle bibliographique spécialisé" },
+        "P2093": { "label": "author name string", "datatype": "string", "note": "Nom auteur non-wikifié — transitoire" }
+      }
+    },
+
+    "wikimeta_proprietes_techniques": {
+      "_label": "Méta-propriétés Wikidata internes",
+      "_rationale": "Propriétés sur les propriétés elles-mêmes, ou servant à la gestion interne de Wikidata. Aucune valeur pour les utilisateurs finaux.",
+      "properties": {
+        "P1630": { "label": "formatter URL", "datatype": "url", "note": "Méta-propriété : comment construire un lien externe" },
+        "P1921": { "label": "formatter URI pour RDF", "datatype": "url", "note": "Méta-propriété RDF" },
+        "P1629": { "label": "sujet de cette propriété", "datatype": "wikibase-item", "note": "Méta-propriété Wikidata" },
+        "P1687": { "label": "propriété Wikidata correspondante", "datatype": "wikibase-property", "note": "Méta-propriété" },
+        "P1709": { "label": "equivalent class (OWL)", "datatype": "url", "note": "Alignement ontologique" },
+        "P2888": { "label": "exact match (sameAs OWL)", "datatype": "url", "note": "Alignement sémantique" },
+        "P1628": { "label": "equivalent property (OWL)", "datatype": "url", "note": "Alignement propriété" },
+        "P2236": { "label": "external subproperty", "datatype": "url", "note": "Méta-ontologique" },
+        "P1659": { "label": "see also (propriété liée)", "datatype": "wikibase-property", "note": "Relation entre propriétés" },
+        "P1647": { "label": "subproperty of", "datatype": "wikibase-property", "note": "Hiérarchie de propriétés" },
+        "P2302": { "label": "property constraint", "datatype": "wikibase-item", "note": "Contrainte de propriété — méta" },
+        "P3254": { "label": "property proposal discussion", "datatype": "url", "note": "Discussion Wikidata — méta" },
+        "P1855": { "label": "Wikidata property example", "datatype": "wikibase-item", "note": "Exemple de propriété — méta" },
+        "P2559": { "label": "usage instructions", "datatype": "monolingualtext", "note": "Instructions d'utilisation — méta" },
+        "P3713": { "label": "category for value same as property", "datatype": "wikibase-item", "note": "Méta-catégorisation" },
+        "P3734": { "label": "category for value different from item", "datatype": "wikibase-item", "note": "Méta-catégorisation" },
+        "P4195": { "label": "category for employees of the organization", "datatype": "wikibase-item", "note": "Méta-catégorisation Wikipedia" },
+        "P1424": { "label": "topic's main template", "datatype": "wikibase-item", "note": "Template Wikipedia — méta" },
+        "P1151": { "label": "portail Wikipedia", "datatype": "wikibase-item", "note": "Navigation Wikipedia — méta" },
+        "P1204": { "label": "Wikimedia portal", "datatype": "wikibase-item", "note": "Portail Wikimedia — méta" },
+        "P910":  { "label": "catégorie principale (topic's main category)", "datatype": "wikibase-item", "note": "Catégorie Wikipedia — méta" },
+        "P3921": { "label": "Wikidata SPARQL query equivalent", "datatype": "string", "note": "Requête SPARQL — méta technique" },
+        "P2875": { "label": "property usage tracking category", "datatype": "wikibase-item", "note": "Catégorie de suivi — méta interne" }
+      }
+    },
+
+    "qualificateurs_sourcing": {
+      "_label": "Qualificateurs et sourcing — uniquement comme qualifiers, jamais comme arêtes",
+      "_rationale": "Ces propriétés servent quasi-exclusivement comme qualificateurs de statements ou de références. Les utiliser comme arêtes principales du graphe n'a pas de sens.",
+      "properties": {
+        "P580":  { "label": "start time", "datatype": "time", "covered_by_datatype": "time" },
+        "P582":  { "label": "end time", "datatype": "time", "covered_by_datatype": "time" },
+        "P585":  { "label": "point in time", "datatype": "time", "covered_by_datatype": "time" },
+        "P813":  { "label": "retrieved", "datatype": "time", "covered_by_datatype": "time" },
+        "P1480": { "label": "sourcing circumstances", "datatype": "wikibase-item", "note": "Précision épistémique du statement" },
+        "P459":  { "label": "determination method", "datatype": "wikibase-item", "note": "Méthode de mesure — qualificateur" },
+        "P805":  { "label": "statement is subject of", "datatype": "wikibase-item", "note": "Auto-référence du statement" },
+        "P1810": { "label": "subject named as", "datatype": "string", "note": "Nom tel qu'il apparaît dans la source" },
+        "P1932": { "label": "object named as", "datatype": "string", "note": "Nom de l'objet dans la source" },
+        "P2241": { "label": "reason for deprecated rank", "datatype": "wikibase-item", "note": "Gestion de rang Wikidata" },
+        "P7452": { "label": "reason for preferred rank", "datatype": "wikibase-item", "note": "Gestion de rang Wikidata" },
+        "P1545": { "label": "series ordinal", "datatype": "string", "note": "Ordre dans une série — qualificateur" },
+        "P518":  { "label": "applies to part", "datatype": "wikibase-item", "note": "Portée partielle du statement — qualificateur" },
+        "P3831": { "label": "object has role", "datatype": "wikibase-item", "note": "Rôle de l'objet dans le statement — qualificateur" },
+        "P1310": { "label": "statement disputed by", "datatype": "wikibase-item", "note": "Dispute épistémique — qualificateur" },
+        "P3680": { "label": "statement supported by", "datatype": "wikibase-item", "note": "Support épistémique — qualificateur" }
+      }
+    }
+  },
+
+  "C_context_dependent": {
+    "_description": "Propriétés dont la pertinence en graphe primaire dépend du domaine ou du use-case. À exposer comme options configurables dans l'UI.",
+    "properties": {
+      "P27":   { "label": "pays de nationalité/citoyenneté", "default": "secondary", "primary_if": "Recherches géopolitiques, études de migration, prosopographie" },
+      "P21":   { "label": "sexe ou genre", "default": "secondary", "primary_if": "Analyses démographiques, études de genre" },
+      "P140":  { "label": "religion", "default": "secondary", "primary_if": "Histoire religieuse, sociologie des religions" },
+      "P172":  { "label": "groupe ethnique", "default": "secondary", "primary_if": "Études anthropologiques, démographiques" },
+      "P123":  { "label": "éditeur (publisher)", "default": "secondary", "primary_if": "Graphe éditorial, littérature, académique" },
+      "P37":   { "label": "langue officielle", "default": "secondary", "primary_if": "Géopolitique, politiques linguistiques" },
+      "P36":   { "label": "capitale", "default": "secondary", "primary_if": "Graphe géographique/politique centré sur les États" },
+      "P407":  { "label": "langue de l'œuvre", "default": "secondary", "primary_if": "Analyse de corpus littéraire ou cinéma" },
+      "P364":  { "label": "langue originale du film", "default": "secondary", "primary_if": "Analyse filmographique" },
+      "P138":  { "label": "nommé en l'honneur de", "default": "secondary", "primary_if": "Histoire des sciences, toponymie, mémoire historique" },
+      "P571":  { "label": "date de fondation", "default": "secondary (time)", "primary_if": "Histoire des institutions — mais reste datatype:time donc toujours filtré" },
+      "P103":  { "label": "langue maternelle", "default": "secondary", "primary_if": "Linguistique, prosopographie" },
+      "P6886": { "label": "langue d'écriture", "default": "secondary", "primary_if": "Études littéraires, graphe d'auteurs" }
+    }
+  },
+
+  "D_always_primary": {
+    "_description": "Propriétés qui doivent TOUJOURS rester comme arêtes primaires du graphe, quelle que soit la configuration.",
+    "properties": {
+      "P361":  { "label": "part of (partie de)", "datatype": "wikibase-item", "note": "Composition mérologique — arête structurelle" },
+      "P527":  { "label": "has part (a pour partie)", "datatype": "wikibase-item", "note": "Inverse de P361" },
+      "P131":  { "label": "located in the administrative territorial entity", "datatype": "wikibase-item", "note": "Localisation la plus spécifique disponible" },
+      "P19":   { "label": "lieu de naissance", "datatype": "wikibase-item", "note": "Biographie fondamentale" },
+      "P20":   { "label": "lieu de mort", "datatype": "wikibase-item", "note": "Biographie fondamentale" },
+      "P22":   { "label": "père", "datatype": "wikibase-item", "note": "Relation familiale directe" },
+      "P25":   { "label": "mère", "datatype": "wikibase-item", "note": "Relation familiale directe" },
+      "P26":   { "label": "conjoint(e)", "datatype": "wikibase-item", "note": "Relation familiale directe" },
+      "P40":   { "label": "enfant", "datatype": "wikibase-item", "note": "Relation familiale directe" },
+      "P50":   { "label": "auteur", "datatype": "wikibase-item", "note": "Relation créative centrale" },
+      "P57":   { "label": "réalisateur", "datatype": "wikibase-item", "note": "Relation créative" },
+      "P86":   { "label": "compositeur", "datatype": "wikibase-item", "note": "Relation créative" },
+      "P161":  { "label": "acteur/actrice (cast member)", "datatype": "wikibase-item", "note": "Relation créative" },
+      "P106":  { "label": "profession / occupation", "datatype": "wikibase-item", "note": "Classification thématique de la personne" },
+      "P108":  { "label": "employeur", "datatype": "wikibase-item", "note": "Relation institutionnelle principale" },
+      "P69":   { "label": "établissement d'enseignement (educated at)", "datatype": "wikibase-item", "note": "Parcours académique" },
+      "P39":   { "label": "position occupée (position held)", "datatype": "wikibase-item", "note": "Rôle institutionnel" },
+      "P102":  { "label": "parti politique", "datatype": "wikibase-item", "note": "Appartenance politique" },
+      "P166":  { "label": "récompense reçue (award received)", "datatype": "wikibase-item", "note": "Reconnaissance — relation significative" },
+      "P179":  { "label": "série / collection", "datatype": "wikibase-item", "note": "Appartenance à une série" },
+      "P195":  { "label": "collection (musée)", "datatype": "wikibase-item", "note": "Appartenance patrimoniale" },
+      "P170":  { "label": "créateur", "datatype": "wikibase-item", "note": "Relation créative" },
+      "P171":  { "label": "taxon parent", "datatype": "wikibase-item", "note": "Hiérarchie taxonomique biologique" },
+      "P176":  { "label": "fabricant", "datatype": "wikibase-item", "note": "Relation industrielle" },
+      "P186":  { "label": "matériau (made from material)", "datatype": "wikibase-item", "note": "Composition matérielle" },
+      "P495":  { "label": "pays d'origine (country of origin)", "datatype": "wikibase-item", "note": "Provenance de l'œuvre — distinct de P17" },
+      "P136":  { "label": "genre", "datatype": "wikibase-item" },
+      "P135":  { "label": "mouvement artistique", "datatype": "wikibase-item" },
+      "P921":  { "label": "sujet principal (main subject)", "datatype": "wikibase-item" },
+      "P101":  { "label": "domaine de travail (field of work)", "datatype": "wikibase-item" },
+      "P61":   { "label": "découvreur ou inventeur", "datatype": "wikibase-item" },
+      "P629":  { "label": "edition or translation of", "datatype": "wikibase-item" },
+      "P144":  { "label": "basé sur (based on)", "datatype": "wikibase-item" },
+      "P737":  { "label": "influencé par", "datatype": "wikibase-item" },
+      "P800":  { "label": "œuvre notable (notable work)", "datatype": "wikibase-item" },
+      "P1066": { "label": "directeur de thèse (student of)", "datatype": "wikibase-item" },
+      "P185":  { "label": "doctorant(e) (doctoral student)", "datatype": "wikibase-item" }
+    }
+  }
+}

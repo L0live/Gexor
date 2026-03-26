@@ -1,58 +1,74 @@
 // ============================================================================
-// Fonctions utilitaires pour mapper les données brutes REEC vers le format graphe
+// Fonctions utilitaires pour mapper les données LOD vers le format graphe Gexor
 // ============================================================================
 
+import { getPrimaryTypeLabel } from '../models/lodNode';
+
 /**
- * Convertit un objet REEC brut en node du graphe
+ * Convertit un LodNode en node interne du graphe (pour le rendu).
+ * Le type est désormais le premier typeLabel (label P31 humain) directement.
  */
-export const mapReecToNode = (reec) => ({
-  id: reec.reec_id,
-  label: reec.label,
-  type: reec.type,
-  subtype: reec.subtype,
-  category: reec.category,
-  summary: reec.summary_short,
-  summaryDetailed: reec.summary_detailed,
-  temporal: {
-    start: reec.temporal_start_date || reec.temporal_date,
-    end: reec.temporal_end_date,
-    precision: reec.temporal_precision
-  },
-  locations: reec.spatial_locations || [],
-  confiance: reec.metadata_confiance,
-  tags: reec.metadata_tags || []
+export const mapLodNodeToGraphNode = (lodNode) => ({
+  id: lodNode.uri,
+  label: lodNode.label,
+  type: (lodNode.typeLabels && lodNode.typeLabels[0]) || (lodNode.types && lodNode.types[0]) || 'unknown',
+  typeLabel: getPrimaryTypeLabel(lodNode),
+  types: lodNode.types,
+  typeLabels: lodNode.typeLabels,
+  description: lodNode.description,
+  temporal: lodNode.temporal,
+  geo: lodNode.geo,
+  locations: lodNode.geo?.lat ? [`${lodNode.geo.lat}, ${lodNode.geo.lon}`] : [],
+  sources: lodNode.sources,
+  thumbnailUrl: lodNode.thumbnailUrl,
+  externalIds: lodNode.externalIds,
+  aliases: lodNode.aliases,
+  properties: lodNode.properties,
 });
 
 /**
- * Convertit une relation brute en edge du graphe
+ * Convertit un LodEdge en edge interne du graphe (pour le rendu)
  */
-export const mapRelationToEdge = (rel) => ({
-  id: `${rel.source_reec_id}-${rel.target_reec_id}`,
-  source: rel.source_reec_id,
-  target: rel.target_reec_id,
-  type: rel.relation_type,
-  description: rel.description,
-  confiance: rel.confiance
+export const mapLodEdgeToGraphEdge = (lodEdge) => ({
+  id: lodEdge.id,
+  source: lodEdge.source,
+  target: lodEdge.target,
+  type: lodEdge.label || lodEdge.predicate,
+  predicate: lodEdge.predicate,
+  description: lodEdge.label,
+  rank: lodEdge.rank,
+  referenceCount: lodEdge.referenceCount,
+  sources: lodEdge.sources,
+  classification: lodEdge.classification || 'unclassified',
+  redundancyGroup: lodEdge.redundancyGroup || null,
+  // Phase 2-3 enrichment fields
+  tier: lodEdge.tier || 'primary',
+  direction: lodEdge.direction || 'outgoing',
+  contextPromoted: lodEdge.contextPromoted || false,
+  weight: lodEdge.weight ?? 100,
+  aggregateCount: lodEdge.aggregateCount || null,
 });
 
 /**
- * Crée un Map de lookup pour accéder rapidement aux nodes par ID
+ * Crée un Map de lookup pour accéder rapidement aux nodes par ID (URI)
  */
 export const buildNodeMap = (nodes) => new Map(nodes.map(n => [n.id, n]));
 
 /**
- * Crée un Map de lookup pour accéder rapidement aux REECs par ID
+ * Calcule les statistiques d'un ensemble de nodes/edges.
+ * Les catégories sont désormais dynamiques (dérivées de P31).
  */
-export const buildReecMap = (reecs) => new Map(reecs.map(r => [r.reec_id, r]));
+export const computeStats = (nodes, edges) => {
+  const byCat = {};
+  nodes.forEach(n => {
+    const cat = n.type || 'unknown';
+    byCat[cat] = (byCat[cat] || 0) + 1;
+  });
 
-/**
- * Calcule les statistiques d'un ensemble de nodes/edges
- */
-export const computeStats = (nodes, edges, filters) => ({
-  total: nodes.length,
-  entities: nodes.filter(n => n.type === 'Entity').length,
-  events: nodes.filter(n => n.type === 'Event').length,
-  contexts: nodes.filter(n => n.type === 'Context').length,
-  relations: edges.length,
-  visible: nodes.filter(n => filters[n.type]).length
-});
+  return {
+    total: nodes.length,
+    relations: edges.length,
+    visible: nodes.length, // no filters → all visible
+    byCategory: byCat,
+  };
+};

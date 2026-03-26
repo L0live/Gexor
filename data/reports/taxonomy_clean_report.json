@@ -1,0 +1,152 @@
+{
+  "elapsed_seconds": 392.5,
+  "input": {
+    "total_classes": 411734,
+    "file": "wikidata_taxonomy_full.json"
+  },
+  "cleaning": {
+    "noise_removed": 19,
+    "noise_roots": [
+      "Q11266439",
+      "Q13406463",
+      "Q15184295",
+      "Q17442446",
+      "Q17633526",
+      "Q19842659",
+      "Q21528878",
+      "Q4167410",
+      "Q4167836",
+      "Q4663903",
+      "Q58494026",
+      "Q59259627"
+    ],
+    "min_instances": 1,
+    "seed_classes": 39704,
+    "ancestors_added": 1622
+  },
+  "output": {
+    "clean_classes": 41326,
+    "light_classes": 10003,
+    "labels_resolved": 41326,
+    "reduction_pct": 90.0
+  },
+  "distribution": {
+    "depth": {
+      "0": 36969,
+      "1": 4054,
+      "2": 265,
+      "3": 37,
+      "4": 1
+    },
+    "instance_ranges": {
+      "0": 1622,
+      "1-10": 32562,
+      "11-100": 5496,
+      "101-1000": 1305,
+      "1001-10000": 292,
+      "10000+": 49
+    }
+  },
+  "top_20_by_total": [
+    {
+      "qid": "Q13442814",
+      "totalInstances": 3105993,
+      "directInstances": 3105993
+    },
+    {
+      "qid": "Q5",
+      "totalInstances": 672801,
+      "directInstances": 672801
+    },
+    {
+      "qid": "Q16521",
+      "totalInstances": 328376,
+      "directInstances": 326985
+    },
+    {
+      "qid": "Q7187",
+      "totalInstances": 149005,
+      "directInstances": 149005
+    },
+    {
+      "qid": "Q8054",
+      "totalInstances": 123914,
+      "directInstances": 122590
+    },
+    {
+      "qid": "Q13100073",
+      "totalInstances": 73091,
+      "directInstances": 73091
+    },
+    {
+      "qid": "Q35145263",
+      "totalInstances": 63593,
+      "directInstances": 0
+    },
+    {
+      "qid": "Q106589819",
+      "totalInstances": 63533,
+      "directInstances": 4
+    },
+    {
+      "qid": "Q8502",
+      "totalInstances": 63529,
+      "directInstances": 63499
+    },
+    {
+      "qid": "Q486972",
+      "totalInstances": 58039,
+      "directInstances": 54275
+    },
+    {
+      "qid": "Q4022",
+      "totalInstances": 51253,
+      "directInstances": 47835
+    },
+    {
+      "qid": "Q3305213",
+      "totalInstances": 50678,
+      "directInstances": 50602
+    },
+    {
+      "qid": "Q79007",
+      "totalInstances": 47103,
+      "directInstances": 47101
+    },
+    {
+      "qid": "Q191067",
+      "totalInstances": 44797,
+      "directInstances": 7270
+    },
+    {
+      "qid": "Q54050",
+      "totalInstances": 39288,
+      "directInstances": 39261
+    },
+    {
+      "qid": "Q30612",
+      "totalInstances": 39132,
+      "directInstances": 39132
+    },
+    {
+      "qid": "Q3055347",
+      "totalInstances": 37895,
+      "directInstances": 368
+    },
+    {
+      "qid": "Q13433827",
+      "totalInstances": 37527,
+      "directInstances": 37527
+    },
+    {
+      "qid": "Q101352",
+      "totalInstances": 36748,
+      "directInstances": 36747
+    },
+    {
+      "qid": "Q2668072",
+      "totalInstances": 36446,
+      "directInstances": 35990
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 # Gexor — Documentation d'Implémentation Complète
 
-> **Version** : 1.1  
-> **Date** : Février 2026  
+> **Version** : 1.2  
+> **Date** : Mars 2026  
 > **Statut** : Document de référence — vision produit et architecture technique  
-> **Base existante** : NexReecGraph (moteur 3D fonctionnel)  
+> **Base existante** : Gexor (moteur 3D fonctionnel + backend Fastify + pipeline Wikidata)  
 > **IA** : hors périmètre actuel → voir `GEXOR_IA_FUTURE.md`
 
 ---
@@ -13,7 +13,7 @@
 1. [Vision & Positionnement](#1-vision--positionnement)
 2. [Architecture Globale](#2-architecture-globale)
 3. [Couche Données — SPARQL Fédéré](#3-couche-données--sparql-fédéré)
-4. [Moteur 3D — Évolution depuis NexReecGraph](#4-moteur-3d--évolution-depuis-nexreecgraph)
+4. [Moteur 3D — Architecture existante](#4-moteur-3d--architecture-existante)
 5. [Système de Parcours](#5-système-de-parcours)
 6. [Modes de Visualisation & Plugins](#6-modes-de-visualisation--plugins)
 7. [Annotations & Blocs-notes 3D](#7-annotations--blocs-notes-3d)
@@ -68,14 +68,14 @@ Gexor est un **navigateur immersif du savoir mondial** qui explore le Linked Ope
 ┌─────────────────────────────────────────────────────────────────┐
 │                          GEXOR                                   │
 │                                                                  │
-│  ┌──────────────┐          ┌──────────────────────────────────┐  │
-│  │  COUCHE       │          │  COUCHE MOTEUR 3D                │  │
-│  │  DONNÉES      │─────────▶│  React Three Fiber / Three.js   │  │
-│  │  SPARQL       │          │  @antv/layout-wasm / Zustand     │  │
-│  │  Fédéré       │          └──────────────┬───────────────────┘  │
-│  └──────────────┘                          │                      │
-│                                            │                      │
-│  ┌─────────────────────────────────────────▼──────────────────┐  │
+│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────────────────┐  │
+│  │  COUCHE        │  │  BACKEND       │  │  COUCHE MOTEUR 3D                │  │
+│  │  DONNÉES       │  │  FASTIFY       │  │  React Three Fiber / Three.js   │  │
+│  │  Wikidata API  │◀▶│  Cache PG      │◀▶│  @antv/layout-wasm / Zustand    │  │
+│  │  (+future T2/3)│  │  Proxy image   │  │                                │  │
+│  └──────────────┘  └───────────────┘  └──────────────┬───────────────┘  │
+│                                                       │                      │
+│  ┌────────────────────────────────────────────────────▼──────────────────┐  │
 │  │                       COUCHE UX                             │  │
 │  │   Modes / Plugins / Annotations / Parcours / Sourçage       │  │
 │  └─────────────────────────────────────────┬──────────────────┘  │
@@ -89,9 +89,9 @@ Gexor est un **navigateur immersif du savoir mondial** qui explore le Linked Ope
 
 ### Principes architecturaux fondamentaux
 
-**Gexor ne stocke pas de données de connaissance.** Toute la connaissance vit dans le LOD cloud. Gexor stocke uniquement : les profils utilisateurs, les annotations, les parcours sauvegardés, le cache de performance.
+**Gexor ne stocke pas de données de connaissance.** Toute la connaissance vit dans le LOD cloud. Gexor stocke uniquement : les profils utilisateurs, les annotations, les parcours sauvegardés, le cache de performance (PostgreSQL).
 
-**Wikidata est le hub central.** Toute entité est identifiée par un Q-ID Wikidata. Les autres endpoints sont des enrichissements optionnels activés selon le contexte et le domaine de l'entité.
+**Wikidata est le hub central.** Toute entité est identifiée par un Q-ID Wikidata. Le backend Fastify consolide les appels vers l'API Wikidata (Action API + SPARQL), met en cache les résultats dans PostgreSQL, et proxie les images Wikimedia Commons. Les autres endpoints (Tier 2/3) sont des enrichissements optionnels activés selon le contexte.
 
 **La caméra est la pagination.** Le frustum de la caméra détermine quelles données sont chargées. Se déplacer dans la scène = requêter de nouvelles données. S'éloigner = libérer la mémoire.
 
@@ -135,9 +135,11 @@ Le chargement est couplé à la caméra en permanence. Le système fonctionne ai
 
 ### Stratégie de cache
 
-**Cache mémoire (session)** : les entités visitées restent en mémoire pendant la session courante. Idéal pour la navigation aller-retour.
+> **État actuel (✅ implémenté) :** cache 3 tiers fonctionnel — L1 mémoire frontend (Map, 10 min), L2 PostgreSQL (24h–30j par domaine), L3 tables dédiées labels (pid_labels, qid_labels, 30j).
 
-**Cache persistant (local)** : les entités et leurs relations directes sont mises en cache localement avec un TTL. Wikidata = 24h, données culturelles = 7 jours, données géographiques = 30 jours.
+**Cache mémoire (session)** : les entités visitées restent en mémoire pendant la session courante via `cacheService.js` frontend (Map avec TTL 10 min). Idéal pour la navigation aller-retour.
+
+**Cache persistant (PostgreSQL)** : le backend Fastify met en cache les entités et leurs relations dans la table `cache_entries` avec TTL configurable. Wikidata = 24h, données culturelles = 7 jours, données géographiques = 30 jours. Le `labelResolver` utilise des tables dédiées (`pid_labels`, `qid_labels`) avec TTL 30 jours et batch-populate.
 
 **Invalidation** : forçable manuellement par l'utilisateur via un bouton "Actualiser depuis la source". Utile pour les entités dynamiques (personnalités vivantes, données géopolitiques).
 
@@ -161,28 +163,48 @@ Chaque endpoint a ses propres modèles de données (CIDOC-CRM pour les musées, 
 
 ---
 
-## 4. Moteur 3D — Évolution depuis NexReecGraph
+## 4. Moteur 3D — Architecture existante
 
 ### Ce qui est conservé intégralement
 
 Le moteur de rendu existant est solide et directement réutilisable :
 
 - **Stack R3F + Three.js + @antv/layout-wasm** : aucun changement
-- **InstancedMesh pour nœuds et arêtes** : performances validées
+- **InstancedMesh pour nœuds et arêtes** : performances validées, enrichi avec pulse verte (nœuds ajoutés) et contour bleu (sélection)
 - **SharedArrayBuffer + zero-copy** : communication layout → rendu
-- **Zustand 5 slices** : architecture state conservée, slices à étendre
+- **Zustand 5 slices** : architecture state conservée, **dataSlice** enrichi avec `nodeSettings` (paramètres par nœud), **pinSlice** réduit au verrouillage de position, **graphSlice** filtre direction par nœud
 - **TrackballControls** : navigation orbitale conservée
-- **LoD labels/sphères** : conserver et enrichir
-- **Pinning + BFS multi-sources** : adapter pour les Q-IDs
-- **Undo/redo** : conserver
-- **Minimap** : conserver
+- **LoD labels/sphères** : conservé et enrichi (contour sélection + pulse)
+- **Pinning** : découplé — `pinSlice` = position lock uniquement, profondeur/direction/radial dans `nodeSettings`
+- **BFS multi-sources** : racines = union de `pinnedNodes` + `nodeSettings` keys avec `depth > 0`
+- **Undo/redo** : conservé, expand/collapse agrégats appelle `saveToHistory()`
+- **Minimap** : conservée
 
 ### Évolutions requises
 
-**Remplacement du data layer**
+**Remplacement du data layer (✅ fait)**
 
-Le `dataSlice` actuel charge un JSON statique. Il doit être remplacé par un système de chargement asynchrone SPARQL. Le reste du pipeline (graphSlice, BFS, layout) reste inchangé — seule la source des données change.
+Le `dataSlice` charge désormais les données depuis le backend Fastify via des appels API REST (`/api/entity/:qid/expand`, `/api/entity/:qid/incoming-aggregates`, etc.). Le pipeline classify-first classe chaque PID avant de récupérer les voisins, avec des budgets par tier (D→all, C promoted→all, unclassified→20, A→survivor). Le Context Resolver promeut automatiquement les PIDs context-dependent selon le type P31 de l'entité (20 familles dans `contextRules.json`). Les références entrantes sont regroupées par SPARQL (PID × P31 type × count) et affichées comme nœuds agrégateurs (hexagones violets).
+**Paramètres par nœud (✅ fait)**
 
+`dataSlice.nodeSettings` est un map `{ [uri]: settings }` contenant par nœud : `depth`, `explorationDirection` (défaut `'incoming'`), `renderMode`, `radialStrength`, etc. Créé via `defaultNodeSettings()`. La direction d’exploration n’est plus globale — chaque nœud pinné/expandé peut indépendamment fetcher sortant, entrant ou les deux. `graphSlice.isEdgeVisibleForDirection()` filtre les arêtes selon la direction du nœud. Paramètres configurés dans la section « Paramètres » du NodeDetailPanel (pas dans SettingsPanel).
+
+**Système de mise en évidence (✅ fait)**
+
+- **Contour bleu de sélection** (`SELECTION_OUTLINE_COLOR = '#3b82f6'`) : le nœud sélectionné reçoit un contour bleu dans `Node.jsx` et `InstancedNodes.jsx`
+- **Pulse verte d’ajout** (`ADDED_PULSE_COLOR = '#22c55e'`, durée 1500ms) : les nœuds ajoutés par `addNodeToGraph` reçoivent une animation de pulse verte qui s’atténue
+- `recentlyAddedNodes` dans `dataSlice` : map `{ [uri]: timestamp }` nettoyée après `ADDED_PULSE_DURATION`
+
+**NodeDetailPanel redesign (✅ fait)**
+
+Panneau de détails complètement repensé avec :
+- **Sections repliables** (Propriétés, Paramètres, Agrégats) via composant `CollapsibleSection`
+- **Mode édition inline** : bouton crayon pour afficher checkboxes + bouton X par relation (supprimer via `removeEdgeFromGraph`)
+- **Paramètres par nœud** : direction d’exploration, profondeur BFS, mode radial, force radiale — controls via `NodeSettingsSection`
+- **Références cliquables** : toutes les valeurs entités dans les propriétés sont cliquables (`selectNode` + `addNodeToGraph`)
+- **Liste d’entités agrégées** : pour les nœuds agrégateurs, affiche les enfants via `AggregateEntityList`
+
+`GroupInfoPanel` a été supprimé de `Gexor.jsx` — ses fonctionnalités sont désormais dans NodeDetailPanel.
 **Couplage caméra → chargement**
 
 Un nouveau hook observe en continu la position et l'orientation de la caméra. Quand la caméra se déplace au-delà d'un seuil, il calcule la zone d'intérêt et déclenche les requêtes SPARQL pour les nœuds qui entrent dans le frustum. Ce hook s'intercale entre les contrôles caméra et le data layer.
@@ -302,7 +324,7 @@ Les modes sont superposables partiellement (ex: mode temporel + coloration géog
 ### Modes de base
 
 **Mode Force-Directed (défaut)**  
-Le layout physique actuel de NexReecGraph. Les nœuds se repoussent et les relations créent des liens élastiques. Révèle les clusters naturels et les hubs fortement connectés.
+Le layout physique actuel de Gexor. Les nœuds se repoussent et les relations créent des liens élastiques. Révèle les clusters naturels et les hubs fortement connectés.
 
 **Mode Temporel**  
 Les nœuds sont positionnés sur un axe temporel. L'axe X (ou Z) représente le temps, les axes perpendiculaires sont libres pour le layout force. Les entités sans date précise flottent dans une zone "atemporal". La caméra peut survoler la frise de gauche à droite. Nécessite la propriété date de naissance/création de Wikidata.
@@ -513,21 +535,29 @@ La vue courante de la scène peut être exportée en carte mentale 2D (SVG ou PN
 
 ### Backend Gexor
 
-Le backend est léger — il ne stocke pas de connaissance, seulement des métadonnées utilisateurs.
+> **État actuel (✅ implémenté) :** Backend Fastify fonctionnel (`server/`) avec PostgreSQL. Consolide les appels Wikidata (1 round-trip client→backend au lieu de 6-10 client→Wikidata), cache 3 tiers, proxy image COEP, classify-first fetch, SPARQL agrégation entrante.
 
-**Responsabilités :**
+**Responsabilités actuelles :**
+- Consolidation des appels Wikidata (Action API + SPARQL)
+- Cache PostgreSQL 3 tiers (mémoire → PG → API)
+- Résolution de labels (PID/QID) avec batch-populate
+- Classify-first fetch avec budgets par tier
+- SPARQL agrégation des références entrantes (GROUP BY PID × P31 type)
+- Proxy images Wikimedia Commons (headers CORP pour COEP)
+- Rate-limiting côté serveur pour Wikidata
+
+**Responsabilités futures :**
 - Authentification et gestion des comptes
 - Stockage des annotations utilisateurs
 - Stockage des parcours sauvegardés
-- Cache SPARQL partagé
-- Proxy vers les endpoints SPARQL (gestion des quotas, retry, fallback)
+- Proxy vers les endpoints SPARQL Tier 2/3 (gestion des quotas, retry, fallback)
 - Monitoring des endpoints (disponibilité, latence)
 
-**Stack recommandée :**
-- Node.js + Fastify (cohérence avec l'écosystème JS du frontend)
-- PostgreSQL pour les données utilisateurs et parcours
-- Redis pour le cache SPARQL et les sessions
-- S3 ou équivalent pour les exports vidéo
+**Stack :**
+- Node.js 22 + Fastify (choix final — cohérence avec l'écosystème JS du frontend)
+- PostgreSQL pour le cache, les labels, et les futures données utilisateurs
+- Redis envisagé pour les sessions et le cache haute-fréquence (futur)
+- S3 ou équivalent pour les exports vidéo (futur)
 
 ### Gestion de la latence SPARQL
 
@@ -548,19 +578,37 @@ Les headers `Cross-Origin-Opener-Policy: same-origin` et `Cross-Origin-Embedder-
 
 ## 12. Roadmap d'Implémentation
 
-### Phase 0 — Socle SPARQL (4–6 semaines)
+### Phase 0 — Socle SPARQL (4–6 semaines) ✅ COMPLÉTÉE
 
-**Objectif** : remplacer le JSON statique par un data layer SPARQL réel, sans toucher au moteur 3D.
+**Objectif** : remplacer le JSON statique par un data layer Wikidata réel, sans toucher au moteur 3D.
 
-Livrables :
-- Service de requêtes Wikidata (recherche d'entité par nom, propriétés, relations directes)
-- Normalisation des données Wikidata vers le modèle interne Gexor
-- Cache Redis basique (TTL 24h)
-- Proxy backend minimal
-- Adaptation du `dataSlice` Zustand pour les données asynchrones
-- Test sur un domaine restreint (ex: Histoire Moderne européenne 1700–1900)
+**Réalisé :**
+- ✅ Backend Fastify complet (`server/`) avec routes REST (`/api/search`, `/api/entity/:qid`, `/api/entity/:qid/expand`, `/api/entity/:qid/neighbors`, `/api/entity/:qid/incoming-aggregates`, `/api/entity/:qid/aggregate-children`, `/api/image`, `/api/sparql`)
+- ✅ Service `wikidataClient.js` avec classify-first fetch, budgets par tier, déduplication A-axis, filtre Wikimedia noise (7 types)
+- ✅ Context Resolver (`contextResolver.js` + `contextRules.json`) avec 20 familles de types P31
+- ✅ Cache PostgreSQL 3 tiers (mémoire → `cache_entries` table → API Wikidata) + `labelResolver.js` (tables `pid_labels`, `qid_labels`)
+- ✅ Proxy image Wikimedia Commons (`/api/image`) avec headers CORP pour COEP/SharedArrayBuffer
+- ✅ Thin API client frontend (`src/services/queries/wikidata.js`) remplace les appels SPARQL directs
+- ✅ `dataSlice.js` refactoré pour chargement asynchrone via API backend
+- ✅ `graphSlice.js` réécrit avec classify-first PID filtering et `contextPromotedPids`
+- ✅ Nœuds agrégateurs : modèle `AggregateNode`, rendu hexagonal violet dans `InstancedNodes.jsx`, expand/collapse dans `NodeDetailPanel.jsx`, expand/collapse appellent `saveToHistory()` pour undo/redo
+- ✅ `propertyClassification.js` enrichi avec dedup, `WIKIMEDIA_NOISE_TYPES`, `isWikimediaNoise()`
+- ✅ Docker Compose fonctionnel (frontend nginx + backend Fastify + PostgreSQL)
+- ✅ Paramètres par nœud (`nodeSettings` dans `dataSlice`) : direction d’exploration, profondeur BFS, mode radial, force radiale — chaque nœud indépendant
+- ✅ Direction d’exploration `'incoming'` par défaut (plus de direction globale)
+- ✅ `pinSlice` découplé : position lock uniquement, profondeur/direction/radial délégués à `nodeSettings`
+- ✅ BFS roots = union de `pinnedNodes` + `nodeSettings` keys avec `depth > 0`
+- ✅ `isEdgeVisibleForDirection()` dans `graphSlice` : filtre arêtes selon direction par nœud
+- ✅ NodeDetailPanel redesign : sections repliables, mode édition inline, paramètres par nœud, références cliquables, liste d’entités agrégées
+- ✅ `GroupInfoPanel` supprimé de `Gexor.jsx` (intégré dans NodeDetailPanel)
+- ✅ ConnectedNodesPanel : filtre nœuds visibles uniquement + fetch sortant, bouton « ajouter au graphe »
+- ✅ AllPropertiesModal : références entités cliquables (`selectNode` + `addNodeToGraph`)
+- ✅ Système de mise en évidence : contour bleu sélection (`SELECTION_OUTLINE_COLOR`), pulse verte ajout (`ADDED_PULSE_COLOR`, 1500ms)
+- ✅ `addNodeToGraph(uri)` dans `dataSlice` : charge, pin, déclenche pulse
+- ✅ `recentlyAddedNodes` pour suivi de l’animation pulse
+- ✅ Fetch sortant à la demande dans `uiSlice.selectNode()` pour affichage propriétés
 
-**Critère de succès** : naviguer dans le graphe Gexor avec des données Wikidata réelles, sans données JSON.
+**Critère de succès** : ✅ naviguer dans le graphe Gexor avec des données Wikidata réelles, sans données JSON.
 
 ---
 
@@ -676,7 +724,7 @@ Livrables :
 ### Décisions techniques
 
 **Backend Node.js ou Python ?**  
-Node.js pour la cohérence avec le frontend React. Python si des composants spécifiques le requièrent. Décision avant Phase 0.
+✅ **Décision prise : Node.js + Fastify.** Cohérence avec le frontend React, écosystème JS unifié, excellentes performances I/O. Implémenté dans `server/`.
 
 **Format de stockage des parcours**  
 JSON dans PostgreSQL vs table relationnelle complète. Le JSON est plus flexible pour les itérations rapides mais moins requêtable. À décider avant Phase 4.

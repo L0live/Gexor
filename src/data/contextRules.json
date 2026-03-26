@@ -1,0 +1,37 @@
+{
+  "_description": "Mapping type P31 → PIDs contexte-dépendants à promouvoir",
+  "_version": "1.0",
+  "rules": {
+    "Q5":        { "label": "human",            "promote": ["P27"],  "conditions": { "P27": "multi-valued-only" } },
+    "Q6256":     { "label": "country",           "promote": ["P36", "P37", "P38"] },
+    "Q3624078":  { "label": "sovereign state",   "promote": ["P36", "P37", "P38"] },
+    "Q515":      { "label": "city",              "promote": ["P17"] },
+    "Q486972":   { "label": "human settlement",  "promote": ["P17"] },
+    "Q13100073": { "label": "village of China",  "promote": ["P17"] },
+    "Q7725634":  { "label": "literary work",     "promote": ["P407", "P123"] },
+    "Q11424":    { "label": "film",              "promote": ["P364"] },
+    "Q482994":   { "label": "album",             "promote": ["P407"] },
+    "Q3305213":  { "label": "painting",          "promote": ["P138"] },
+    "Q43229":    { "label": "organization",      "promote": ["P17"] },
+    "Q4830453":  { "label": "enterprise",        "promote": ["P17"] },
+    "Q16521":    { "label": "taxon",             "promote": [] },
+    "Q8502":     { "label": "mountain",          "promote": ["P17"] },
+    "Q4022":     { "label": "river",             "promote": ["P17"] },
+    "Q23442":    { "label": "island",            "promote": ["P17"] },
+    "Q3918":     { "label": "university",        "promote": ["P17", "P37"] },
+    "Q33506":    { "label": "museum",            "promote": ["P17"] },
+    "Q178561":   { "label": "battle",            "promote": [] },
+    "Q198":      { "label": "war",               "promote": [] }
+  },
+  "wikimedia_noise_types": [
+    "Q4167836", "Q4167410", "Q11266439", "Q13406463",
+    "Q17442446", "Q15184295", "Q17633526"
+  ],
+  "aggregate_types": {
+    "_description": "Types P31 qui devraient toujours être agrégés (jamais en nœuds individuels entrants)",
+    "types": [
+      "Q13442814", "Q30612", "Q13433827", "Q101352",
+      "Q7187", "Q8054"
+    ]
+  }
+}

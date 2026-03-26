@@ -1,0 +1,102 @@
+# ============================================================================
+# Gexor — Docker Compose DEV
+# ============================================================================
+# Hot-reload for both frontend (Vite HMR) and backend (nodemon).
+# Source files are mounted directly from the host so every save is picked up
+# instantly inside the container, even on Docker Desktop / WSL2 (polling is
+# enabled via DOCKER_DEV=1 for Vite and --legacy-watch for nodemon).
+#
+# Usage:
+#   npm run docker:dev:build   # First run or after dep changes (npm install)
+#   npm run docker:dev         # Subsequent runs (no rebuild)
+#   npm run docker:dev:down    # Stop & remove containers
+#
+# App: http://localhost:3000
+# API: http://localhost:3001
+# ============================================================================
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gexor
+      POSTGRES_USER: gexor
+      POSTGRES_PASSWORD: gexor
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+      - ./docker/postgres-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gexor -d gexor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Backend (nodemon) ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.dev.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      HOST: 0.0.0.0
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: gexor
+      PGUSER: gexor
+      PGPASSWORD: gexor
+      CORS_ORIGIN: "http://localhost:3000"
+      LOG_LEVEL: info
+    volumes:
+      # Mount source code — changes are picked up by nodemon immediately
+      - ./server:/app/server
+      - ./data:/app/data
+      # Isolated node_modules — never overwritten by host mounts
+      - backend_node_modules:/app/node_modules
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 5
+
+  # ── Frontend (Vite HMR) ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.dev.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Vite proxy forwards /api → http://backend:3001 (Docker internal DNS)
+      BACKEND_URL: "http://backend:3001"
+      DOCKER_DEV: "1"
+      NODE_ENV: development
+    volumes:
+      # Mount all edited source files
+      - ./src:/app/src
+      - ./index.html:/app/index.html
+      - ./vite.config.js:/app/vite.config.js
+      - ./tailwind.config.js:/app/tailwind.config.js
+      - ./postcss.config.js:/app/postcss.config.js
+      # Isolated node_modules
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata_dev:
+  backend_node_modules:
+  frontend_node_modules:

@@ -3,14 +3,15 @@ import { Billboard, Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
-import { COLOR_MAP } from '../../constants/graphConstants';
+import { getCategoryColor } from '../../constants/graphConstants';
+import { AGGREGATE_NODE_COLOR, AGGREGATE_NODE_COLOR_LOADING, getAggregateScale, SELECTION_OUTLINE_COLOR, ADDED_PULSE_COLOR, ADDED_PULSE_DURATION } from '../../constants/graphConstants';
 import { getRadialDisplayPos } from '../../utils/radialLayout';
 
 // Generics textures cache for LoD
 const lodTextures = {};
 
 const getLodTexture = (type) => {
-  const color = COLOR_MAP[type] || COLOR_MAP['Default'];
+  const color = getCategoryColor(type);
   if (lodTextures[color]) return lodTextures[color];
 
   const canvas = document.createElement('canvas');
@@ -35,7 +36,7 @@ const getLodTexture = (type) => {
 
 const borderTextures = {};
 const getBorderTexture = (type) => {
-  const color = COLOR_MAP[type] || COLOR_MAP['Default'];
+  const color = getCategoryColor(type);
   if (borderTextures[color]) return borderTextures[color];
 
   const canvas = document.createElement('canvas');
@@ -58,7 +59,7 @@ const getBorderTexture = (type) => {
   return borderTextures[color];
 };
 
-const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDragEnd, isDragging, isPinned, filterMode, opacityLevel, totalNodes = 100 }) => {
+const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDragEnd, isDragging, isPinned, opacityLevel = 1.0, totalNodes = 100 }) => {
   const spriteRef = useRef();
   const billboardRef = useRef();
   const dragStartInfo = useRef(null);
@@ -134,9 +135,16 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     lodAlpha.current = THREE.MathUtils.lerp(lodAlpha.current, targetAlpha, 0.1);
 
     // Mettre à jour les opacités et le highlight (brightness)
-    const clampedOpacity = Math.min(1.0, opacityLevel);
+    const baseClamped = Math.min(1.0, opacityLevel);
+    const clampedOpacity = node.isSharedNode ? baseClamped * SHARED_NODE_OPACITY : baseClamped;
     // Le brightness est désormais appliqué uniquement au contour (border)
     const borderOpacity = opacityLevel > 1.0 ? Math.min(1.0, (opacityLevel - 1.0) * 2.0) : 0;
+
+    // Selection outline (blue) or recently-added pulse (green)
+    const recentlyAdded = storeState.recentlyAddedNodes?.[node.id];
+    const addedElapsed = recentlyAdded ? Date.now() - recentlyAdded : Infinity;
+    const isRecentlyAdded = addedElapsed < ADDED_PULSE_DURATION;
+    const pulseFactor = isRecentlyAdded ? Math.max(0, 1 - addedElapsed / ADDED_PULSE_DURATION) * (0.5 + 0.5 * Math.sin(addedElapsed * 0.008)) : 0;
 
     if (highResMatRef.current) {
         highResMatRef.current.opacity = lodAlpha.current * clampedOpacity;
@@ -150,8 +158,20 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
         lowResMatRef.current.color.setRGB(1, 1, 1);
     }
     if (borderMatRef.current) {
-        borderMatRef.current.opacity = borderOpacity;
-        borderMatRef.current.visible = borderOpacity > 0.001;
+        // Priority: selection outline > recently-added pulse > opacityLevel highlight
+        if (isSelected) {
+          borderMatRef.current.opacity = 0.8;
+          borderMatRef.current.visible = true;
+          borderMatRef.current.color.set(SELECTION_OUTLINE_COLOR);
+        } else if (isRecentlyAdded) {
+          borderMatRef.current.opacity = Math.max(0, pulseFactor);
+          borderMatRef.current.visible = borderMatRef.current.opacity > 0.01;
+          borderMatRef.current.color.set(ADDED_PULSE_COLOR);
+        } else {
+          borderMatRef.current.opacity = borderOpacity;
+          borderMatRef.current.visible = borderOpacity > 0.001;
+          borderMatRef.current.color.setRGB(1, 1, 1);
+        }
     }
 
     // On ne change le lodLevel d'état (pour le useMemo texture) qu'aux extrêmes
@@ -181,6 +201,61 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     const centerX = size / 2;
     const centerY = size / 2;
     const radius = size * 0.4;
+
+    // Aggregate nodes: draw hexagonal shape with count
+    if (node.isAggregate) {
+      // Draw hexagon background
+      ctx.fillStyle = node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const hx = centerX + radius * Math.cos(angle);
+        const hy = centerY + radius * Math.sin(angle);
+        if (i === 0) ctx.moveTo(hx, hy);
+        else ctx.lineTo(hx, hy);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw count number
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const countText = node.aggregateCount >= 1000 ? `${Math.round(node.aggregateCount / 1000)}k` : String(node.aggregateCount || '?');
+      ctx.fillText(countText, centerX, centerY - 16);
+
+      // Draw label below count
+      ctx.font = 'bold 22px Arial';
+      let aggLabelText = node.predicateLabel || node.label || '';
+      if (node.targetClassLabels && node.targetClassLabels.length > 0 && node.targetClassLabels[0] !== 'unknown') {
+        aggLabelText += ` (${node.targetClassLabels[0]}${node.targetClassLabels.length > 1 ? ', ...' : ''})`;
+      }
+      const labelWords = aggLabelText.split(' ');
+      const maxWidth = radius * 1.5;
+      let lines = [];
+      let currentLine = '';
+      labelWords.forEach(word => {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      });
+      lines.push(currentLine);
+      lines = lines.slice(0, 2); // max 2 lines
+
+      const lineHeight = 24;
+      let yStart = centerY + 14;
+      lines.forEach(line => {
+        ctx.fillText(line, centerX, yStart);
+        yStart += lineHeight;
+      });
+
+      return new THREE.CanvasTexture(canvas);
+    }
 
     // Draw label - white text on transparent background (Circle is handled by lowResTexture)
     ctx.fillStyle = '#ffffff';
@@ -217,9 +292,32 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     });
 
     return new THREE.CanvasTexture(canvas);
-  }, [node.label, node.type, lodLevel]);
+  }, [node.label, node.type, lodLevel, node.isAggregate, node.aggregateCount, node.loadingChildren, node.predicateLabel]);
 
-  const lowResTexture = useMemo(() => getLodTexture(node.type), [node.type]);
+  const lowResTexture = useMemo(() => {
+    if (node.isAggregate) {
+      // Hexagonal LoD texture for aggregates
+      const canvas = document.createElement('canvas');
+      const size = 128;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const cx = size / 2, cy = size / 2, r = size * 0.4;
+      ctx.fillStyle = node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const hx = cx + r * Math.cos(angle);
+        const hy = cy + r * Math.sin(angle);
+        if (i === 0) ctx.moveTo(hx, hy);
+        else ctx.lineTo(hx, hy);
+      }
+      ctx.closePath();
+      ctx.fill();
+      return new THREE.CanvasTexture(canvas);
+    }
+    return getLodTexture(node.type);
+  }, [node.type, node.isAggregate, node.loadingChildren]);
   const borderTexture = useMemo(() => getBorderTexture(node.type), [node.type]);
   
   // Créer la texture de l'icône de pin
@@ -258,7 +356,8 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     // Scale basé sur la confiance
     const baseScale = 15;
     const confianceMultiplier = node.confiance || 0.8;
-    return baseScale * confianceMultiplier * (isSelected ? 1.2 : 1.0) * (isDragging ? 1.3 : 1.0);
+    const aggregateMultiplier = node.isAggregate ? getAggregateScale(node.aggregateCount) : 1.0;
+    return baseScale * confianceMultiplier * aggregateMultiplier * (isSelected ? 1.2 : 1.0) * (isDragging ? 1.3 : 1.0);
   };
   
   const lastPointerDownTime = useRef(0);

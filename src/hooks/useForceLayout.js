@@ -33,8 +33,6 @@ const useForceLayout = () => {
   /* ── Zustand selectors (stable references) ─────────────────────────────── */
   const nodes = useGraphStore(state => state.nodes);
   const edges = useGraphStore(state => state.edges);
-  const filters = useGraphStore(state => state.filters);
-  const nodeGroupMemberships = useGraphStore(state => state.nodeGroupMemberships);
   const setLayoutRunning = useGraphStore(state => state.setLayoutRunning);
   const setLayoutProgress = useGraphStore(state => state.setLayoutProgress);
   const setLayoutReady = useGraphStore(state => state.setLayoutReady);
@@ -197,8 +195,38 @@ const useForceLayout = () => {
           readySent = true;
         }
       } catch (err) {
-        console.error('[useForceLayout] batch failed:', err);
-        break;
+        console.warn('[useForceLayout] batch failed, falling back to single-thread:', err.message);
+        // Re-init threads in single-thread mode and retry this batch
+        try {
+          const stThreads = await initThreads(false);
+          threadsRef.current = stThreads;
+          const retryForce = new ForceLayout({
+            threads: stThreads,
+            ...FORCE_LAYOUT_DEFAULTS,
+            maxIteration: batchSize,
+          });
+          const retryResult = await retryForce.execute(graph);
+          const newPositions = {};
+          retryResult.nodes.forEach(n => {
+            if (pinnedPositions[n.id]) {
+              const pp = pinnedPositions[n.id];
+              graph.mergeNodeData(n.id, { x: pp.x, y: pp.y, z: pp.z });
+              newPositions[n.id] = pp;
+            } else {
+              graph.mergeNodeData(n.id, { x: n.data.x, y: n.data.y, z: n.data.z ?? 0 });
+              newPositions[n.id] = { x: n.data.x, y: n.data.y, z: n.data.z ?? 0 };
+            }
+          });
+          writeAllPositions(newPositions);
+          useGraphStore.getState().setPositions(newPositions);
+          if (!readySent) {
+            useGraphStore.getState().setLayoutReady(true);
+            readySent = true;
+          }
+        } catch (err2) {
+          console.error('[useForceLayout] single-thread fallback also failed:', err2.message);
+          break;
+        }
       }
     }
 
@@ -214,17 +242,29 @@ const useForceLayout = () => {
       simulationDoneResolveRef.current = null;
     }
 
-    // Drain pending wake
+    // Drain pending wake — queueMicrotask runs before the next macrotask
     if (pendingWakeRef.current) {
       pendingWakeRef.current = false;
-      // Yield to the event loop before next batch
-      setTimeout(() => runLayoutBatchInternal(200), 0);
+      queueMicrotask(() => runLayoutBatchInternal(200));
     }
   }, []);
 
   // ── Initialise WASM threads (once) ────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
+
+    // Suppress uncaught WASM worker errors (rayon may crash in some browsers)
+    const swallowWasmCrash = (e) => {
+      const msg = e?.message || e?.reason?.message || e?.reason?.toString?.() || '';
+      if (msg.includes('unreachable') || msg.includes('RuntimeError')) {
+        e.preventDefault?.();
+        e.stopImmediatePropagation?.();
+        console.warn('[useForceLayout] Suppressed WASM worker crash (rayon thread_local)');
+        return true;
+      }
+    };
+    window.addEventListener('error', swallowWasmCrash, true);
+    window.addEventListener('unhandledrejection', swallowWasmCrash, true);
 
     async function init() {
       try {
@@ -233,16 +273,23 @@ const useForceLayout = () => {
         if (cancelled) return;
         threadsRef.current = threads;
       } catch (err) {
-        console.warn('[useForceLayout] multi-thread init failed, trying single-thread:', err);
+        console.warn('[useForceLayout] multi-thread init failed, trying single-thread:', err.message);
         try {
           const threads = await initThreads(false);
           if (cancelled) return;
           threadsRef.current = threads;
         } catch (err2) {
-          console.error('[useForceLayout] WASM init failed completely:', err2);
+          console.error('[useForceLayout] WASM init failed completely:', err2.message);
+          window.removeEventListener('error', swallowWasmCrash, true);
+          window.removeEventListener('unhandledrejection', swallowWasmCrash, true);
+          // Still mark as initialized so the app isn't stuck waiting
+          setIsInitialized(true);
           return;
         }
       }
+
+      // Keep crash handler alive — crossbeam can panic during force.execute()
+      // It will be cleaned up when the component unmounts
 
       // Expose proxy as layoutInstance
       const proxy = {
@@ -254,7 +301,11 @@ const useForceLayout = () => {
     }
 
     init();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.removeEventListener('error', swallowWasmCrash, true);
+      window.removeEventListener('unhandledrejection', swallowWasmCrash, true);
+    };
   }, [handleProxyMessage, setLayoutInstance]);
 
   // ── Build / rebuild @antv/graphlib Graph on data changes ───────────────
@@ -275,8 +326,8 @@ const useForceLayout = () => {
       connectionCounts[e.target] = (connectionCounts[e.target] || 0) + 1;
     });
 
-    // Filter visible nodes
-    const filteredNodes = nodes.filter(n => filters[n.type]);
+    // All nodes are visible (no category filters)
+    const filteredNodes = nodes;
 
     // Build nodeIndexMap & SAB
     const nodeIndexMap = {};
@@ -356,7 +407,19 @@ const useForceLayout = () => {
     });
     writeAllPositions(initPositions);
     useGraphStore.getState().setPositions({ ...currentPositions, ...initPositions });
-  }, [nodes, edges, filters, nodeGroupMemberships, isInitialized]);
+
+    // Auto-wake the simulation when the graph structure changes.
+    // The graphRef is now up-to-date, so the layout will run on the correct graph.
+    // If a layout is already running (from a prior stale wake), queue a pending
+    // wake so it re-runs with the new graph once the current batch finishes.
+    if (graph.getAllNodes().length > 0) {
+      if (layoutRunningRef.current) {
+        pendingWakeRef.current = true;
+      } else {
+        runLayoutBatchInternal(200);
+      }
+    }
+  }, [nodes, edges, isInitialized, runLayoutBatchInternal]);
 
   // ── Public API ─────────────────────────────────────────────────────────
 

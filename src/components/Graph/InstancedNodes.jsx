@@ -2,17 +2,12 @@ import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
-import { COLOR_MAP, MAX_INSTANCES, NODE_RADIUS } from '../../constants/graphConstants';
+import { getCategoryColor, MAX_INSTANCES, NODE_RADIUS, AGGREGATE_NODE_COLOR, AGGREGATE_NODE_COLOR_LOADING, getAggregateScale, ADDED_PULSE_COLOR, ADDED_PULSE_DURATION, SHARED_NODE_OPACITY, SHARED_NODE_SCALE } from '../../constants/graphConstants';
 import { getRadialDisplayPos } from '../../utils/radialLayout';
 import { readPosition } from '../../utils/sharedPositions';
 
-const InstancedNodes = ({ groupId = null }) => {
-  const allNodes = useGraphStore(state => state.nodes);
-  const nodeGroupMemberships = useGraphStore(state => state.nodeGroupMemberships);
-  
-  // Use group-specific filters if groupId is provided
-  const filters = useGraphStore(state => groupId ? (state.groupFilters[groupId] || state.filters) : state.filters);
-  const opacityLevels = useGraphStore(state => groupId ? (state.groupOpacityLevels[groupId] || state.opacityLevels) : state.opacityLevels);
+const InstancedNodes = () => {
+  const nodes = useGraphStore(state => state.nodes);
   
   const positions = useGraphStore(state => state.positions);
   const selectedNode = useGraphStore(state => state.selectedNode);
@@ -20,62 +15,63 @@ const InstancedNodes = ({ groupId = null }) => {
   const hoveredNodeId = useGraphStore(state => state.hoveredNodeId);
   const setHoveredNodeId = useGraphStore(state => state.setHoveredNodeId);
 
-  // Filter nodes for this specific group instance
-  const nodes = useMemo(() => {
-    if (!groupId) {
-      // Orphans (not in any group)
-      return allNodes.filter(n => !nodeGroupMemberships[n.id] || nodeGroupMemberships[n.id].length === 0);
-    }
-    return allNodes.filter(n => (nodeGroupMemberships[n.id] || []).includes(groupId));
-  }, [allNodes, nodeGroupMemberships, groupId]);
-
   // Seuil de LoD (doit être le même que dans Node.jsx)
   const lodThreshold = useMemo(() => {
-    const factor = Math.max(0.2, 1 - (allNodes.length / 1000));
+    const factor = Math.max(0.2, 1 - (nodes.length / 1000));
     return 400 * factor;
-  }, [allNodes.length]);
-
-  const categories = ['Entity', 'Event', 'Context', 'Default'];
+  }, [nodes.length]);
 
   return (
-    <>
-      {categories.map(cat => (
-        <NodeCategoryGroup
-          key={cat}
-          type={cat}
-          nodes={nodes.filter(n => cat === 'Default' ? !['Entity', 'Event', 'Context'].includes(n.type) : n.type === cat)}
-          filters={filters}
-          positions={positions}
-          selectedNode={selectedNode}
-          opacityLevel={opacityLevels[cat] ?? 1.0}
-          selectNode={selectNode}
-          hoveredNodeId={hoveredNodeId}
-          setHoveredNodeId={setHoveredNodeId}
-          lodThreshold={lodThreshold}
-        />
-      ))}
-    </>
+    <AllNodesGroup
+      nodes={nodes}
+      positions={positions}
+      selectedNode={selectedNode}
+      selectNode={selectNode}
+      hoveredNodeId={hoveredNodeId}
+      setHoveredNodeId={setHoveredNodeId}
+      lodThreshold={lodThreshold}
+    />
   );
 };
 
-const NodeCategoryGroup = ({ 
-  type, nodes, filters, positions, selectedNode, 
-  opacityLevel, selectNode, hoveredNodeId, setHoveredNodeId, lodThreshold 
+const AllNodesGroup = ({
+  nodes, positions, selectedNode,
+  selectNode, hoveredNodeId, setHoveredNodeId, lodThreshold
 }) => {
   const meshRef = useRef();
-  const highlightMeshRef = useRef();
   const boundsFrameRef = useRef(0);
 
   const _obj = useMemo(() => new THREE.Object3D(), []);
   const _color = useMemo(() => new THREE.Color(), []);
   const _v3 = useMemo(() => new THREE.Vector3(), []);
 
-  const visibleNodes = useMemo(() => {
-    return nodes.filter(node => 
-      (filters[node.type] || (type === 'Default' && filters['Default'])) &&
-      (node.confiance >= (filters.minConfiance || 0))
-    );
-  }, [nodes, filters, type]);
+  // Frustum culling objects — reused every frame to avoid allocations
+  const _frustum = useMemo(() => new THREE.Frustum(), []);
+  const _projScreenMatrix = useMemo(() => new THREE.Matrix4(), []);
+  const _testSphere = useMemo(() => new THREE.Sphere(), []);
+
+  // Refs updated by Zustand subscription — eliminates getState() from the hot path
+  const recentlyAddedNodesRef = useRef({});
+  const radialTargetsRef = useRef({});
+  const nodeSettingsRef = useRef({});
+
+  useEffect(() => {
+    // Initialize synchronously so first frame has correct values
+    const s = useGraphStore.getState();
+    recentlyAddedNodesRef.current = s.recentlyAddedNodes || {};
+    radialTargetsRef.current = s.radialTargets || {};
+    nodeSettingsRef.current = s.nodeSettings || {};
+
+    // Subscribe to future changes (runs outside the frame loop)
+    return useGraphStore.subscribe((state) => {
+      recentlyAddedNodesRef.current = state.recentlyAddedNodes || {};
+      radialTargetsRef.current = state.radialTargets || {};
+      nodeSettingsRef.current = state.nodeSettings || {};
+    });
+  }, []);
+
+  // All nodes are visible (no filters)
+  const visibleNodes = nodes;
 
   useEffect(() => {
     if (!meshRef.current) return;
@@ -93,8 +89,23 @@ const NodeCategoryGroup = ({
     const safeCount = Math.min(count, MAX_INSTANCES);
     const camPos = state.camera.position;
 
-    // Cache store state once per frame for radial plugin
-    const storeState = useGraphStore.getState();
+    // Build lightweight storeState from refs — no getState() call in hot path
+    const storeState = {
+      recentlyAddedNodes: recentlyAddedNodesRef.current,
+      radialTargets: radialTargetsRef.current,
+      nodeSettings: nodeSettingsRef.current,
+    };
+
+    // Per-instance frustum culling (Three.js only culls the whole InstancedMesh)
+    // Only worthwhile with enough nodes to justify the frustum setup cost
+    const doCulling = safeCount >= 100;
+    if (doCulling) {
+      _projScreenMatrix.multiplyMatrices(
+        state.camera.projectionMatrix,
+        state.camera.matrixWorldInverse
+      );
+      _frustum.setFromProjectionMatrix(_projScreenMatrix);
+    }
 
     for (let i = 0; i < safeCount; i++) {
       const node = visibleNodes[i];
@@ -112,8 +123,19 @@ const NodeCategoryGroup = ({
       const radialPos = getRadialDisplayPos(node.id, pos, storeState);
 
       _v3.set(radialPos.x, radialPos.y, radialPos.z);
-      const dist = camPos.distanceTo(_v3);
       const isSelected = selectedNode?.id === node.id;
+
+      // Skip off-screen instances (frustum test is cheaper than full matrix update)
+      if (doCulling && !isSelected) {
+        _testSphere.set(_v3, (node.size || NODE_RADIUS) * 2);
+        if (!_frustum.intersectsSphere(_testSphere)) {
+          _obj.matrix.makeScale(0, 0, 0);
+          meshRef.current.setMatrixAt(i, _obj.matrix);
+          continue;
+        }
+      }
+
+      const dist = camPos.distanceTo(_v3);
 
       if (dist < lodThreshold * 0.9 || isSelected) {
         _obj.matrix.makeScale(0, 0, 0);
@@ -122,27 +144,41 @@ const NodeCategoryGroup = ({
       }
 
       _obj.position.copy(_v3);
-      const size = (node.size || NODE_RADIUS) * 1.5;
+      const isAggregate = node.isAggregate;
+      const baseSize = (node.size || NODE_RADIUS) * 1.5;
+      let size = isAggregate ? baseSize * getAggregateScale(node.aggregateCount) : baseSize;
+      if (node.isSharedNode) size *= SHARED_NODE_SCALE;
+
+      // Pulse scale for recently-added nodes
+      const recentlyAdded = storeState.recentlyAddedNodes?.[node.id];
+      const addedElapsed = recentlyAdded ? Date.now() - recentlyAdded : Infinity;
+      if (addedElapsed < ADDED_PULSE_DURATION) {
+        const pulse = Math.max(0, 1 - addedElapsed / ADDED_PULSE_DURATION) * (0.5 + 0.5 * Math.sin(addedElapsed * 0.008));
+        size *= (1 + pulse * 0.3);
+      }
+
       _obj.scale.set(size, size, 1); 
       _obj.quaternion.copy(state.camera.quaternion);
       _obj.updateMatrix();
       meshRef.current.setMatrixAt(i, _obj.matrix);
 
-      const c = COLOR_MAP[node.type] || COLOR_MAP['Default'];
-      _color.set(c);
-      meshRef.current.setColorAt(i, _color);
-
-      if (highlightMeshRef.current) {
-        if (opacityLevel > 1.0) {
-          _obj.scale.set(size * 1.15, size * 1.15, 1);
-          _obj.updateMatrix();
-          highlightMeshRef.current.setMatrixAt(i, _obj.matrix);
-        } else {
-          _obj.scale.set(0, 0, 0);
-          _obj.updateMatrix();
-          highlightMeshRef.current.setMatrixAt(i, _obj.matrix);
-        }
+      let c;
+      if (addedElapsed < ADDED_PULSE_DURATION) {
+        // Blend color toward green for recently added
+        const t = Math.max(0, 1 - addedElapsed / ADDED_PULSE_DURATION) * 0.5;
+        const baseColor = isAggregate
+          ? (node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR)
+          : getCategoryColor(node.type);
+        _color.set(baseColor);
+        const pulseColor = new THREE.Color(ADDED_PULSE_COLOR);
+        _color.lerp(pulseColor, t);
+      } else {
+        c = isAggregate
+          ? (node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR)
+          : getCategoryColor(node.type);
+        _color.set(c);
       }
+      meshRef.current.setColorAt(i, _color);
     }
 
     meshRef.current.count = safeCount;
@@ -154,14 +190,6 @@ const NodeCategoryGroup = ({
     if (boundsFrameRef.current >= 30) {
       boundsFrameRef.current = 0;
       meshRef.current.computeBoundingSphere();
-    }
-    
-    if (highlightMeshRef.current) {
-      highlightMeshRef.current.count = safeCount;
-      highlightMeshRef.current.instanceMatrix.needsUpdate = true;
-      if (boundsFrameRef.current === 0) {
-        highlightMeshRef.current.computeBoundingSphere();
-      }
     }
   });
 
@@ -186,42 +214,22 @@ const NodeCategoryGroup = ({
   };
 
   return (
-    <>
-      <instancedMesh 
-        ref={meshRef} 
-        args={[null, null, MAX_INSTANCES]} 
-        frustumCulled={true}
-        onClick={handleClick}
-        onPointerMove={handlePointerMove}
-        onPointerOut={handlePointerOut}
-        visible={opacityLevel > 0.001}
-      >
-        <circleGeometry args={[0.5, 16]} />
-        <meshBasicMaterial 
-          transparent 
-          opacity={Math.min(1.0, opacityLevel)}
-          depthWrite={false} 
-          toneMapped={false}
-        />
-      </instancedMesh>
-      
-      <instancedMesh
-        ref={highlightMeshRef}
-        args={[null, null, MAX_INSTANCES]}
-        frustumCulled={true}
-        visible={opacityLevel > 1.0}
-      >
-        <circleGeometry args={[0.5, 16]} />
-        <meshBasicMaterial
-          transparent
-          depthWrite={false}
-          toneMapped={false}
-          blending={THREE.AdditiveBlending}
-          color="#ffffff"
-          opacity={opacityLevel > 1.0 ? Math.min(1.0, (opacityLevel - 1.0) * 2.0) : 0} 
-        />
-      </instancedMesh>
-    </>
+    <instancedMesh 
+      ref={meshRef} 
+      args={[null, null, MAX_INSTANCES]} 
+      frustumCulled={true}
+      onClick={handleClick}
+      onPointerMove={handlePointerMove}
+      onPointerOut={handlePointerOut}
+    >
+      <circleGeometry args={[0.5, 16]} />
+      <meshBasicMaterial 
+        transparent 
+        opacity={1.0}
+        depthWrite={false} 
+        toneMapped={false}
+      />
+    </instancedMesh>
   );
 };
 

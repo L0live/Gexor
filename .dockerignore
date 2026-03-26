@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log*
+data/
+!data/wikidata_properties.json
+!data/taxonomy_light.json
+!data/property_type_matrix.json
+.git
+.gitignore
+*.md
+!README.md
+dist
+.vscode
+.env
+.env.*

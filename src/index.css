@@ -1,2 +1,35 @@
 @import "tailwindcss";
 @plugin "tailwind-scrollbar";
+
+@keyframes slide-up {
+  from { transform: translateX(-50%) translateY(100%); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}
+
+/* Popover fade-in + scale */
+@keyframes popover-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-popover {
+  animation: popover-in 0.1s ease-out;
+}
+
+/* Selection banner slide-up */
+@keyframes selection-banner-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-selection-banner {
+  animation: selection-banner-in 0.15s ease-out;
+}
+
+/* Staggered fade-in for result groups */
+@keyframes fade-in-stagger {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

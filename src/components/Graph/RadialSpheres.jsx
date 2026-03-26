@@ -43,29 +43,34 @@ const LayerLines = ({ groupId, depth, color }) => {
     if (frameCounter.current % 3 !== 0) return;
 
     const state = useGraphStore.getState();
-    const { nodeGroupDepths, layoutInstance: layout } = state;
+    const { radialTargets } = state;
 
     // Group center position (blended)
-    let centerPhys;
-    if (layout) {
-      const body = layout.getBody(groupId);
-      centerPhys = body ? body.pos : state.positions[groupId];
-    } else {
-      centerPhys = state.positions[groupId];
-    }
+    const centerPhys = state.positions[groupId];
     if (!centerPhys) {
       geoRef.current.setDrawRange(0, 0);
       return;
     }
     const center = getRadialDisplayPos(groupId, centerPhys, state);
 
-    // Collect node IDs at this depth in this group — reuse array
+    // Collect node IDs that have radial targets at approximately this depth layer
+    // Since we no longer track group depths, we use the radial targets to find nodes
+    // that belong to this root's radial sphere at approximately the right distance
     const nodeIds = cachedNodeIds.current;
     nodeIds.length = 0;
-    const depthEntries = nodeGroupDepths;
-    for (const nodeId in depthEntries) {
-      const depthsByGroup = depthEntries[nodeId];
-      if (depthsByGroup[groupId] === depth) {
+    
+    // Use the radial targets: nodes in this layer should be at a distance proportional to depth
+    for (const nodeId in radialTargets) {
+      if (nodeId === groupId) continue;
+      const target = radialTargets[nodeId];
+      if (!target) continue;
+      const dx = target.x - center.x, dy = target.y - center.y, dz = target.z - center.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      // Approximate layer detection: check if distance matches expected layer radius
+      const settings = state.nodeSettings[groupId];
+      const spacing = settings?.radialSpacing || 50;
+      const expectedRadius = depth * spacing;
+      if (Math.abs(dist - expectedRadius) < spacing * 0.5) {
         nodeIds.push(nodeId);
       }
     }
@@ -80,13 +85,7 @@ const LayerLines = ({ groupId, depth, color }) => {
     displayPositions.length = 0;
     for (let i = 0; i < nodeIds.length; i++) {
       const nodeId = nodeIds[i];
-      let physPos;
-      if (layout) {
-        const body = layout.getBody(nodeId);
-        physPos = body ? body.pos : state.positions[nodeId];
-      } else {
-        physPos = state.positions[nodeId];
-      }
+      const physPos = state.positions[nodeId];
       if (!physPos) continue;
       const dp = getRadialDisplayPos(nodeId, physPos, state);
       displayPositions.push(dp);
@@ -207,35 +206,23 @@ const LayerLines = ({ groupId, depth, color }) => {
  */
 const RadialSpheres = () => {
   const pinnedNodes = useGraphStore(state => state.pinnedNodes);
-  const pinnedSettings = useGraphStore(state => state.pinnedSettings);
-  const nodeGroupDepths = useGraphStore(state => state.nodeGroupDepths);
+  const nodeSettings = useGraphStore(state => state.nodeSettings);
 
   // Collect layers that need rendering
   const layers = useMemo(() => {
     const result = [];
 
-    pinnedNodes.forEach(groupId => {
-      const settings = pinnedSettings[groupId];
-      if (!settings || settings.renderMode !== 'radial') return;
+    for (const [rootId, settings] of Object.entries(nodeSettings)) {
+      if (!settings || settings.renderMode !== 'radial') continue;
 
-      const maxExploreDepth = settings.depth || 1;
-
-      // Find which depths have nodes
-      const depthsWithNodes = new Set();
-      Object.entries(nodeGroupDepths).forEach(([nodeId, depthsByGroup]) => {
-        const d = depthsByGroup[groupId];
-        if (d !== undefined && d > 0 && d <= maxExploreDepth) {
-          depthsWithNodes.add(d);
-        }
-      });
-
-      depthsWithNodes.forEach(d => {
-        result.push({ groupId, depth: d });
-      });
-    });
+      const maxExploreDepth = 1; // depth supprimé — 1 couche radiale par défaut
+      for (let d = 1; d <= maxExploreDepth; d++) {
+        result.push({ groupId: rootId, depth: d });
+      }
+    }
 
     return result;
-  }, [pinnedNodes, pinnedSettings, nodeGroupDepths]);
+  }, [nodeSettings]);
 
   if (layers.length === 0) return null;
 

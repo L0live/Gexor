@@ -3,18 +3,13 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
-import { NODE_RADIUS, ARROW_SIZE, MAX_INSTANCES } from '../../constants/graphConstants';
+import { NODE_RADIUS, ARROW_SIZE, MAX_INSTANCES, SHARED_EDGE_OPACITY } from '../../constants/graphConstants';
 import { getRadialDisplayPos } from '../../utils/radialLayout';
 import { readPosition } from '../../utils/sharedPositions';
 
-const InstancedEdges = ({ groupId = null }) => {
-  const allEdges = useGraphStore(state => state.edges);
+const InstancedEdges = () => {
+  const edges = useGraphStore(state => state.edges);
   const allNodes = useGraphStore(state => state.nodes);
-  const nodeGroupMemberships = useGraphStore(state => state.nodeGroupMemberships);
-  
-  // Use group-specific filters if groupId is provided
-  const filters = useGraphStore(state => groupId ? (state.groupFilters[groupId] || state.filters) : state.filters);
-  const opacityLevels = useGraphStore(state => groupId ? (state.groupOpacityLevels[groupId] || state.opacityLevels) : state.opacityLevels);
   
   const selectEdge = useGraphStore(state => state.selectEdge);
   const selectedEdge = useGraphStore(state => state.selectedEdge);
@@ -22,37 +17,19 @@ const InstancedEdges = ({ groupId = null }) => {
   const hoveredEdgeId = useGraphStore(state => state.hoveredEdgeId);
   const setHoveredEdgeId = useGraphStore(state => state.setHoveredEdgeId);
 
-  // Filter edges for this specific group instance
-  const edges = useMemo(() => {
-    if (!groupId) {
-      // Edges that are not fully contained within ANY group
-      // (includes cross-group edges and edges with orphans)
-      return allEdges.filter(e => {
-        const sMem = nodeGroupMemberships[e.source] || [];
-        const tMem = nodeGroupMemberships[e.target] || [];
-        // Check if there is any group that contains both ends
-        const commonGroups = sMem.filter(g => tMem.includes(g));
-        return commonGroups.length === 0;
-      });
-    }
-    // Edges fully contained within this group
-    return allEdges.filter(e => {
-      const sMem = nodeGroupMemberships[e.source] || [];
-      const tMem = nodeGroupMemberships[e.target] || [];
-      return sMem.includes(groupId) && tMem.includes(groupId);
-    });
-  }, [allEdges, nodeGroupMemberships, groupId]);
-
   const meshRef = useRef();
   const arrowMeshRef = useRef();
   const highlightMeshRef = useRef();
   const highlightArrowMeshRef = useRef();
+  const reverseArrowMeshRef = useRef();
+  const highlightReverseArrowMeshRef = useRef();
   const boundsFrameRef = useRef(0);
 
   const _obj = useMemo(() => new THREE.Object3D(), []);
   const _v1 = useMemo(() => new THREE.Vector3(), []);
   const _v2 = useMemo(() => new THREE.Vector3(), []);
   const _dir = useMemo(() => new THREE.Vector3(), []);
+  const _dir_neg = useMemo(() => new THREE.Vector3(), []);
   const _mid = useMemo(() => new THREE.Vector3(), []);
   const _m = useMemo(() => new THREE.Matrix4(), []);
   const _color = useMemo(() => new THREE.Color(), []);
@@ -60,33 +37,16 @@ const InstancedEdges = ({ groupId = null }) => {
 
   // Seuils LoD adaptatifs
   const lodThresholds = useMemo(() => {
-    const total = allEdges.length;
+    const total = edges.length;
     const factor = Math.max(0.15, 1 - (total / MAX_INSTANCES));
     return {
       lod1: 500 * factor,  // Disparition flèche
       lod2: 1500 * factor  // Disparition ligne
     };
-  }, [allEdges.length]);
+  }, [edges.length]);
 
-  // Build a type lookup map once (avoids O(n) .find per edge)
-  const nodeTypeMap = useMemo(() => {
-    const map = {};
-    allNodes.forEach(n => { map[n.id] = n.type; });
-    return map;
-  }, [allNodes]);
-
-  // Filter and process edges
-  const visibleEdges = useMemo(() => {
-    if (!filters['Relations']) return [];
-    return edges.filter(edge => {
-      const sType = nodeTypeMap[edge.source];
-      const tType = nodeTypeMap[edge.target];
-      return sType && tType && 
-             filters[sType] && 
-             filters[tType] && 
-             (edge.confiance >= (filters.minConfiance || 0));
-    });
-  }, [edges, nodeTypeMap, filters]);
+  // All edges are visible (no filters)
+  const visibleEdges = edges;
 
   const hoveredEdge = useMemo(() => {
     return hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
@@ -102,9 +62,7 @@ const InstancedEdges = ({ groupId = null }) => {
     const store = useGraphStore.getState();
     const currentPositions = store.positions;
     const currentHoveredEdgeId = store.hoveredEdgeId;
-    const relOpacity = (groupId && store.groupOpacityLevels[groupId])
-        ? (store.groupOpacityLevels[groupId].Relations ?? 0.5)
-        : (store.opacityLevels && store.opacityLevels.Relations !== undefined) ? store.opacityLevels.Relations : 0.5;
+    const relOpacity = 0.5;
 
     // Mettre à jour l'opacité globale des matériaux une fois par frame
     if (meshRef.current && meshRef.current.material) {
@@ -116,6 +74,11 @@ const InstancedEdges = ({ groupId = null }) => {
       const finalOp = Math.min(0.6, relOpacity);
       arrowMeshRef.current.material.opacity = finalOp;
       arrowMeshRef.current.visible = finalOp > 0.001;
+    }
+    if (reverseArrowMeshRef.current && reverseArrowMeshRef.current.material) {
+      const finalOp = Math.min(0.6, relOpacity);
+      reverseArrowMeshRef.current.material.opacity = finalOp;
+      reverseArrowMeshRef.current.visible = finalOp > 0.001;
     }
     
     const count = visibleEdges.length;
@@ -133,6 +96,7 @@ const InstancedEdges = ({ groupId = null }) => {
         _m.makeScale(0, 0, 0);
         meshRef.current.setMatrixAt(i, _m);
         if (arrowMeshRef.current) arrowMeshRef.current.setMatrixAt(i, _m);
+        if (reverseArrowMeshRef.current) reverseArrowMeshRef.current.setMatrixAt(i, _m);
         continue;
       }
 
@@ -159,6 +123,7 @@ const InstancedEdges = ({ groupId = null }) => {
         _m.makeScale(0, 0, 0);
         meshRef.current.setMatrixAt(i, _m);
         if (arrowMeshRef.current) arrowMeshRef.current.setMatrixAt(i, _m);
+        if (reverseArrowMeshRef.current) reverseArrowMeshRef.current.setMatrixAt(i, _m);
         continue;
       }
 
@@ -180,6 +145,7 @@ const InstancedEdges = ({ groupId = null }) => {
         _m.makeScale(0, 0, 0);
         meshRef.current.setMatrixAt(i, _m);
         if (arrowMeshRef.current) arrowMeshRef.current.setMatrixAt(i, _m);
+        if (reverseArrowMeshRef.current) reverseArrowMeshRef.current.setMatrixAt(i, _m);
         continue;
       }
 
@@ -199,9 +165,12 @@ const InstancedEdges = ({ groupId = null }) => {
           _m.makeScale(0, 0, 0);
           arrowMeshRef.current.setMatrixAt(i, _m);
           if (highlightArrowMeshRef.current) highlightArrowMeshRef.current.setMatrixAt(i, _m);
+          if (reverseArrowMeshRef.current) reverseArrowMeshRef.current.setMatrixAt(i, _m);
+          if (highlightReverseArrowMeshRef.current) highlightReverseArrowMeshRef.current.setMatrixAt(i, _m);
         } else {
           _mid.copy(_v2).addScaledVector(_dir, -(NODE_RADIUS + ARROW_SIZE / 2));
           _obj.position.copy(_mid);
+          _obj.quaternion.setFromUnitVectors(_up, _dir);
           // Scale de la flèche standard (1.0 pour thickness 0.2)
           const arrowScale = isSelected ? 3.0 : 1.0;
           _obj.scale.set(arrowScale, 1.0, arrowScale); 
@@ -209,16 +178,49 @@ const InstancedEdges = ({ groupId = null }) => {
           arrowMeshRef.current.setMatrixAt(i, _obj.matrix);
           
           if (highlightArrowMeshRef.current) {
-            _obj.scale.set(arrowScale * 1.2, 1.1, arrowScale * 1.2);
-            _obj.updateMatrix();
-            highlightArrowMeshRef.current.setMatrixAt(i, _obj.matrix);
+            if (isSelected || currentHoveredEdgeId === edge.id) {
+              _obj.scale.set(arrowScale * 1.2, 1.1, arrowScale * 1.2);
+              _obj.updateMatrix();
+              highlightArrowMeshRef.current.setMatrixAt(i, _obj.matrix);
+            } else {
+              _m.makeScale(0, 0, 0);
+              highlightArrowMeshRef.current.setMatrixAt(i, _m);
+            }
+          }
+
+          // Reverse arrow for bidirectional edges
+          if (reverseArrowMeshRef.current) {
+            if (edge.isBidirectional) {
+              _dir_neg.copy(_dir).negate();
+              _mid.copy(_v1).addScaledVector(_dir, NODE_RADIUS + ARROW_SIZE / 2);
+              _obj.position.copy(_mid);
+              _obj.quaternion.setFromUnitVectors(_up, _dir_neg);
+              _obj.scale.set(arrowScale, 1.0, arrowScale);
+              _obj.updateMatrix();
+              reverseArrowMeshRef.current.setMatrixAt(i, _obj.matrix);
+
+              if (highlightReverseArrowMeshRef.current) {
+                if (isSelected || currentHoveredEdgeId === edge.id) {
+                  _obj.scale.set(arrowScale * 1.2, 1.1, arrowScale * 1.2);
+                  _obj.updateMatrix();
+                  highlightReverseArrowMeshRef.current.setMatrixAt(i, _obj.matrix);
+                } else {
+                  _m.makeScale(0, 0, 0);
+                  highlightReverseArrowMeshRef.current.setMatrixAt(i, _m);
+                }
+              }
+            } else {
+              _m.makeScale(0, 0, 0);
+              reverseArrowMeshRef.current.setMatrixAt(i, _m);
+              if (highlightReverseArrowMeshRef.current) highlightReverseArrowMeshRef.current.setMatrixAt(i, _m);
+            }
           }
         }
       }
 
       // 3. Update Highlight Mesh (Contour)
       if (highlightMeshRef.current) {
-        if (relOpacity > 1.0) {
+        if (isSelected || currentHoveredEdgeId === edge.id) {
           _obj.position.copy(_mid.copy(_v1).addScaledVector(_dir, NODE_RADIUS + edgeVisibleLen * 0.5));
           _obj.quaternion.setFromUnitVectors(_up, _dir);
           _obj.scale.set(thickness * 1.5, edgeVisibleLen, thickness * 1.5);
@@ -230,11 +232,21 @@ const InstancedEdges = ({ groupId = null }) => {
         }
       }
 
-      // 3. Update Colors
-      const baseColor = isSelected ? '#60a5fa' : '#475569';
-      _color.set(baseColor);
+      // 3. Update Colors — arêtes synthétiques (mode SHARED) en gris-bleu très atténué
+      // L'opacité par instance n'est pas possible avec meshBasicMaterial, on simule
+      // l'atténuation en réduisant la luminosité de la couleur via SHARED_EDGE_OPACITY.
+      const isSynthetic = edge.isSynthetic;
+      if (isSelected) {
+        _color.set('#60a5fa');
+      } else if (isSynthetic) {
+        // Gris-bleu atténué — facteur SHARED_EDGE_OPACITY appliqué à la luminosité
+        _color.set('#6b7eab').multiplyScalar(SHARED_EDGE_OPACITY / 0.5);
+      } else {
+        _color.set('#475569');
+      }
       meshRef.current.setColorAt(i, _color);
       if (arrowMeshRef.current) arrowMeshRef.current.setColorAt(i, _color);
+      if (reverseArrowMeshRef.current) reverseArrowMeshRef.current.setColorAt(i, _color);
     }
 
     meshRef.current.count = safeCount;
@@ -256,16 +268,29 @@ const InstancedEdges = ({ groupId = null }) => {
       if (shouldRecomputeBounds) arrowMeshRef.current.computeBoundingSphere();
     }
 
+    if (reverseArrowMeshRef.current) {
+      reverseArrowMeshRef.current.count = safeCount;
+      reverseArrowMeshRef.current.instanceMatrix.needsUpdate = true;
+      if (reverseArrowMeshRef.current.instanceColor) reverseArrowMeshRef.current.instanceColor.needsUpdate = true;
+      if (shouldRecomputeBounds) reverseArrowMeshRef.current.computeBoundingSphere();
+    }
+
     if (highlightMeshRef.current) {
-      highlightMeshRef.current.count = relOpacity > 1.0 ? safeCount : 0;
+      highlightMeshRef.current.count = safeCount;
       highlightMeshRef.current.instanceMatrix.needsUpdate = true;
       if (shouldRecomputeBounds) highlightMeshRef.current.computeBoundingSphere();
     }
 
     if (highlightArrowMeshRef.current) {
-      highlightArrowMeshRef.current.count = relOpacity > 1.0 ? safeCount : 0;
+      highlightArrowMeshRef.current.count = safeCount;
       highlightArrowMeshRef.current.instanceMatrix.needsUpdate = true;
       if (shouldRecomputeBounds) highlightArrowMeshRef.current.computeBoundingSphere();
+    }
+
+    if (highlightReverseArrowMeshRef.current) {
+      highlightReverseArrowMeshRef.current.count = safeCount;
+      highlightReverseArrowMeshRef.current.instanceMatrix.needsUpdate = true;
+      if (shouldRecomputeBounds) highlightReverseArrowMeshRef.current.computeBoundingSphere();
     }
   });
 
@@ -304,6 +329,11 @@ const InstancedEdges = ({ groupId = null }) => {
       arrowMeshRef.current.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
       arrowMeshRef.current.instanceColor.setUsage(THREE.DynamicDrawUsage);
     }
+    if (reverseArrowMeshRef.current) {
+      const colors = new Float32Array(MAX_INSTANCES * 3);
+      reverseArrowMeshRef.current.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
+      reverseArrowMeshRef.current.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    }
   }, []);
 
   return (
@@ -318,7 +348,7 @@ const InstancedEdges = ({ groupId = null }) => {
         onPointerOut={handlePointerOut}
       >
         <cylinderGeometry args={[1, 1, 1, 8]} />
-        <meshBasicMaterial transparent opacity={Math.min(1.0, opacityLevels.Relations !== undefined ? opacityLevels.Relations : 0.5)} depthWrite={false} />
+        <meshBasicMaterial transparent opacity={0.5} depthWrite={false} />
       </instancedMesh>
 
       {/* Cones for arrows */}
@@ -331,7 +361,19 @@ const InstancedEdges = ({ groupId = null }) => {
         onPointerOut={handlePointerOut}
       >
         <coneGeometry args={[1, ARROW_SIZE, 3]} />
-        <meshBasicMaterial transparent opacity={Math.min(1.0, opacityLevels.Relations !== undefined ? opacityLevels.Relations : 0.5)} depthWrite={false} />
+        <meshBasicMaterial transparent opacity={0.5} depthWrite={false} />
+      </instancedMesh>
+
+      <instancedMesh 
+        ref={reverseArrowMeshRef} 
+        args={[null, null, MAX_INSTANCES]} 
+        frustumCulled={true}
+        onClick={handleClick}
+        onPointerMove={handlePointerMove}
+        onPointerOut={handlePointerOut}
+      >
+        <coneGeometry args={[1, ARROW_SIZE, 3]} />
+        <meshBasicMaterial transparent opacity={0.5} depthWrite={false} />
       </instancedMesh>
 
       {/* Highlights for edges (Contour) */}
@@ -343,7 +385,7 @@ const InstancedEdges = ({ groupId = null }) => {
         <cylinderGeometry args={[1, 1, 1, 8]} />
         <meshBasicMaterial 
           transparent 
-          opacity={(opacityLevels.Relations || 0.5) > 1.0 ? Math.min(1.0, (opacityLevels.Relations - 1.0) * 2.0) : 0} 
+          opacity={0.45} 
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           color="#ffffff"
@@ -358,7 +400,22 @@ const InstancedEdges = ({ groupId = null }) => {
         <coneGeometry args={[1, ARROW_SIZE, 3]} />
         <meshBasicMaterial 
           transparent 
-          opacity={(opacityLevels.Relations || 0.5) > 1.0 ? Math.min(1.0, (opacityLevels.Relations - 1.0) * 2.0) : 0} 
+          opacity={0.45} 
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          color="#ffffff"
+        />
+      </instancedMesh>
+
+      <instancedMesh 
+        ref={highlightReverseArrowMeshRef} 
+        args={[null, null, MAX_INSTANCES]} 
+        frustumCulled={true}
+      >
+        <coneGeometry args={[1, ARROW_SIZE, 3]} />
+        <meshBasicMaterial 
+          transparent 
+          opacity={0.45} 
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           color="#ffffff"
@@ -384,7 +441,18 @@ const InstancedEdges = ({ groupId = null }) => {
             border: '1px solid rgba(255,255,255,0.2)',
             pointerEvents: 'none'
           }}>
-            {hoveredEdge.label || hoveredEdge.type || 'Relation'}
+            {hoveredEdge.relations && hoveredEdge.relations.length > 0 ? (
+              hoveredEdge.relations.map((rel, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0' }}>
+                  <span style={{ color: '#9ca3af', fontSize: '14px', lineHeight: 1 }}>
+                    {rel.source === hoveredEdge.source ? "→" : "←"}
+                  </span>
+                  <span>{rel.description || rel.predicate || rel.type}</span>
+                </div>
+              ))
+            ) : (
+              hoveredEdge.label || hoveredEdge.type || 'Relation'
+            )}
           </div>
         </Html>
       )}

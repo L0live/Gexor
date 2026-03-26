@@ -1,0 +1,1848 @@
+{
+  "_description": "Analyse du dump taxonomique Wikidata P31/P279 pour Gexor",
+  "_generated": "2026-03-01 01:26:55",
+  "summary": {
+    "total_classes": 411734,
+    "total_p31_instances": 7797031,
+    "unique_instance_classes": 39720,
+    "classes_with_zero_instances": 370391,
+    "root_count": 73271,
+    "leaf_count": 361592,
+    "max_depth": 5,
+    "avg_depth": 0.85
+  },
+  "coverage_analysis": {
+    "_description": "Combien de classes (triées par instances directes) faut-il pour couvrir X% des instances ?",
+    "thresholds": {
+      "50": {
+        "classes_needed": 3,
+        "instances_covered": 4276826,
+        "percentage": 54.85
+      },
+      "80": {
+        "classes_needed": 45,
+        "instances_covered": 6246577,
+        "percentage": 80.11
+      },
+      "90": {
+        "classes_needed": 241,
+        "instances_covered": 7018772,
+        "percentage": 90.02
+      },
+      "95": {
+        "classes_needed": 878,
+        "instances_covered": 7407439,
+        "percentage": 95.0
+      },
+      "99": {
+        "classes_needed": 7438,
+        "instances_covered": 7719061,
+        "percentage": 99.0
+      }
+    }
+  },
+  "top_50_classes_by_direct_instances": [
+    {
+      "rank": 1,
+      "qid": "Q13442814",
+      "label": "Q13442814",
+      "direct_instances": 3105993,
+      "pct_of_total": 39.836
+    },
+    {
+      "rank": 2,
+      "qid": "Q5",
+      "label": "Q5",
+      "direct_instances": 672801,
+      "pct_of_total": 8.629
+    },
+    {
+      "rank": 3,
+      "qid": "Q4167836",
+      "label": "Q4167836",
+      "direct_instances": 498032,
+      "pct_of_total": 6.387
+    },
+    {
+      "rank": 4,
+      "qid": "Q16521",
+      "label": "Q16521",
+      "direct_instances": 326985,
+      "pct_of_total": 4.194
+    },
+    {
+      "rank": 5,
+      "qid": "Q4167410",
+      "label": "Q4167410",
+      "direct_instances": 153362,
+      "pct_of_total": 1.967
+    },
+    {
+      "rank": 6,
+      "qid": "Q7187",
+      "label": "Q7187",
+      "direct_instances": 149005,
+      "pct_of_total": 1.911
+    },
+    {
+      "rank": 7,
+      "qid": "Q8054",
+      "label": "Q8054",
+      "direct_instances": 122590,
+      "pct_of_total": 1.572
+    },
+    {
+      "rank": 8,
+      "qid": "Q11266439",
+      "label": "Q11266439",
+      "direct_instances": 88002,
+      "pct_of_total": 1.129
+    },
+    {
+      "rank": 9,
+      "qid": "Q13100073",
+      "label": "Q13100073",
+      "direct_instances": 73091,
+      "pct_of_total": 0.937
+    },
+    {
+      "rank": 10,
+      "qid": "Q8502",
+      "label": "Q8502",
+      "direct_instances": 63499,
+      "pct_of_total": 0.814
+    },
+    {
+      "rank": 11,
+      "qid": "Q486972",
+      "label": "Q486972",
+      "direct_instances": 54275,
+      "pct_of_total": 0.696
+    },
+    {
+      "rank": 12,
+      "qid": "Q3305213",
+      "label": "Q3305213",
+      "direct_instances": 50602,
+      "pct_of_total": 0.649
+    },
+    {
+      "rank": 13,
+      "qid": "Q4022",
+      "label": "Q4022",
+      "direct_instances": 47835,
+      "pct_of_total": 0.614
+    },
+    {
+      "rank": 14,
+      "qid": "Q79007",
+      "label": "Q79007",
+      "direct_instances": 47101,
+      "pct_of_total": 0.604
+    },
+    {
+      "rank": 15,
+      "qid": "Q54050",
+      "label": "Q54050",
+      "direct_instances": 39261,
+      "pct_of_total": 0.504
+    },
+    {
+      "rank": 16,
+      "qid": "Q30612",
+      "label": "Q30612",
+      "direct_instances": 39132,
+      "pct_of_total": 0.502
+    },
+    {
+      "rank": 17,
+      "qid": "Q13433827",
+      "label": "Q13433827",
+      "direct_instances": 37527,
+      "pct_of_total": 0.481
+    },
+    {
+      "rank": 18,
+      "qid": "Q13406463",
+      "label": "Q13406463",
+      "direct_instances": 37004,
+      "pct_of_total": 0.475
+    },
+    {
+      "rank": 19,
+      "qid": "Q101352",
+      "label": "Q101352",
+      "direct_instances": 36747,
+      "pct_of_total": 0.471
+    },
+    {
+      "rank": 20,
+      "qid": "Q7725634",
+      "label": "Q7725634",
+      "direct_instances": 36072,
+      "pct_of_total": 0.463
+    },
+    {
+      "rank": 21,
+      "qid": "Q2668072",
+      "label": "Q2668072",
+      "direct_instances": 35990,
+      "pct_of_total": 0.462
+    },
+    {
+      "rank": 22,
+      "qid": "Q23397",
+      "label": "Q23397",
+      "direct_instances": 32113,
+      "pct_of_total": 0.412
+    },
+    {
+      "rank": 23,
+      "qid": "Q871232",
+      "label": "Q871232",
+      "direct_instances": 31817,
+      "pct_of_total": 0.408
+    },
+    {
+      "rank": 24,
+      "qid": "Q482994",
+      "label": "Q482994",
+      "direct_instances": 31205,
+      "pct_of_total": 0.4
+    },
+    {
+      "rank": 25,
+      "qid": "Q11424",
+      "label": "Q11424",
+      "direct_instances": 30999,
+      "pct_of_total": 0.398
+    },
+    {
+      "rank": 26,
+      "qid": "Q3863",
+      "label": "Q3863",
+      "direct_instances": 30592,
+      "pct_of_total": 0.392
+    },
+    {
+      "rank": 27,
+      "qid": "Q532",
+      "label": "Q532",
+      "direct_instances": 27191,
+      "pct_of_total": 0.349
+    },
+    {
+      "rank": 28,
+      "qid": "Q17633526",
+      "label": "Q17633526",
+      "direct_instances": 25263,
+      "pct_of_total": 0.324
+    },
+    {
+      "rank": 29,
+      "qid": "Q3947",
+      "label": "Q3947",
+      "direct_instances": 24495,
+      "pct_of_total": 0.314
+    },
+    {
+      "rank": 30,
+      "qid": "Q47150325",
+      "label": "Q47150325",
+      "direct_instances": 23904,
+      "pct_of_total": 0.307
+    },
+    {
+      "rank": 31,
+      "qid": "Q41176",
+      "label": "Q41176",
+      "direct_instances": 23052,
+      "pct_of_total": 0.296
+    },
+    {
+      "rank": 32,
+      "qid": "Q16970",
+      "label": "Q16970",
+      "direct_instances": 22540,
+      "pct_of_total": 0.289
+    },
+    {
+      "rank": 33,
+      "qid": "Q47521",
+      "label": "Q47521",
+      "direct_instances": 22005,
+      "pct_of_total": 0.282
+    },
+    {
+      "rank": 34,
+      "qid": "Q4830453",
+      "label": "Q4830453",
+      "direct_instances": 20985,
+      "pct_of_total": 0.269
+    },
+    {
+      "rank": 35,
+      "qid": "Q355304",
+      "label": "Q355304",
+      "direct_instances": 20339,
+      "pct_of_total": 0.261
+    },
+    {
+      "rank": 36,
+      "qid": "Q3331189",
+      "label": "Q3331189",
+      "direct_instances": 19991,
+      "pct_of_total": 0.256
+    },
+    {
+      "rank": 37,
+      "qid": "Q2782326",
+      "label": "Q2782326",
+      "direct_instances": 19425,
+      "pct_of_total": 0.249
+    },
+    {
+      "rank": 38,
+      "qid": "Q113145171",
+      "label": "Q113145171",
+      "direct_instances": 18922,
+      "pct_of_total": 0.243
+    },
+    {
+      "rank": 39,
+      "qid": "Q23442",
+      "label": "Q23442",
+      "direct_instances": 18110,
+      "pct_of_total": 0.232
+    },
+    {
+      "rank": 40,
+      "qid": "Q56436498",
+      "label": "Q56436498",
+      "direct_instances": 17883,
+      "pct_of_total": 0.229
+    },
+    {
+      "rank": 41,
+      "qid": "Q27020041",
+      "label": "Q27020041",
+      "direct_instances": 17620,
+      "pct_of_total": 0.226
+    },
+    {
+      "rank": 42,
+      "qid": "Q18593264",
+      "label": "Q18593264",
+      "direct_instances": 13793,
+      "pct_of_total": 0.177
+    },
+    {
+      "rank": 43,
+      "qid": "Q21014462",
+      "label": "Q21014462",
+      "direct_instances": 13353,
+      "pct_of_total": 0.171
+    },
+    {
+      "rank": 44,
+      "qid": "Q5084",
+      "label": "Q5084",
+      "direct_instances": 13189,
+      "pct_of_total": 0.169
+    },
+    {
+      "rank": 45,
+      "qid": "Q4164871",
+      "label": "Q4164871",
+      "direct_instances": 12885,
+      "pct_of_total": 0.165
+    },
+    {
+      "rank": 46,
+      "qid": "Q39816",
+      "label": "Q39816",
+      "direct_instances": 12674,
+      "pct_of_total": 0.163
+    },
+    {
+      "rank": 47,
+      "qid": "Q815382",
+      "label": "Q815382",
+      "direct_instances": 12110,
+      "pct_of_total": 0.155
+    },
+    {
+      "rank": 48,
+      "qid": "Q985488",
+      "label": "Q985488",
+      "direct_instances": 11397,
+      "pct_of_total": 0.146
+    },
+    {
+      "rank": 49,
+      "qid": "Q811979",
+      "label": "Q811979",
+      "direct_instances": 11337,
+      "pct_of_total": 0.145
+    },
+    {
+      "rank": 50,
+      "qid": "Q134556",
+      "label": "Q134556",
+      "direct_instances": 11083,
+      "pct_of_total": 0.142
+    }
+  ],
+  "top_50_classes_by_total_instances_propagated": [
+    {
+      "rank": 1,
+      "qid": "Q13442814",
+      "label": "Q13442814",
+      "direct": 3105993,
+      "inherited": 0,
+      "total": 3105993,
+      "pct_of_total": 39.836
+    },
+    {
+      "rank": 2,
+      "qid": "Q5",
+      "label": "Q5",
+      "direct": 672801,
+      "inherited": 0,
+      "total": 672801,
+      "pct_of_total": 8.629
+    },
+    {
+      "rank": 3,
+      "qid": "Q4167836",
+      "label": "Q4167836",
+      "direct": 498032,
+      "inherited": 0,
+      "total": 498032,
+      "pct_of_total": 6.387
+    },
+    {
+      "rank": 4,
+      "qid": "Q16521",
+      "label": "Q16521",
+      "direct": 326985,
+      "inherited": 1391,
+      "total": 328376,
+      "pct_of_total": 4.212
+    },
+    {
+      "rank": 5,
+      "qid": "Q4167410",
+      "label": "Q4167410",
+      "direct": 153362,
+      "inherited": 1,
+      "total": 153363,
+      "pct_of_total": 1.967
+    },
+    {
+      "rank": 6,
+      "qid": "Q7187",
+      "label": "Q7187",
+      "direct": 149005,
+      "inherited": 0,
+      "total": 149005,
+      "pct_of_total": 1.911
+    },
+    {
+      "rank": 7,
+      "qid": "Q8054",
+      "label": "Q8054",
+      "direct": 122590,
+      "inherited": 1324,
+      "total": 123914,
+      "pct_of_total": 1.589
+    },
+    {
+      "rank": 8,
+      "qid": "Q17442446",
+      "label": "Q17442446",
+      "direct": 714,
+      "inherited": 88002,
+      "total": 88716,
+      "pct_of_total": 1.138
+    },
+    {
+      "rank": 9,
+      "qid": "Q11266439",
+      "label": "Q11266439",
+      "direct": 88002,
+      "inherited": 0,
+      "total": 88002,
+      "pct_of_total": 1.129
+    },
+    {
+      "rank": 10,
+      "qid": "Q118555179",
+      "label": "Q118555179",
+      "direct": 0,
+      "inherited": 88002,
+      "total": 88002,
+      "pct_of_total": 1.129
+    },
+    {
+      "rank": 11,
+      "qid": "Q13100073",
+      "label": "Q13100073",
+      "direct": 73091,
+      "inherited": 0,
+      "total": 73091,
+      "pct_of_total": 0.937
+    },
+    {
+      "rank": 12,
+      "qid": "Q35145263",
+      "label": "Q35145263",
+      "direct": 0,
+      "inherited": 63593,
+      "total": 63593,
+      "pct_of_total": 0.816
+    },
+    {
+      "rank": 13,
+      "qid": "Q106589819",
+      "label": "Q106589819",
+      "direct": 4,
+      "inherited": 63529,
+      "total": 63533,
+      "pct_of_total": 0.815
+    },
+    {
+      "rank": 14,
+      "qid": "Q8502",
+      "label": "Q8502",
+      "direct": 63499,
+      "inherited": 30,
+      "total": 63529,
+      "pct_of_total": 0.815
+    },
+    {
+      "rank": 15,
+      "qid": "Q486972",
+      "label": "Q486972",
+      "direct": 54275,
+      "inherited": 3764,
+      "total": 58039,
+      "pct_of_total": 0.744
+    },
+    {
+      "rank": 16,
+      "qid": "Q4022",
+      "label": "Q4022",
+      "direct": 47835,
+      "inherited": 3418,
+      "total": 51253,
+      "pct_of_total": 0.657
+    },
+    {
+      "rank": 17,
+      "qid": "Q3305213",
+      "label": "Q3305213",
+      "direct": 50602,
+      "inherited": 76,
+      "total": 50678,
+      "pct_of_total": 0.65
+    },
+    {
+      "rank": 18,
+      "qid": "Q79007",
+      "label": "Q79007",
+      "direct": 47101,
+      "inherited": 2,
+      "total": 47103,
+      "pct_of_total": 0.604
+    },
+    {
+      "rank": 19,
+      "qid": "Q191067",
+      "label": "Q191067",
+      "direct": 7270,
+      "inherited": 37527,
+      "total": 44797,
+      "pct_of_total": 0.575
+    },
+    {
+      "rank": 20,
+      "qid": "Q54050",
+      "label": "Q54050",
+      "direct": 39261,
+      "inherited": 27,
+      "total": 39288,
+      "pct_of_total": 0.504
+    },
+    {
+      "rank": 21,
+      "qid": "Q30612",
+      "label": "Q30612",
+      "direct": 39132,
+      "inherited": 0,
+      "total": 39132,
+      "pct_of_total": 0.502
+    },
+    {
+      "rank": 22,
+      "qid": "Q13406463",
+      "label": "Q13406463",
+      "direct": 37004,
+      "inherited": 1054,
+      "total": 38058,
+      "pct_of_total": 0.488
+    },
+    {
+      "rank": 23,
+      "qid": "Q3055347",
+      "label": "Q3055347",
+      "direct": 368,
+      "inherited": 37527,
+      "total": 37895,
+      "pct_of_total": 0.486
+    },
+    {
+      "rank": 24,
+      "qid": "Q13433827",
+      "label": "Q13433827",
+      "direct": 37527,
+      "inherited": 0,
+      "total": 37527,
+      "pct_of_total": 0.481
+    },
+    {
+      "rank": 25,
+      "qid": "Q101352",
+      "label": "Q101352",
+      "direct": 36747,
+      "inherited": 1,
+      "total": 36748,
+      "pct_of_total": 0.471
+    },
+    {
+      "rank": 26,
+      "qid": "Q2668072",
+      "label": "Q2668072",
+      "direct": 35990,
+      "inherited": 456,
+      "total": 36446,
+      "pct_of_total": 0.467
+    },
+    {
+      "rank": 27,
+      "qid": "Q7725634",
+      "label": "Q7725634",
+      "direct": 36072,
+      "inherited": 196,
+      "total": 36268,
+      "pct_of_total": 0.465
+    },
+    {
+      "rank": 28,
+      "qid": "Q11424",
+      "label": "Q11424",
+      "direct": 30999,
+      "inherited": 2011,
+      "total": 33010,
+      "pct_of_total": 0.423
+    },
+    {
+      "rank": 29,
+      "qid": "Q23397",
+      "label": "Q23397",
+      "direct": 32113,
+      "inherited": 3,
+      "total": 32116,
+      "pct_of_total": 0.412
+    },
+    {
+      "rank": 30,
+      "qid": "Q871232",
+      "label": "Q871232",
+      "direct": 31817,
+      "inherited": 0,
+      "total": 31817,
+      "pct_of_total": 0.408
+    },
+    {
+      "rank": 31,
+      "qid": "Q482994",
+      "label": "Q482994",
+      "direct": 31205,
+      "inherited": 0,
+      "total": 31205,
+      "pct_of_total": 0.4
+    },
+    {
+      "rank": 32,
+      "qid": "Q1022867",
+      "label": "Q1022867",
+      "direct": 1,
+      "inherited": 30702,
+      "total": 30703,
+      "pct_of_total": 0.394
+    },
+    {
+      "rank": 33,
+      "qid": "Q193275",
+      "label": "Q193275",
+      "direct": 2,
+      "inherited": 30593,
+      "total": 30595,
+      "pct_of_total": 0.392
+    },
+    {
+      "rank": 34,
+      "qid": "Q3863",
+      "label": "Q3863",
+      "direct": 30592,
+      "inherited": 0,
+      "total": 30592,
+      "pct_of_total": 0.392
+    },
+    {
+      "rank": 35,
+      "qid": "Q532",
+      "label": "Q532",
+      "direct": 27191,
+      "inherited": 986,
+      "total": 28177,
+      "pct_of_total": 0.361
+    },
+    {
+      "rank": 36,
+      "qid": "Q16970",
+      "label": "Q16970",
+      "direct": 22540,
+      "inherited": 5292,
+      "total": 27832,
+      "pct_of_total": 0.357
+    },
+    {
+      "rank": 37,
+      "qid": "Q47521",
+      "label": "Q47521",
+      "direct": 22005,
+      "inherited": 3396,
+      "total": 25401,
+      "pct_of_total": 0.326
+    },
+    {
+      "rank": 38,
+      "qid": "Q17633526",
+      "label": "Q17633526",
+      "direct": 25263,
+      "inherited": 0,
+      "total": 25263,
+      "pct_of_total": 0.324
+    },
+    {
+      "rank": 39,
+      "qid": "Q3947",
+      "label": "Q3947",
+      "direct": 24495,
+      "inherited": 631,
+      "total": 25126,
+      "pct_of_total": 0.322
+    },
+    {
+      "rank": 40,
+      "qid": "Q41176",
+      "label": "Q41176",
+      "direct": 23052,
+      "inherited": 1753,
+      "total": 24805,
+      "pct_of_total": 0.318
+    },
+    {
+      "rank": 41,
+      "qid": "Q47150325",
+      "label": "Q47150325",
+      "direct": 23904,
+      "inherited": 0,
+      "total": 23904,
+      "pct_of_total": 0.307
+    },
+    {
+      "rank": 42,
+      "qid": "Q355304",
+      "label": "Q355304",
+      "direct": 20339,
+      "inherited": 3431,
+      "total": 23770,
+      "pct_of_total": 0.305
+    },
+    {
+      "rank": 43,
+      "qid": "Q4830453",
+      "label": "Q4830453",
+      "direct": 20985,
+      "inherited": 249,
+      "total": 21234,
+      "pct_of_total": 0.272
+    },
+    {
+      "rank": 44,
+      "qid": "Q811979",
+      "label": "Q811979",
+      "direct": 11337,
+      "inherited": 9243,
+      "total": 20580,
+      "pct_of_total": 0.264
+    },
+    {
+      "rank": 45,
+      "qid": "Q3331189",
+      "label": "Q3331189",
+      "direct": 19991,
+      "inherited": 1,
+      "total": 19992,
+      "pct_of_total": 0.256
+    },
+    {
+      "rank": 46,
+      "qid": "Q2782326",
+      "label": "Q2782326",
+      "direct": 19425,
+      "inherited": 0,
+      "total": 19425,
+      "pct_of_total": 0.249
+    },
+    {
+      "rank": 47,
+      "qid": "Q113145171",
+      "label": "Q113145171",
+      "direct": 18922,
+      "inherited": 0,
+      "total": 18922,
+      "pct_of_total": 0.243
+    },
+    {
+      "rank": 48,
+      "qid": "Q23442",
+      "label": "Q23442",
+      "direct": 18110,
+      "inherited": 241,
+      "total": 18351,
+      "pct_of_total": 0.235
+    },
+    {
+      "rank": 49,
+      "qid": "Q56436498",
+      "label": "Q56436498",
+      "direct": 17883,
+      "inherited": 0,
+      "total": 17883,
+      "pct_of_total": 0.229
+    },
+    {
+      "rank": 50,
+      "qid": "Q27020041",
+      "label": "Q27020041",
+      "direct": 17620,
+      "inherited": 14,
+      "total": 17634,
+      "pct_of_total": 0.226
+    }
+  ],
+  "depth_distribution": {
+    "0": 73271,
+    "1": 328868,
+    "2": 9063,
+    "3": 479,
+    "4": 49,
+    "5": 4
+  },
+  "parent_count_distribution": {
+    "0": 73271,
+    "1": 264481,
+    "2": 69754,
+    "3": 3085,
+    "4": 756,
+    "5": 218,
+    "6": 97,
+    "7": 30,
+    "8": 25,
+    "9": 6,
+    "10": 5,
+    "11": 3,
+    "13": 2,
+    "14": 1
+  },
+  "roots_analysis": {
+    "total_roots": 73271,
+    "roots_with_instances": 36979,
+    "roots_without_instances": 36292,
+    "top_30_roots_by_coverage": [
+      {
+        "qid": "Q13442814",
+        "label": "Q13442814",
+        "total_instances": 3105993,
+        "direct_children": 2
+      },
+      {
+        "qid": "Q5",
+        "label": "Q5",
+        "total_instances": 672801,
+        "direct_children": 16
+      },
+      {
+        "qid": "Q4167836",
+        "label": "Q4167836",
+        "total_instances": 498032,
+        "direct_children": 1
+      },
+      {
+        "qid": "Q16521",
+        "label": "Q16521",
+        "total_instances": 328376,
+        "direct_children": 5
+      },
+      {
+        "qid": "Q4167410",
+        "label": "Q4167410",
+        "total_instances": 153363,
+        "direct_children": 1
+      },
+      {
+        "qid": "Q7187",
+        "label": "Q7187",
+        "total_instances": 149005,
+        "direct_children": 55940
+      },
+      {
+        "qid": "Q8054",
+        "label": "Q8054",
+        "total_instances": 123914,
+        "direct_children": 95053
+      },
+      {
+        "qid": "Q17442446",
+        "label": "Q17442446",
+        "total_instances": 88716,
+        "direct_children": 2
+      },
+      {
+        "qid": "Q118555179",
+        "label": "Q118555179",
+        "total_instances": 88002,
+        "direct_children": 1
+      },
+      {
+        "qid": "Q13100073",
+        "label": "Q13100073",
+        "total_instances": 73091,
+        "direct_children": 0
+      },
+      {
+        "qid": "Q35145263",
+        "label": "Q35145263",
+        "total_instances": 63593,
+        "direct_children": 6
+      },
+      {
+        "qid": "Q106589819",
+        "label": "Q106589819",
+        "total_instances": 63533,
+        "direct_children": 2
+      },
+      {
+        "qid": "Q486972",
+        "label": "Q486972",
+        "total_instances": 58039,
+        "direct_children": 53
+      },
+      {
+        "qid": "Q4022",
+        "label": "Q4022",
+        "total_instances": 51253,
+        "direct_children": 10
+      },
+      {
+        "qid": "Q3305213",
+        "label": "Q3305213",
+        "total_instances": 50678,
+        "direct_children": 13
+      },
+      {
+        "qid": "Q79007",
+        "label": "Q79007",
+        "total_instances": 47103,
+        "direct_children": 8
+      },
+      {
+        "qid": "Q191067",
+        "label": "Q191067",
+        "total_instances": 44797,
+        "direct_children": 1
+      },
+      {
+        "qid": "Q54050",
+        "label": "Q54050",
+        "total_instances": 39288,
+        "direct_children": 10
+      },
+      {
+        "qid": "Q30612",
+        "label": "Q30612",
+        "total_instances": 39132,
+        "direct_children": 4
+      },
+      {
+        "qid": "Q13406463",
+        "label": "Q13406463",
+        "total_instances": 38058,
+        "direct_children": 3
+      },
+      {
+        "qid": "Q3055347",
+        "label": "Q3055347",
+        "total_instances": 37895,
+        "direct_children": 1
+      },
+      {
+        "qid": "Q101352",
+        "label": "Q101352",
+        "total_instances": 36748,
+        "direct_children": 5
+      },
+      {
+        "qid": "Q2668072",
+        "label": "Q2668072",
+        "total_instances": 36446,
+        "direct_children": 13
+      },
+      {
+        "qid": "Q7725634",
+        "label": "Q7725634",
+        "total_instances": 36268,
+        "direct_children": 22
+      },
+      {
+        "qid": "Q11424",
+        "label": "Q11424",
+        "total_instances": 33010,
+        "direct_children": 11
+      },
+      {
+        "qid": "Q23397",
+        "label": "Q23397",
+        "total_instances": 32116,
+        "direct_children": 6
+      },
+      {
+        "qid": "Q871232",
+        "label": "Q871232",
+        "total_instances": 31817,
+        "direct_children": 0
+      },
+      {
+        "qid": "Q482994",
+        "label": "Q482994",
+        "total_instances": 31205,
+        "direct_children": 4
+      },
+      {
+        "qid": "Q1022867",
+        "label": "Q1022867",
+        "total_instances": 30703,
+        "direct_children": 2
+      },
+      {
+        "qid": "Q193275",
+        "label": "Q193275",
+        "total_instances": 30595,
+        "direct_children": 2
+      }
+    ],
+    "sample_orphan_roots_no_instances": [
+      {
+        "qid": "Q382617",
+        "label": "Q382617",
+        "total_instances": 0,
+        "direct_children": 4939
+      },
+      {
+        "qid": "Q15113603",
+        "label": "Q15113603",
+        "total_instances": 0,
+        "direct_children": 4862
+      },
+      {
+        "qid": "Q64698614",
+        "label": "Q64698614",
+        "total_instances": 0,
+        "direct_children": 239
+      },
+      {
+        "qid": "Q22645",
+        "label": "Q22645",
+        "total_instances": 0,
+        "direct_children": 182
+      },
+      {
+        "qid": "Q708492",
+        "label": "Q708492",
+        "total_instances": 0,
+        "direct_children": 175
+      },
+      {
+        "qid": "Q17175157",
+        "label": "Q17175157",
+        "total_instances": 0,
+        "direct_children": 173
+      },
+      {
+        "qid": "Q55400987",
+        "label": "Q55400987",
+        "total_instances": 0,
+        "direct_children": 148
+      },
+      {
+        "qid": "Q407479",
+        "label": "Q407479",
+        "total_instances": 0,
+        "direct_children": 138
+      },
+      {
+        "qid": "Q428069",
+        "label": "Q428069",
+        "total_instances": 0,
+        "direct_children": 136
+      },
+      {
+        "qid": "Q10267817",
+        "label": "Q10267817",
+        "total_instances": 0,
+        "direct_children": 126
+      },
+      {
+        "qid": "Q17589470",
+        "label": "Q17589470",
+        "total_instances": 0,
+        "direct_children": 119
+      },
+      {
+        "qid": "Q19961107",
+        "label": "Q19961107",
+        "total_instances": 0,
+        "direct_children": 101
+      },
+      {
+        "qid": "Q19961106",
+        "label": "Q19961106",
+        "total_instances": 0,
+        "direct_children": 97
+      },
+      {
+        "qid": "Q18553439",
+        "label": "Q18553439",
+        "total_instances": 0,
+        "direct_children": 81
+      },
+      {
+        "qid": "Q16693356",
+        "label": "Q16693356",
+        "total_instances": 0,
+        "direct_children": 77
+      },
+      {
+        "qid": "Q70702",
+        "label": "Q70702",
+        "total_instances": 0,
+        "direct_children": 74
+      },
+      {
+        "qid": "Q21167512",
+        "label": "Q21167512",
+        "total_instances": 0,
+        "direct_children": 71
+      },
+      {
+        "qid": "Q68182219",
+        "label": "Q68182219",
+        "total_instances": 0,
+        "direct_children": 71
+      },
+      {
+        "qid": "Q63436503",
+        "label": "Q63436503",
+        "total_instances": 0,
+        "direct_children": 58
+      },
+      {
+        "qid": "Q63446172",
+        "label": "Q63446172",
+        "total_instances": 0,
+        "direct_children": 57
+      },
+      {
+        "qid": "Q47306628",
+        "label": "Q47306628",
+        "total_instances": 0,
+        "direct_children": 56
+      },
+      {
+        "qid": "Q143623",
+        "label": "Q143623",
+        "total_instances": 0,
+        "direct_children": 55
+      },
+      {
+        "qid": "Q109910560",
+        "label": "Q109910560",
+        "total_instances": 0,
+        "direct_children": 54
+      },
+      {
+        "qid": "Q3389302",
+        "label": "Q3389302",
+        "total_instances": 0,
+        "direct_children": 53
+      },
+      {
+        "qid": "Q3092395",
+        "label": "Q3092395",
+        "total_instances": 0,
+        "direct_children": 53
+      },
+      {
+        "qid": "Q4713306",
+        "label": "Q4713306",
+        "total_instances": 0,
+        "direct_children": 52
+      },
+      {
+        "qid": "Q3395987",
+        "label": "Q3395987",
+        "total_instances": 0,
+        "direct_children": 52
+      },
+      {
+        "qid": "Q2252764",
+        "label": "Q2252764",
+        "total_instances": 0,
+        "direct_children": 51
+      },
+      {
+        "qid": "Q222174",
+        "label": "Q222174",
+        "total_instances": 0,
+        "direct_children": 50
+      },
+      {
+        "qid": "Q21674689",
+        "label": "Q21674689",
+        "total_instances": 0,
+        "direct_children": 50
+      },
+      {
+        "qid": "Q9344189",
+        "label": "Q9344189",
+        "total_instances": 0,
+        "direct_children": 50
+      },
+      {
+        "qid": "Q511450",
+        "label": "Q511450",
+        "total_instances": 0,
+        "direct_children": 49
+      },
+      {
+        "qid": "Q157957",
+        "label": "Q157957",
+        "total_instances": 0,
+        "direct_children": 48
+      },
+      {
+        "qid": "Q70551253",
+        "label": "Q70551253",
+        "total_instances": 0,
+        "direct_children": 48
+      },
+      {
+        "qid": "Q630010",
+        "label": "Q630010",
+        "total_instances": 0,
+        "direct_children": 48
+      },
+      {
+        "qid": "Q11639",
+        "label": "Q11639",
+        "total_instances": 0,
+        "direct_children": 48
+      },
+      {
+        "qid": "Q55785866",
+        "label": "Q55785866",
+        "total_instances": 0,
+        "direct_children": 46
+      },
+      {
+        "qid": "Q135214932",
+        "label": "Q135214932",
+        "total_instances": 0,
+        "direct_children": 45
+      },
+      {
+        "qid": "Q109923912",
+        "label": "Q109923912",
+        "total_instances": 0,
+        "direct_children": 45
+      },
+      {
+        "qid": "Q764802",
+        "label": "Q764802",
+        "total_instances": 0,
+        "direct_children": 44
+      },
+      {
+        "qid": "Q24294815",
+        "label": "Q24294815",
+        "total_instances": 0,
+        "direct_children": 44
+      },
+      {
+        "qid": "Q5433715",
+        "label": "Q5433715",
+        "total_instances": 0,
+        "direct_children": 43
+      },
+      {
+        "qid": "Q2250497",
+        "label": "Q2250497",
+        "total_instances": 0,
+        "direct_children": 43
+      },
+      {
+        "qid": "Q24702381",
+        "label": "Q24702381",
+        "total_instances": 0,
+        "direct_children": 43
+      },
+      {
+        "qid": "Q987080",
+        "label": "Q987080",
+        "total_instances": 0,
+        "direct_children": 42
+      },
+      {
+        "qid": "Q3044387",
+        "label": "Q3044387",
+        "total_instances": 0,
+        "direct_children": 42
+      },
+      {
+        "qid": "Q14864141",
+        "label": "Q14864141",
+        "total_instances": 0,
+        "direct_children": 42
+      },
+      {
+        "qid": "Q134856",
+        "label": "Q134856",
+        "total_instances": 0,
+        "direct_children": 41
+      },
+      {
+        "qid": "Q945532",
+        "label": "Q945532",
+        "total_instances": 0,
+        "direct_children": 41
+      },
+      {
+        "qid": "Q66124573",
+        "label": "Q66124573",
+        "total_instances": 0,
+        "direct_children": 41
+      }
+    ],
+    "sample_orphan_roots_with_children_but_no_instances": [
+      {
+        "qid": "Q382617",
+        "label": "Q382617",
+        "total_instances": 0,
+        "direct_children": 4939
+      },
+      {
+        "qid": "Q15113603",
+        "label": "Q15113603",
+        "total_instances": 0,
+        "direct_children": 4862
+      },
+      {
+        "qid": "Q64698614",
+        "label": "Q64698614",
+        "total_instances": 0,
+        "direct_children": 239
+      },
+      {
+        "qid": "Q22645",
+        "label": "Q22645",
+        "total_instances": 0,
+        "direct_children": 182
+      },
+      {
+        "qid": "Q708492",
+        "label": "Q708492",
+        "total_instances": 0,
+        "direct_children": 175
+      },
+      {
+        "qid": "Q17175157",
+        "label": "Q17175157",
+        "total_instances": 0,
+        "direct_children": 173
+      },
+      {
+        "qid": "Q55400987",
+        "label": "Q55400987",
+        "total_instances": 0,
+        "direct_children": 148
+      },
+      {
+        "qid": "Q407479",
+        "label": "Q407479",
+        "total_instances": 0,
+        "direct_children": 138
+      },
+      {
+        "qid": "Q428069",
+        "label": "Q428069",
+        "total_instances": 0,
+        "direct_children": 136
+      },
+      {
+        "qid": "Q10267817",
+        "label": "Q10267817",
+        "total_instances": 0,
+        "direct_children": 126
+      },
+      {
+        "qid": "Q17589470",
+        "label": "Q17589470",
+        "total_instances": 0,
+        "direct_children": 119
+      },
+      {
+        "qid": "Q19961107",
+        "label": "Q19961107",
+        "total_instances": 0,
+        "direct_children": 101
+      },
+      {
+        "qid": "Q19961106",
+        "label": "Q19961106",
+        "total_instances": 0,
+        "direct_children": 97
+      },
+      {
+        "qid": "Q18553439",
+        "label": "Q18553439",
+        "total_instances": 0,
+        "direct_children": 81
+      },
+      {
+        "qid": "Q16693356",
+        "label": "Q16693356",
+        "total_instances": 0,
+        "direct_children": 77
+      },
+      {
+        "qid": "Q70702",
+        "label": "Q70702",
+        "total_instances": 0,
+        "direct_children": 74
+      },
+      {
+        "qid": "Q21167512",
+        "label": "Q21167512",
+        "total_instances": 0,
+        "direct_children": 71
+      },
+      {
+        "qid": "Q68182219",
+        "label": "Q68182219",
+        "total_instances": 0,
+        "direct_children": 71
+      },
+      {
+        "qid": "Q63436503",
+        "label": "Q63436503",
+        "total_instances": 0,
+        "direct_children": 58
+      },
+      {
+        "qid": "Q63446172",
+        "label": "Q63446172",
+        "total_instances": 0,
+        "direct_children": 57
+      },
+      {
+        "qid": "Q47306628",
+        "label": "Q47306628",
+        "total_instances": 0,
+        "direct_children": 56
+      },
+      {
+        "qid": "Q143623",
+        "label": "Q143623",
+        "total_instances": 0,
+        "direct_children": 55
+      },
+      {
+        "qid": "Q109910560",
+        "label": "Q109910560",
+        "total_instances": 0,
+        "direct_children": 54
+      },
+      {
+        "qid": "Q3389302",
+        "label": "Q3389302",
+        "total_instances": 0,
+        "direct_children": 53
+      },
+      {
+        "qid": "Q3092395",
+        "label": "Q3092395",
+        "total_instances": 0,
+        "direct_children": 53
+      },
+      {
+        "qid": "Q4713306",
+        "label": "Q4713306",
+        "total_instances": 0,
+        "direct_children": 52
+      },
+      {
+        "qid": "Q3395987",
+        "label": "Q3395987",
+        "total_instances": 0,
+        "direct_children": 52
+      },
+      {
+        "qid": "Q2252764",
+        "label": "Q2252764",
+        "total_instances": 0,
+        "direct_children": 51
+      },
+      {
+        "qid": "Q222174",
+        "label": "Q222174",
+        "total_instances": 0,
+        "direct_children": 50
+      },
+      {
+        "qid": "Q21674689",
+        "label": "Q21674689",
+        "total_instances": 0,
+        "direct_children": 50
+      }
+    ]
+  },
+  "empty_classes_sample": {
+    "total": 370391,
+    "sample": [
+      {
+        "qid": "Q23559205",
+        "label": "Q23559205",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q64217598",
+        "label": "Q64217598",
+        "parents": 0,
+        "children": 2
+      },
+      {
+        "qid": "Q20958193",
+        "label": "Q20958193",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q24407865",
+        "label": "Q24407865",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q12318402",
+        "label": "Q12318402",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q62959184",
+        "label": "Q62959184",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q27875380",
+        "label": "Q27875380",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q24132697",
+        "label": "Q24132697",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q62194173",
+        "label": "Q62194173",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q68295534",
+        "label": "Q68295534",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q27187823",
+        "label": "Q27187823",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q18266879",
+        "label": "Q18266879",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q64436233",
+        "label": "Q64436233",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q65485123",
+        "label": "Q65485123",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q24611313",
+        "label": "Q24611313",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q61485974",
+        "label": "Q61485974",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q23501785",
+        "label": "Q23501785",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q20975804",
+        "label": "Q20975804",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q23280318",
+        "label": "Q23280318",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q62899922",
+        "label": "Q62899922",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q45336212",
+        "label": "Q45336212",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q1666557",
+        "label": "Q1666557",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q23438515",
+        "label": "Q23438515",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q23598133",
+        "label": "Q23598133",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q6942292",
+        "label": "Q6942292",
+        "parents": 0,
+        "children": 1
+      },
+      {
+        "qid": "Q24361659",
+        "label": "Q24361659",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q62437176",
+        "label": "Q62437176",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q66502922",
+        "label": "Q66502922",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q59870130",
+        "label": "Q59870130",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q65480773",
+        "label": "Q65480773",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q27204640",
+        "label": "Q27204640",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q20777875",
+        "label": "Q20777875",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q27948059",
+        "label": "Q27948059",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q62907851",
+        "label": "Q62907851",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q18314217",
+        "label": "Q18314217",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q65468020",
+        "label": "Q65468020",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q23274037",
+        "label": "Q23274037",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q60012733",
+        "label": "Q60012733",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q62183769",
+        "label": "Q62183769",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q27126029",
+        "label": "Q27126029",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q23280884",
+        "label": "Q23280884",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q27872255",
+        "label": "Q27872255",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q62827353",
+        "label": "Q62827353",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q62309773",
+        "label": "Q62309773",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q70278213",
+        "label": "Q70278213",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q23110668",
+        "label": "Q23110668",
+        "parents": 2,
+        "children": 0
+      },
+      {
+        "qid": "Q60019545",
+        "label": "Q60019545",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q62921402",
+        "label": "Q62921402",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q24787202",
+        "label": "Q24787202",
+        "parents": 1,
+        "children": 0
+      },
+      {
+        "qid": "Q21985105",
+        "label": "Q21985105",
+        "parents": 1,
+        "children": 0
+      }
+    ]
+  }
+}

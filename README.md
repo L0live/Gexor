@@ -1,8 +1,8 @@
-# NexReecGraph
+# Gexor
 
-**Visualisation 3D interactive de graphes de connaissances REEC** — module externe/test de la plateforme NexReec.
+**Explorateur 3D immersif de graphes de connaissances Wikidata** — navigation en temps réel dans le Linked Open Data.
 
-NexReecGraph permet d'explorer visuellement des réseaux d'entités, événements et contextes (REECs) interconnectés dans un espace tridimensionnel, avec un moteur de layout physique basé sur WASM et un rendu WebGL performant via Three.js.
+Gexor permet d'explorer visuellement le graphe Wikidata dans un espace tridimensionnel, avec un backend Fastify (cache PostgreSQL, consolidation d'appels API), un moteur de layout force-directed WASM et un rendu WebGL performant via Three.js.
 
 ---
 
@@ -31,15 +31,19 @@ NexReecGraph permet d'explorer visuellement des réseaux d'entités, événement
 - **Graphe 3D interactif** — navigation orbitale, zoom, pan et rotation via TrackballControls
 - **Layout force-directed WASM** — calcul haute performance via `@antv/layout-wasm` (ForceLayout) avec SharedArrayBuffer
 - **Instanced rendering** — rendu optimisé de milliers de nœuds/arêtes via `THREE.InstancedMesh`
-- **Système de pinning & groupes** — épinglez des REECs centraux et explorez leurs voisins par profondeur BFS configurable
+- **Système de pinning & groupes** — épinglez des nœuds centraux et explorez leurs voisins par profondeur BFS configurable
 - **Mode radial** — disposition radiale optionnelle autour des nœuds pinnés avec sphères visuelles décoratives
-- **Filtrage avancé** — par type (Entity / Event / Context), confiance, tags, plage de dates, recherche textuelle
-- **Contrôle d'opacité** — réglage indépendant de l'opacité par type de nœud et par relation
+- **Backend Fastify + PostgreSQL** — consolidation des appels Wikidata (1 round-trip au lieu de 6-10), cache 3 tiers (mémoire → PostgreSQL → API), proxy image COEP
+- **Classification intelligente (classify-first)** — chaque PID classifié avant fetch (primary/secondary/context-dependent), budgets par tier, déduplication des groupes de redondance A-axis
+- **Context Resolver** — promotion automatique des PIDs context-dependent selon le type P31 de l'entité (20 familles : humain, pays, film…)
+- **Nœuds agrégateurs** — références entrantes groupées par SPARQL (PID × P31 type × count), rendus en hexagones violets, expandables au clic
+- **Filtre Wikimedia** — exclusion de 7 types internes Wikidata (catégories, disambig, templates…)
+- **Filtrage avancé** — par type de relation (P-IDs), classification automatique des propriétés Wikidata
 - **Panneau de détails** — informations complètes sur le nœud sélectionné (résumé, chronologie, géographie, tags)
-- **REECs connectés** — exploration des REECs liés au nœud sélectionné avec ajout en un clic
+- **Nœuds connectés** — exploration des nœuds liés au nœud sélectionné avec ajout en un clic
 - **Minimap** — vue miniature 2D du graphe pour la navigation rapide
 - **Undo / Redo** — historique des actions avec snapshots de positions
-- **Recherche** — barre de recherche par nom ou alias avec suggestion des REECs les plus connectés
+- **Recherche** — barre de recherche par nom ou alias avec suggestion des nœuds les plus connectés
 - **Drag & drop** — déplacement de nœuds dans l'espace 3D avec prise en compte de la caméra
 - **Level of Detail (LoD)** — bascule automatique entre labels texte et sphères instanciées selon la distance caméra
 - **Fond décoratif** — grille perspective optionnelle avec image d'horizon
@@ -49,21 +53,20 @@ NexReecGraph permet d'explorer visuellement des réseaux d'entités, événement
 ## Aperçu technique
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        NexReecGraph                          │
-│                                                              │
-│  ┌──────────┐   ┌──────────────┐   ┌──────────────────────┐ │
-│  │  Données  │──▶│  Store        │──▶│  Rendu 3D            │ │
-│  │  JSON     │   │  Zustand      │   │  React Three Fiber   │ │
-│  └──────────┘   │  (5 slices)   │   │  + Instanced Meshes  │ │
-│                  └──────┬───────┘   └──────────────────────┘ │
-│                         │                                    │
-│                  ┌──────▼───────┐                            │
-│                  │  Force Layout │                            │
-│                  │  @antv/wasm   │                            │
-│                  │  + SharedArray│                            │
-│                  └──────────────┘                            │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                              Gexor                                      │
+│                                                                          │
+│  ┌──────────────┐   ┌───────────────────┐   ┌──────────────────────────┐ │
+│  │  Wikidata API │   │  Backend Fastify   │   │  Frontend React 19       │ │
+│  │  (Action +    │◀─▶│  Cache PostgreSQL  │◀─▶│                          │ │
+│  │   SPARQL)     │   │  Proxy image COEP  │   │  Store Zustand (5 slices)│ │
+│  └──────────────┘   └───────────────────┘   │  + Force Layout WASM     │ │
+│                                              │  + Three.js instanced    │ │
+│                                              └──────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────┘
+
+  Wikidata API ←→ Fastify Backend (cache PG) ←→ Frontend fetch
+    ←→ dataSlice → graphSlice → useForceLayout (WASM) → Scene (Three.js)
 ```
 
 ---
@@ -71,6 +74,7 @@ NexReecGraph permet d'explorer visuellement des réseaux d'entités, événement
 ## Prérequis
 
 - **Node.js** ≥ 18
+- **PostgreSQL** ≥ 16
 - **npm** ou **yarn**
 - Un navigateur supportant **SharedArrayBuffer** (Chrome, Edge, Firefox avec headers COOP/COEP)
 
@@ -81,9 +85,16 @@ NexReecGraph permet d'explorer visuellement des réseaux d'entités, événement
 ## Installation
 
 ```bash
-git clone https://github.com/<votre-username>/NexReecGraph.git
-cd NexReecGraph
+git clone https://github.com/<votre-username>/Gexor.git
+cd Gexor
 npm install
+```
+
+### Base de données
+
+```bash
+sudo -u postgres createdb gexor -O $(whoami)
+psql gexor < server/db/schema.sql
 ```
 
 ---
@@ -93,16 +104,28 @@ npm install
 ### Développement
 
 ```bash
-npm run dev
+npm run dev          # Frontend (localhost:3000) + Backend (localhost:3001) en parallèle
+npm run dev:frontend # Frontend uniquement
+npm run dev:backend  # Backend uniquement (nécessite PostgreSQL)
 ```
 
-Le serveur Vite démarre sur [http://localhost:3000](http://localhost:3000) et ouvre automatiquement le navigateur.
+Le serveur Vite démarre sur [http://localhost:3000](http://localhost:3000). Le backend Fastify écoute sur [http://localhost:3001](http://localhost:3001). Le dev server Vite proxie `/api/*` vers le backend.
 
 ### Build de production
 
 ```bash
-npm run build
+npm run build        # Build frontend
+npm run start        # Démarre le backend en production
 ```
+
+### Docker
+
+```bash
+docker compose up -d --build   # Build & démarre tout (frontend + backend + PostgreSQL)
+docker compose down             # Stoppe tout
+```
+
+App disponible sur **http://localhost:3080**. Backend API sur **http://localhost:3001**.
 
 ### Prévisualisation du build
 
@@ -112,118 +135,122 @@ npm run preview
 
 ---
 
-## Format des données
+## Source de données
 
-NexReecGraph consomme un fichier JSON avec la structure suivante :
+Gexor interroge le **graphe Wikidata** en temps réel via un backend Fastify qui consolide les appels API et met en cache les résultats dans PostgreSQL.
 
-```json
-{
-  "reecs": [
-    {
-      "reec_id": "uuid-unique",
-      "label": "Louis XIV",
-      "type": "Entity",
-      "subtype": "Personne",
-      "category": "Monarque",
-      "summary_short": "Roi de France (1643-1715)",
-      "summary_detailed": "Description détaillée...",
-      "temporal_start_date": "1638-09-05",
-      "temporal_end_date": "1715-09-01",
-      "temporal_precision": "jour",
-      "spatial_locations": ["Versailles", "Paris"],
-      "metadata_confiance": 0.95,
-      "metadata_tags": ["monarchie", "absolutisme"],
-      "aliases": ["Le Roi-Soleil"]
-    }
-  ],
-  "relations": [
-    {
-      "source_reec_id": "uuid-source",
-      "target_reec_id": "uuid-target",
-      "relation_type": "participe_à",
-      "description": "Description de la relation",
-      "confiance": 0.9
-    }
-  ]
-}
-```
+### Pipeline de données
 
-### Types de REECs
+1. **Recherche** — `GET /api/search?q=...&lang=fr` → Wikidata Action API
+2. **Expansion** — `GET /api/entity/:qid/expand?direction=both` → entité + voisins en 1 appel
+3. **Agrégation entrante** — `GET /api/entity/:qid/incoming-aggregates` → SPARQL groupé (PID × P31 type × count)
+4. **Expansion d'agrégat** — `GET /api/entity/:qid/aggregate-children?pid=...&type=...` → entités individuelles
+5. **Image proxy** — `GET /api/image?url=...` → proxy Wikimedia Commons (fixe conflit COEP)
+
+### Modèle classify-first
+
+Le backend classifie chaque propriété Wikidata **avant** de récupérer les voisins :
+- **D (primary)** — toujours incluses (P31, P279, P361, P527…)
+- **C promoted** — promues par le Context Resolver selon le type P31
+- **Unclassified** — budget de 20 propriétés max
+- **A (redundancy)** — une seule PID par groupe de redondance (la plus spécifique)
+- **B (secondary)** — exclues par défaut
+
+### Types de nœuds
 
 | Type | Couleur | Description |
 |------|---------|-------------|
-| **Entity** | 🔵 Bleu (`#3b82f6`) | Personnes, lieux, organisations, objets |
-| **Event** | 🟢 Vert (`#10b981`) | Événements historiques, batailles, traités |
-| **Context** | 🟣 Violet (`#8b5cf6`) | Concepts, périodes, mouvements |
+| **Standard** | 🔵 Hash dynamique | Entités Wikidata (Q-items), couleur selon `getCategoryColor()` |
+| **Agrégateur** | 🟣 Violet hexagonal | Groupe de N entités entrantes (ex: « 47 articles scientifiques ») |
 
-Le fichier de données est importé dans `src/App.jsx` — modifiez l'import pour charger un jeu de données différent :
-
-```jsx
-import JSONfile from '../data/votre_fichier.json';
-```
+Les nœuds agrégateurs avec count ≤ 5 sont auto-expandés en nœuds individuels. Les agrégateurs avec count > 5 sont affichés comme hexagones violets cliquables.
 
 ---
 
 ## Architecture du projet
 
 ```
-NexReecGraph/
+Gexor/
 ├── index.html                    # Point d'entrée HTML
 ├── package.json                  # Dépendances & scripts
-├── vite.config.js                # Config Vite (WASM, COOP/COEP)
+├── vite.config.js                # Config Vite (WASM, COOP/COEP, proxy /api)
 ├── tailwind.config.js            # Config Tailwind CSS
 ├── postcss.config.js             # Config PostCSS
-├── data/                         # Jeux de données JSON
-│   ├── reecs_ultra_massive_v2.json
-│   ├── epoque_moderne_reecs.json
-│   └── tests_reecs*.json
+├── docker-compose.yml            # Orchestration Docker (frontend + backend + PG)
+├── wikidata_properties.json       # Classification O(1) des PIDs Wikidata
+├── docker/                       # Dockerfiles & config nginx
+├── server/                       # Backend Fastify
+│   ├── index.js                  # Entry point Fastify, plugins, CORS
+│   ├── config.js                 # Configuration (ports, DB, TTLs)
+│   ├── db/
+│   │   ├── pool.js               # Connexion PostgreSQL + init schema
+│   │   └── schema.sql            # Schéma cache_entries, pid_labels, qid_labels
+│   ├── routes/
+│   │   ├── entity.js             # /api/entity/:qid, neighbors, expand, aggregates
+│   │   ├── search.js             # /api/search
+│   │   ├── image.js              # /api/image (proxy Wikimedia COEP)
+│   │   └── sparql.js             # /api/sparql (proxy SPARQL)
+│   └── services/
+│       ├── wikidataClient.js     # Logique Wikidata (classify-first, SPARQL agreg.)
+│       ├── labelResolver.js      # Résolution labels 3 tiers (mem → PG → API)
+│       └── cacheService.js       # Cache PostgreSQL (get/set/invalidate)
 └── src/
     ├── main.jsx                  # Bootstrap React
-    ├── App.jsx                   # Composant racine (chargement données)
-    ├── NexReecGraph.jsx          # Composant principal (UI + Canvas)
+    ├── App.jsx                   # Composant racine
+    ├── Gexor.jsx                 # Composant principal (UI + Canvas, ~520 lignes)
     ├── index.css                 # Styles globaux (Tailwind)
     ├── components/
     │   ├── Graph/                # Composants 3D (Three.js / R3F)
     │   │   ├── Scene.jsx         # Scène 3D principale (drag, camera, radial)
-    │   │   ├── InstancedNodes.jsx# Rendu instancié des nœuds
+    │   │   ├── InstancedNodes.jsx# Rendu instancié des nœuds + hexagones agrégateurs
     │   │   ├── InstancedEdges.jsx# Rendu instancié des arêtes
     │   │   ├── Node.jsx          # Nœud LoD (label texte haute résolution)
     │   │   ├── Minimap.jsx       # Minimap 2D SVG
     │   │   ├── RadialSpheres.jsx # Sphères décoratives radiales
     │   │   └── DynamicTrackballControls.jsx # Contrôles caméra
     │   └── UI/                   # Composants d'interface 2D
-    │       ├── SearchBar.jsx     # Barre de recherche
     │       ├── SettingsPanel.jsx # Panneau paramètres & filtres
-    │       ├── NodeDetailPanel.jsx    # Détails du nœud sélectionné
+    │       ├── NodeDetailPanel.jsx    # Détails du nœud / agrégat sélectionné
+    │       ├── AllPropertiesModal.jsx # Modale toutes propriétés
     │       ├── GroupInfoPanel.jsx     # Infos & contrôles par groupe
-    │       ├── ConnectedReecsPanel.jsx# REECs connectés au nœud
-    │       ├── FloatingListPanel.jsx  # Liste flottante générique
-    │       └── UnifiedFilterSection.jsx # Section de filtres unifiée
+    │       ├── ConnectedNodesPanel.jsx# Nœuds connectés au nœud
+    │       └── StartScreen.jsx       # Écran d'accueil Wikidata
     ├── constants/
-    │   └── graphConstants.js     # Couleurs, dimensions, defaults du layout
+    │   └── graphConstants.js     # Couleurs, dimensions, budgets, agrégats
+    ├── data/
+    │   └── contextRules.json    # Règles Context Resolver (20 familles P31)
     ├── hooks/
     │   ├── useForceLayout.js     # Hook de gestion du layout WASM
     │   └── useKeyboardShortcuts.js # Raccourcis clavier globaux
+    ├── models/
+    │   └── lodNode.js            # Modèles LodNode, LodEdge, AggregateNode
+    ├── services/
+    │   ├── cacheService.js       # Cache L1 mémoire (Map, 10-min TTL)
+    │   ├── contextResolver.js    # Context Resolver (promotion PIDs selon P31)
+    │   ├── propertyClassification.js # Classification O(1), dedup, noise filter
+    │   ├── prefetchQueue.js      # File d'attente pré-chargement
+    │   ├── sparqlClient.js       # Client SPARQL
+    │   └── queries/
+    │       └── wikidata.js       # Thin API client (/api/* endpoints)
     ├── store/
     │   ├── useGraphStore.js      # Store Zustand (composition des slices)
-    │   ├── utils.js              # Mappers REEC → Node/Edge, utilitaires
+    │   ├── utils.js              # Mappers LOD Node/Edge, utilitaires
     │   └── slices/
-    │       ├── dataSlice.js      # Chargement données brutes, tags, dates
-    │       ├── graphSlice.js     # Nœuds/arêtes visibles, filtrage, opacité
-    │       ├── uiSlice.js        # Sélection, caméra, état simulation
+    │       ├── dataSlice.js      # Données brutes, agrégats, expand/collapse, nodeSettings par nœud
+    │       ├── graphSlice.js     # Nœuds/arêtes visibles, classify-first, context, filtrage direction par nœud
+    │       ├── uiSlice.js        # Sélection, caméra, état simulation, fetch sortant à la demande
     │       ├── historySlice.js   # Undo/redo avec snapshots
-    │       └── pinSlice.js       # Système de pinning, groupes, drag
-    ├── utils/
-    │   ├── sharedPositions.js    # SharedArrayBuffer pour positions
-    │   └── radialLayout.js       # Calcul des positions radiales
-    └── workers/                  # (Réservé — layout WASM interne)
+    │       └── pinSlice.js       # Verrouillage de position (pin), drag
+    └── utils/
+        ├── sharedPositions.js    # SharedArrayBuffer pour positions
+        └── radialLayout.js       # Calcul des positions radiales
 ```
 
 ---
 
 ## Composants principaux
 
-### NexReecGraph.jsx
+### Gexor.jsx
 
 Composant orchestrateur principal. Gère :
 - L'initialisation des données et du layout
@@ -242,7 +269,7 @@ Scène 3D contenant :
 
 ### InstancedNodes.jsx
 
-Rendu performant des nœuds via `THREE.InstancedMesh`. Les nœuds sont regroupés par catégorie (Entity, Event, Context) avec couleurs et opacités distinctes. Mise à jour des positions chaque frame depuis le SharedArrayBuffer.
+Rendu performant des nœuds via `THREE.InstancedMesh`. Couleurs dynamiques via `getCategoryColor()` (hash de l’URI). Les nœuds agrégateurs sont rendus en **hexagones violets** avec taille proportionnelle à `log₂(count)`. Les nœuds récemment ajoutés au graphe via `addNodeToGraph` reçoivent une **animation pulse verte** (`ADDED_PULSE_COLOR`, 1500ms). Mise à jour des positions chaque frame depuis le SharedArrayBuffer.
 
 ### InstancedEdges.jsx
 
@@ -256,19 +283,21 @@ Le state management est organisé en **5 slices** composées dans un store uniqu
 
 | Slice | Responsabilité |
 |-------|---------------|
-| **dataSlice** | Chargement JSON, REECs disponibles, relations, tags, dates |
-| **graphSlice** | Nœuds/arêtes visibles, BFS multi-sources, filtrage, opacité |
-| **uiSlice** | Sélection, état du layout, caméra, simulation pause/play |
+| **dataSlice** | Appels API backend, cache L1, données brutes, agrégats, expand/collapse, **nodeSettings par nœud**, `addNodeToGraph`, `recentlyAddedNodes` |
+| **graphSlice** | Nœuds/arêtes visibles, classify-first PID filtering, PIDs context-promoted, BFS, **filtrage direction par nœud** |
+| **uiSlice** | Sélection, état du layout, caméra, simulation pause/play, fetch sortant à la demande |
 | **historySlice** | Snapshots pour undo/redo (max 50 entrées) |
-| **pinSlice** | Système de pinning, profondeur d'exploration, mode radial, drag |
+| **pinSlice** | **Verrouillage de position** (pin/unpin), drag. Profondeur/direction/radial délégués à `dataSlice.nodeSettings` |
 
 ### Flux de données
 
-1. `loadData(json)` → identifie le REEC le plus connecté, le pinne par défaut
-2. `updateGraphData()` → BFS multi-sources depuis les nœuds pinnés selon leur profondeur
-3. Les nœuds/arêtes résultants alimentent le layout force-directed
-4. Les positions calculées sont écrites dans le SharedArrayBuffer
-5. Les composants 3D lisent les positions en `useFrame()` sans allocation
+1. `searchWikidata(q)` ou `initFromEntity(qid)` → appel backend `/api/*`
+2. `fetchAndExpandNode(qid)` → récupère entité + voisins + agrégats entrants
+3. Context Resolver promeut les PIDs context-dependent selon les types P31
+4. `updateGraphData()` → BFS multi-sources, filtrage classify-first
+5. Les nœuds/arêtes résultants alimentent le layout force-directed WASM
+6. Les positions calculées sont écrites dans le SharedArrayBuffer
+7. Les composants 3D lisent les positions en `useFrame()` sans allocation
 
 ---
 
@@ -286,11 +315,11 @@ Le layout utilise **@antv/layout-wasm** (ForceLayout) compilé en WebAssembly po
 
 | Paramètre | Valeur par défaut | Description |
 |-----------|-------------------|-------------|
-| `gravity` | 10 | Force de gravité vers le centre |
-| `nodeStrength` | 1000 | Répulsion entre nœuds |
-| `edgeStrength` | 200 | Force des liens |
-| `linkDistance` | 200 | Distance cible des liens |
-| `damping` | 0.9 | Amortissement |
+| `gravity` | 0 | Force de gravité vers le centre |
+| `nodeStrength` | 100 | Répulsion entre nœuds |
+| `edgeStrength` | 100 | Force des liens |
+| `linkDistance` | 30 | Distance cible des liens |
+| `damping` | 0.8 | Amortissement |
 | `maxIteration` | 500 | Itérations max par batch |
 | `dimensions` | 3 | Espace 3D |
 
@@ -301,7 +330,7 @@ Le layout utilise **@antv/layout-wasm** (ForceLayout) compilé en WebAssembly po
 | Action | Effet |
 |--------|-------|
 | **Clic** sur un nœud | Sélectionne et affiche ses détails |
-| **Double-clic** sur un REEC (recherche / liste) | Ajoute le REEC au graphe et initie un drag |
+| **Double-clic** sur un nœud (recherche / liste) | Ajoute le nœud au graphe et initie un drag |
 | **Drag** d'un nœud | Déplace le nœud dans l'espace 3D |
 | **Molette** | Zoom avant/arrière |
 | **Clic droit + Drag** | Rotation de la caméra |
@@ -330,10 +359,14 @@ Le layout utilise **@antv/layout-wasm** (ForceLayout) compilé en WebAssembly po
 
 Les paramètres par défaut sont centralisés dans `src/constants/graphConstants.js` :
 
-- **Couleurs** par type de REEC (`COLOR_MAP`)
+- **Couleurs** dynamiques par hash d'URI (`getCategoryColor()`)
 - **Géométrie** : rayon des nœuds (`NODE_RADIUS = 8`), taille des flèches
+- **Agrégats** : `AGGREGATE_NODE_COLOR` (violet), échelle min/max, `getAggregateScale(count)`
 - **Instancing** : max instances (`MAX_INSTANCES = 5000`)
-- **Profondeur** d'exploration max (`MAX_DEPTH = 10`)
+- **Profondeur** d’exploration max (`MAX_DEPTH = 5`)
+- **Directions** d’exploration : `EXPLORATION_DIRECTIONS` (outgoing, incoming, both), défaut `'incoming'`
+- **Mise en évidence** : `SELECTION_OUTLINE_COLOR` (bleu), `ADDED_PULSE_COLOR` (vert), `ADDED_PULSE_DURATION` (1500ms)
+- **nodeSettings** : `defaultNodeSettings()` factory (depth, direction, renderMode, radialStrength)
 - **Filtres** par défaut, niveaux d'opacité
 - **Layout** force-directed (gravité, répulsion, distance des liens, etc.)
 - **Historique** : taille max des snapshots (`MAX_HISTORY_SIZE = 50`)
@@ -353,6 +386,8 @@ Le fichier `vite.config.js` configure :
 | Technologie | Version | Rôle |
 |-------------|---------|------|
 | [React](https://react.dev) | 19.x | Framework UI |
+| [Fastify](https://fastify.dev) | 5.x | Backend API (cache, consolidation, proxy) |
+| [PostgreSQL](https://www.postgresql.org) | ≥ 16 | Cache L2, labels, sessions |
 | [Three.js](https://threejs.org) | 0.182 | Rendu 3D WebGL |
 | [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) | 9.x | Intégration React + Three.js |
 | [@react-three/drei](https://github.com/pmndrs/drei) | 10.x | Helpers R3F (Text, Html, etc.) |
