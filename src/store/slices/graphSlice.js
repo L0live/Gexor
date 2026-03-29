@@ -10,13 +10,30 @@ import { getVisibleUris } from '../visibilityHelpers';
 
 export const createGraphSlice = (set, get) => ({
   visibleNodeIds: new Set(),
-  rawNodes: [],
-  rawRelations: [],
   nodes: [],
   edges: [],
 
   showRelations: true,
   showBackground: false,
+
+  // UI-5: Index of edges by source/target URI for fast lookup
+  _edgeIndex: null, // { bySource: Map<uri, edgeId[]>, byTarget: Map<uri, edgeId[]> }
+
+  /** Rebuild the edge index from loadedRelations. Called lazily. */
+  _rebuildEdgeIndex: () => {
+    const { loadedRelations } = get();
+    const bySource = new Map();
+    const byTarget = new Map();
+    for (const [id, rel] of Object.entries(loadedRelations)) {
+      if (!bySource.has(rel.source)) bySource.set(rel.source, []);
+      bySource.get(rel.source).push(id);
+      if (!byTarget.has(rel.target)) byTarget.set(rel.target, []);
+      byTarget.get(rel.target).push(id);
+    }
+    const idx = { bySource, byTarget };
+    set({ _edgeIndex: idx });
+    return idx;
+  },
 
   updateGraphData: () => {
     const { loadedNodes, loadedRelations, nodeSettings } = get();
@@ -25,7 +42,7 @@ export const createGraphSlice = (set, get) => ({
     const visibleUris = getVisibleUris(nodeSettings);
 
     if (visibleUris.size === 0) {
-      set({ nodes: [], edges: [], visibleNodeIds: new Set(), rawNodes: [], rawRelations: [] });
+      set({ nodes: [], edges: [], visibleNodeIds: new Set() });
       return;
     }
 
@@ -55,17 +72,40 @@ export const createGraphSlice = (set, get) => ({
 
     const finalVisibleIds = new Set(visibleNodes.map(n => n.id));
 
-    // Arêtes visibles = source ET target sont dans finalVisibleIds
+    // PERF-7: Assert no duplicate node IDs
+    if (import.meta.env.DEV && finalVisibleIds.size !== visibleNodes.length) {
+      console.warn('[graphSlice] Duplicate nodes detected!', visibleNodes.length - finalVisibleIds.size, 'duplicates');
+    }
+
+    // UI-5: Build fresh edge index for this update cycle
+    const edgeIndex = get()._rebuildEdgeIndex();
+    const seenEdgeIds = new Set();
     const crossEdges = [];
-    for (const rel of Object.values(loadedRelations)) {
-      if (!finalVisibleIds.has(rel.source) || !finalVisibleIds.has(rel.target)) continue;
-      const graphEdge = mapLodEdgeToGraphEdge(rel);
-      if (rel.isSynthetic) graphEdge.isSynthetic = true;
-      crossEdges.push(graphEdge);
+
+    for (const uri of finalVisibleIds) {
+      const sourceEdges = edgeIndex.bySource.get(uri) || [];
+      const targetEdges = edgeIndex.byTarget.get(uri) || [];
+      for (const edgeId of sourceEdges) {
+        if (seenEdgeIds.has(edgeId)) continue;
+        seenEdgeIds.add(edgeId);
+        const rel = loadedRelations[edgeId];
+        if (!rel || !finalVisibleIds.has(rel.target)) continue;
+        const graphEdge = mapLodEdgeToGraphEdge(rel);
+        if (rel.isSynthetic) graphEdge.isSynthetic = true;
+        crossEdges.push(graphEdge);
+      }
+      for (const edgeId of targetEdges) {
+        if (seenEdgeIds.has(edgeId)) continue;
+        seenEdgeIds.add(edgeId);
+        const rel = loadedRelations[edgeId];
+        if (!rel || !finalVisibleIds.has(rel.source)) continue;
+        const graphEdge = mapLodEdgeToGraphEdge(rel);
+        if (rel.isSynthetic) graphEdge.isSynthetic = true;
+        crossEdges.push(graphEdge);
+      }
     }
 
     // Groupement des arêtes parallèles / bidirectionnelles
-    // A→B et B→A sur le même PID = bidirectionnel (une seule arête groupée)
     const edgesMap = new Map();
     for (const edge of crossEdges) {
       const [u, v] = edge.source < edge.target
@@ -98,8 +138,6 @@ export const createGraphSlice = (set, get) => ({
       nodes: visibleNodes,
       edges,
       visibleNodeIds: finalVisibleIds,
-      rawNodes: [],
-      rawRelations: [],
     });
   },
 

@@ -244,7 +244,7 @@ export default async function entityRoutes(fastify) {
   });
 
   // ── GET /api/entity/:qid/aggregate-children ─────────────────────────────
-  // Expand a specific aggregate: individual entities for a (PID, P31 type) pair
+  // Expand a specific aggregate: individual entities for a given predicate
   fastify.get('/api/entity/:qid/aggregate-children', {
     schema: {
       params: {
@@ -259,27 +259,26 @@ export default async function entityRoutes(fastify) {
         required: ['pids'],
         properties: {
           pids: { type: 'string' },
-          type: { type: 'string', pattern: '^(Q\\d+|unknown)$', default: 'unknown' },
           limit: { type: 'integer', default: 50, minimum: 1, maximum: 200 },
         },
       },
     },
   }, async (request, reply) => {
     const { qid } = request.params;
-    const { pids, type, limit } = request.query;
+    const { pids, limit } = request.query;
 
-    const key = cache.cacheKey('aggregate-children', `${qid}:${pids}:${type}:${limit}`);
+    const key = cache.cacheKey('aggregate-children', `${qid}:${pids}:${limit}`);
     const cached = await cache.get(key);
     if (cached) return reply.send(cached);
 
     try {
       // pids is comma-separated list of properties
       const pidList = pids.split(',').map(p => p.trim()).filter(Boolean);
-      const result = await fetchAggregateChildren(qid, pidList, type, limit);
+      const result = await fetchAggregateChildren(qid, pidList, limit);
       await cache.set(key, result, 'wikidata');
       return reply.send(result);
     } catch (err) {
-      request.log.error(err, `Failed to fetch aggregate children for ${qid}:${pids}:${type}`);
+      request.log.error(err, `Failed to fetch aggregate children for ${qid}:${pids}`);
       return reply.status(502).send({ error: 'Aggregate children fetch failed', code: 'upstream_error', details: err.message });
     }
   });

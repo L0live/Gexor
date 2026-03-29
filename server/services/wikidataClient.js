@@ -56,6 +56,7 @@ let _alwaysPrimaryPids = null;
 let _allSecondaryPids = null;
 let _secondaryPidsByGroup = null;
 let _contextDependentPids = null;
+let _bNoisePids = null;
 
 const _loadClassification = () => {
   if (_classificationData) return;
@@ -103,6 +104,21 @@ const _getContextDependentPids = () => {
   const props = _classificationData.C_context_dependent?.properties || {};
   _contextDependentPids = new Set(_extractPids(props));
   return _contextDependentPids;
+};
+
+const _getBNoisePids = () => {
+  if (_bNoisePids) return _bNoisePids;
+  _loadClassification();
+  _bNoisePids = new Set();
+  const bGroups = _classificationData.B_noise_compact_ui || {};
+  for (const [key, group] of Object.entries(bGroups)) {
+    if (key.startsWith('_')) continue;
+    _extractPids(group.properties || {}).forEach(pid => _bNoisePids.add(pid));
+    if (group.exemples_canoniques) {
+      _extractPids(group.exemples_canoniques).forEach(pid => _bNoisePids.add(pid));
+    }
+  }
+  return _bNoisePids;
 };
 
 const _getSecondaryPidsByGroup = () => {
@@ -344,7 +360,7 @@ export const fetchEntityProperties = async (qid) => {
   const claims = entity.claims || {};
   const types = [];
   let thumbnailUrl = null;
-  const temporal = { start: null, end: null, precision: null };
+  const temporal = { start: null, end: null, birthDate: null, precision: null };
   const geo = { lat: null, lon: null };
   const properties = {};
   const externalIds = {};
@@ -367,13 +383,16 @@ export const fetchEntityProperties = async (qid) => {
         types.push(val.id || `Q${val['numeric-id']}`);
       } else if (pid === 'P18' && typeof val === 'string') {
         thumbnailUrl = _commonsThumbUrl(`http://commons.wikimedia.org/wiki/Special:FilePath/${val}`);
-      } else if (['P569', 'P580'].includes(pid) && valType === 'time') {
+      } else if (pid === 'P569' && valType === 'time') {
+        temporal.birthDate = _parseDate(val.time);
+        if (val.precision) temporal.precision = val.precision;
+      } else if (pid === 'P580' && valType === 'time') {
         temporal.start = _parseDate(val.time);
         if (val.precision) temporal.precision = val.precision;
       } else if (['P570', 'P582'].includes(pid) && valType === 'time') {
         temporal.end = _parseDate(val.time);
       } else if (pid === 'P585' && valType === 'time') {
-        temporal.start = _parseDate(val.time);
+        if (!temporal.start) temporal.start = _parseDate(val.time);
       } else if (pid === 'P625' && valType === 'globecoordinate') {
         geo.lat = val.latitude;
         geo.lon = val.longitude;
@@ -416,6 +435,9 @@ export const fetchEntityProperties = async (qid) => {
       if (v.unitQid && /^Q\d+$/.test(v.unitQid)) entityQidsToResolve.add(v.unitQid);
     }
   }
+
+  // Fallback: birthDate fills start if no P580 was found
+  if (temporal.birthDate && !temporal.start) temporal.start = temporal.birthDate;
 
   // Resolve PIDs, entity QIDs, and type QIDs concurrently
   const [pidLabels, entityLabels, typeLabels] = await Promise.all([
@@ -544,20 +566,9 @@ export const fetchOutgoingNeighbors = async (qid, limit = 50, promotedPids = new
     const cls = edge.classification;
     const pid = edge.pid;
 
-    // B noise: excluded entirely
-    if (cls === 'secondary' && !_getContextDependentPids().has(pid)) {
-      // Check if it's a noise B PID (not a redundancy A survivor)
-      const isNoiseBPid = (() => {
-        _loadClassification();
-        const bGroups = _classificationData.B_noise_compact_ui || {};
-        for (const [key, group] of Object.entries(bGroups)) {
-          if (key.startsWith('_')) continue;
-          if ((group.properties || {})[pid]) return true;
-          if (group.exemples_canoniques && group.exemples_canoniques[pid]) return true;
-        }
-        return false;
-      })();
-      if (isNoiseBPid) continue;
+    // B noise: excluded entirely (O(1) lookup via pre-computed Set)
+    if (cls === 'secondary' && _getBNoisePids().has(pid)) {
+      continue;
     }
 
     // Demoted by redundancy dedup: mark as secondary tier
@@ -573,14 +584,10 @@ export const fetchOutgoingNeighbors = async (qid, limit = 50, promotedPids = new
       continue;
     }
 
-    // C context-dependent: include if promoted
+    // C context-dependent: include only if promoted, exclude otherwise
     if (cls === 'context-dependent') {
       if (promotedPids.has(pid)) {
         edge._contextPromoted = true;
-        filteredEdges.push(edge);
-      }
-      // Not promoted → still include as secondary (fetchable) but mark appropriately
-      else {
         filteredEdges.push(edge);
       }
       continue;
@@ -1002,16 +1009,12 @@ export const fetchIncomingAggregates = async (qid, limit = 100) => {
  * Fetch individual children of an aggregate (expand on demand).
  *
  * @param {string} qid — The target entity QID (the one being pointed at)
- * @param {string} pid — The predicate PID
- * @param {string} targetTypeQid — The P31 type to filter by
+ * @param {string|string[]} pid — The predicate PID(s)
  * @param {number} limit
  * @returns {Promise<{nodes: LodNode[], edges: LodEdge[]}>}
  */
-export const fetchAggregateChildren = async (qid, pid, targetTypeQid, limit = 50) => {
+export const fetchAggregateChildren = async (qid, pid, limit = 50) => {
   const uri = `${WD}${qid}`;
-
-  // We no longer filter by targetTypeQid since aggregates are grouped by predicate only.
-  // Instead we fetch all non-noise incoming links for the predicate.
   
   const sparql = `
     SELECT ?item ?itemLabel ?itemDescription

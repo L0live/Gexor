@@ -362,7 +362,7 @@ const IncomingAggregateGroup = ({ predicateLabel, targetClassLabel, count, sourc
     if (!expanded && children.length === 0) {
       setLoading(true);
       try {
-        const result = await fetchAggregateChildren(sourceUri, pid, targetClass);
+        const result = await fetchAggregateChildren(sourceUri, pid);
         setChildren(result?.nodes || []);
       } catch (err) {
         console.warn('[IncomingAggregateGroup] expand failed:', err);
@@ -371,7 +371,7 @@ const IncomingAggregateGroup = ({ predicateLabel, targetClassLabel, count, sourc
       }
     }
     setExpanded(e => !e);
-  }, [expanded, children.length, sourceUri, pid, targetClass]);
+  }, [expanded, children.length, sourceUri, pid]);
 
   return (
     <div>

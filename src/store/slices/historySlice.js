@@ -83,8 +83,6 @@ export const createHistorySlice = (set, get) => ({
       nodeSettings: snapshot.nodeSettings ? { ...snapshot.nodeSettings } : {},
       nodes,
       edges,
-      rawNodes: [],
-      rawRelations: [],
       historyIndex: newIndex
     });
 

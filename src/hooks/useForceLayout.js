@@ -19,6 +19,7 @@ import { Graph } from '@antv/graphlib';
 import { ForceLayout, initThreads, supportsThreads } from '@antv/layout-wasm';
 import useGraphStore from '../store/useGraphStore';
 import { FORCE_LAYOUT_DEFAULTS } from '../constants/graphConstants';
+import { NODE_RADIUS } from '../constants/graphConstants';
 import {
   createPositionBuffer,
   writeAllPositions,
@@ -117,7 +118,8 @@ const useForceLayout = () => {
     runLayoutBatchInternal(200);
   }, []);
 
-  /** Core layout execution — runs force.execute in small batches. */
+  /** Core layout execution — single ForceLayout instance per run (UI-2 fix).
+   *  Positions written to SAB at end only (PERF-6 fix). */
   const runLayoutBatchInternal = useCallback(async (iterations = 500) => {
     const graph = graphRef.current;
     const threads = threadsRef.current;
@@ -139,95 +141,59 @@ const useForceLayout = () => {
         pinnedPositions[nodeId] = { x: nd.data.x, y: nd.data.y, z: nd.data.z };
       }
     });
-    // Also keep dragged node fixed
     if (draggedNodeId && graph.hasNode(draggedNodeId)) {
       const nd = graph.getNode(draggedNodeId);
       pinnedPositions[draggedNodeId] = { x: nd.data.x, y: nd.data.y, z: nd.data.z };
     }
 
-    // Run in batches for progress feedback
-    const batchSize = 100;
-    const numBatches = Math.ceil(iterations / batchSize);
-    let readySent = false;
+    // Single ForceLayout instance for the entire run (no per-batch re-init)
+    const executeWithThreads = async (t) => {
+      const force = new ForceLayout({
+        threads: t,
+        ...FORCE_LAYOUT_DEFAULTS,
+        maxIteration: iterations,
+      });
+      return force.execute(graph);
+    };
 
-    for (let i = 0; i < numBatches; i++) {
+    try {
+      let result;
       try {
-        const force = new ForceLayout({
-          threads,
-          ...FORCE_LAYOUT_DEFAULTS,
-          maxIteration: batchSize,
-        });
-
-        const result = await force.execute(graph);
-
-        // Build new positions map
-        const newPositions = {};
-        result.nodes.forEach(n => {
-          if (pinnedPositions[n.id]) {
-            // Restore pinned/dragged to saved position
-            const pp = pinnedPositions[n.id];
-            graph.mergeNodeData(n.id, { x: pp.x, y: pp.y, z: pp.z });
-            newPositions[n.id] = pp;
-          } else {
-            graph.mergeNodeData(n.id, {
-              x: n.data.x,
-              y: n.data.y,
-              z: n.data.z ?? 0,
-            });
-            newPositions[n.id] = {
-              x: n.data.x,
-              y: n.data.y,
-              z: n.data.z ?? 0,
-            };
-          }
-        });
-
-        // Sync SAB + Zustand
-        writeAllPositions(newPositions);
-        useGraphStore.getState().setPositions(newPositions);
-
-        // Progress
-        const progress = Math.min(95, ((i + 1) / numBatches) * 95);
-        useGraphStore.getState().setLayoutProgress(progress);
-
-        if (!readySent) {
-          useGraphStore.getState().setLayoutReady(true);
-          readySent = true;
-        }
+        result = await executeWithThreads(threads);
       } catch (err) {
-        console.warn('[useForceLayout] batch failed, falling back to single-thread:', err.message);
-        // Re-init threads in single-thread mode and retry this batch
-        try {
-          const stThreads = await initThreads(false);
-          threadsRef.current = stThreads;
-          const retryForce = new ForceLayout({
-            threads: stThreads,
-            ...FORCE_LAYOUT_DEFAULTS,
-            maxIteration: batchSize,
-          });
-          const retryResult = await retryForce.execute(graph);
-          const newPositions = {};
-          retryResult.nodes.forEach(n => {
-            if (pinnedPositions[n.id]) {
-              const pp = pinnedPositions[n.id];
-              graph.mergeNodeData(n.id, { x: pp.x, y: pp.y, z: pp.z });
-              newPositions[n.id] = pp;
-            } else {
-              graph.mergeNodeData(n.id, { x: n.data.x, y: n.data.y, z: n.data.z ?? 0 });
-              newPositions[n.id] = { x: n.data.x, y: n.data.y, z: n.data.z ?? 0 };
-            }
-          });
-          writeAllPositions(newPositions);
-          useGraphStore.getState().setPositions(newPositions);
-          if (!readySent) {
-            useGraphStore.getState().setLayoutReady(true);
-            readySent = true;
-          }
-        } catch (err2) {
-          console.error('[useForceLayout] single-thread fallback also failed:', err2.message);
-          break;
-        }
+        console.warn('[useForceLayout] multi-thread failed, falling back to single-thread:', err.message);
+        const stThreads = await initThreads(false);
+        threadsRef.current = stThreads;
+        result = await executeWithThreads(stThreads);
       }
+
+      // Build positions map and restore pinned nodes
+      const newPositions = {};
+      result.nodes.forEach(n => {
+        if (pinnedPositions[n.id]) {
+          const pp = pinnedPositions[n.id];
+          graph.mergeNodeData(n.id, { x: pp.x, y: pp.y, z: pp.z });
+          newPositions[n.id] = pp;
+        } else {
+          graph.mergeNodeData(n.id, {
+            x: n.data.x,
+            y: n.data.y,
+            z: n.data.z ?? 0,
+          });
+          newPositions[n.id] = {
+            x: n.data.x,
+            y: n.data.y,
+            z: n.data.z ?? 0,
+          };
+        }
+      });
+
+      // Write to SAB + Zustand once at the end (PERF-6)
+      writeAllPositions(newPositions);
+      useGraphStore.getState().setPositions(newPositions);
+      useGraphStore.getState().setLayoutReady(true);
+    } catch (err) {
+      console.error('[useForceLayout] layout execution failed:', err.message);
     }
 
     // Finalize
@@ -242,7 +208,7 @@ const useForceLayout = () => {
       simulationDoneResolveRef.current = null;
     }
 
-    // Drain pending wake — queueMicrotask runs before the next macrotask
+    // Drain pending wake
     if (pendingWakeRef.current) {
       pendingWakeRef.current = false;
       queueMicrotask(() => runLayoutBatchInternal(200));
@@ -308,11 +274,43 @@ const useForceLayout = () => {
     };
   }, [handleProxyMessage, setLayoutInstance]);
 
-  // ── Build / rebuild @antv/graphlib Graph on data changes ───────────────
+  // ── Helper: compute initial position for a new node ──────────────────────
+  const computeNewNodePosition = useCallback((nodeId, edgesList, currentPositions) => {
+    // Find a connected neighbour with a known position
+    let parentPos = null;
+    for (const e of edgesList) {
+      if (e.source === nodeId && currentPositions[e.target]) {
+        parentPos = currentPositions[e.target]; break;
+      }
+      if (e.target === nodeId && currentPositions[e.source]) {
+        parentPos = currentPositions[e.source]; break;
+      }
+    }
+
+    if (parentPos) {
+      // PERF-5: spawn at linkDistance*0.5 in a random direction (not ±2.5)
+      const spawnDist = FORCE_LAYOUT_DEFAULTS.linkDistance * 0.5;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      return {
+        x: parentPos.x + spawnDist * Math.sin(phi) * Math.cos(theta),
+        y: parentPos.y + spawnDist * Math.sin(phi) * Math.sin(theta),
+        z: parentPos.z + spawnDist * Math.cos(phi),
+      };
+    }
+    return {
+      x: (Math.random() - 0.5) * 40,
+      y: (Math.random() - 0.5) * 40,
+      z: (Math.random() - 0.5) * 40,
+    };
+  }, []);
+
+  // ── Build / incrementally update @antv/graphlib Graph on data changes ───
+  // PERF-1: Diff-based incremental update instead of full rebuild every time
   useEffect(() => {
     if (!threadsRef.current) return;
 
-    const { positions: currentPositions, pinnedNodes } = useGraphStore.getState();
+    const { positions: currentPositions } = useGraphStore.getState();
 
     if (!nodes || nodes.length === 0) {
       graphRef.current = null;
@@ -326,100 +324,127 @@ const useForceLayout = () => {
       connectionCounts[e.target] = (connectionCounts[e.target] || 0) + 1;
     });
 
-    // All nodes are visible (no category filters)
-    const filteredNodes = nodes;
+    const newNodeIds = new Set(nodes.map(n => n.id));
+    const graph = graphRef.current;
+    let structureChanged = false;
 
-    // Build nodeIndexMap & SAB
-    const nodeIndexMap = {};
-    filteredNodes.forEach((n, i) => { nodeIndexMap[n.id] = i; });
-    createPositionBuffer(nodeIndexMap);
+    if (graph && graph.getAllNodes().length > 0) {
+      // ── Incremental diff ─────────────────────────────────────────────
+      const existingNodeIds = new Set(graph.getAllNodes().map(n => n.id));
 
-    // Create fresh Graph
-    const graph = new Graph();
-
-    filteredNodes.forEach(n => {
-      const degree = connectionCounts[n.id] || 0;
-      const existingPos = currentPositions[n.id];
-
-      let x, y, z;
-      if (existingPos) {
-        x = existingPos.x;
-        y = existingPos.y;
-        z = existingPos.z;
-      } else {
-        // Position new nodes near a connected neighbour
-        let parentPos = null;
-        for (const e of edges) {
-          if (e.source === n.id && currentPositions[e.target]) {
-            parentPos = currentPositions[e.target];
-            break;
-          }
-          if (e.target === n.id && currentPositions[e.source]) {
-            parentPos = currentPositions[e.source];
-            break;
-          }
-        }
-
-        if (parentPos) {
-          const off = 5;
-          x = parentPos.x + (Math.random() - 0.5) * off;
-          y = parentPos.y + (Math.random() - 0.5) * off;
-          z = parentPos.z + (Math.random() - 0.5) * off;
-        } else {
-          x = (Math.random() - 0.5) * 40;
-          y = (Math.random() - 0.5) * 40;
-          z = (Math.random() - 0.5) * 40;
+      // Remove nodes no longer present
+      for (const oldId of existingNodeIds) {
+        if (!newNodeIds.has(oldId)) {
+          // Remove edges connected to this node first
+          try {
+            const related = graph.getRelatedEdges(oldId);
+            for (const e of related) graph.removeEdge(e.id);
+          } catch (_) { /* node may already be disconnected */ }
+          graph.removeNode(oldId);
+          structureChanged = true;
         }
       }
 
-      graph.addNode({
-        id: n.id,
-        data: {
-          x, y, z,
-          mass: 1 + Math.log(degree + 1) * 0.5,
-          // nodeSize as proxy for per-node repulsion (larger → bigger exclusion zone)
-          nodeSize: (degree + 1) * 2,
-        },
-      });
-    });
+      // Add new nodes
+      for (const n of nodes) {
+        if (!existingNodeIds.has(n.id)) {
+          const degree = connectionCounts[n.id] || 0;
+          const pos = currentPositions[n.id] || computeNewNodePosition(n.id, edges, currentPositions);
+          graph.addNode({
+            id: n.id,
+            data: {
+              x: pos.x, y: pos.y, z: pos.z,
+              mass: 1 + Math.log(degree + 1) * 0.5,
+              nodeSize: NODE_RADIUS * 2 + Math.log(degree + 1) * 3, // PERF-2
+            },
+          });
+          structureChanged = true;
+        } else {
+          // Update mass/nodeSize for existing nodes (degree may have changed)
+          const degree = connectionCounts[n.id] || 0;
+          graph.mergeNodeData(n.id, {
+            mass: 1 + Math.log(degree + 1) * 0.5,
+            nodeSize: NODE_RADIUS * 2 + Math.log(degree + 1) * 3,
+          });
+        }
+      }
 
-    // Add edges
-    const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
-    let edgeIdx = 0;
-    edges.forEach(e => {
-      if (filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)) {
-        graph.addEdge({
-          id: `e_${edgeIdx++}`,
-          source: e.source,
-          target: e.target,
-          data: { weight: 1 },
+      // Diff edges
+      const existingEdgeIds = new Set(graph.getAllEdges().map(e => e.id));
+      const newEdgeSet = new Set();
+      const validNodeIds = new Set(graph.getAllNodes().map(n => n.id));
+      let edgeIdx = existingEdgeIds.size;
+      edges.forEach(e => {
+        if (!validNodeIds.has(e.source) || !validNodeIds.has(e.target)) return;
+        const edgeId = `e_${e.source}_${e.target}`;
+        newEdgeSet.add(edgeId);
+        if (!existingEdgeIds.has(edgeId)) {
+          graph.addEdge({ id: edgeId, source: e.source, target: e.target, data: { weight: 1 } });
+          structureChanged = true;
+        }
+      });
+      for (const oldEdgeId of existingEdgeIds) {
+        if (!newEdgeSet.has(oldEdgeId)) {
+          graph.removeEdge(oldEdgeId);
+          structureChanged = true;
+        }
+      }
+    } else {
+      // ── First build: create graph from scratch ──────────────────────
+      const newGraph = new Graph();
+
+      for (const n of nodes) {
+        const degree = connectionCounts[n.id] || 0;
+        const pos = currentPositions[n.id] || computeNewNodePosition(n.id, edges, currentPositions);
+        newGraph.addNode({
+          id: n.id,
+          data: {
+            x: pos.x, y: pos.y, z: pos.z,
+            mass: 1 + Math.log(degree + 1) * 0.5,
+            nodeSize: NODE_RADIUS * 2 + Math.log(degree + 1) * 3, // PERF-2
+          },
         });
       }
-    });
 
-    graphRef.current = graph;
+      edges.forEach(e => {
+        if (newNodeIds.has(e.source) && newNodeIds.has(e.target)) {
+          newGraph.addEdge({
+            id: `e_${e.source}_${e.target}`,
+            source: e.source,
+            target: e.target,
+            data: { weight: 1 },
+          });
+        }
+      });
 
-    // Write initial positions to SAB + Zustand
+      graphRef.current = newGraph;
+      structureChanged = true;
+    }
+
+    // Rebuild SAB index (needed even for incremental — node order may change)
+    const currentGraph = graphRef.current;
+    const allNodes = currentGraph.getAllNodes();
+    const nodeIndexMap = {};
+    allNodes.forEach((n, i) => { nodeIndexMap[n.id] = i; });
+    createPositionBuffer(nodeIndexMap);
+
+    // Write positions to SAB + Zustand
     const initPositions = {};
-    const allNodes = graph.getAllNodes();
     allNodes.forEach(nd => {
       initPositions[nd.id] = { x: nd.data.x, y: nd.data.y, z: nd.data.z };
     });
     writeAllPositions(initPositions);
     useGraphStore.getState().setPositions({ ...currentPositions, ...initPositions });
 
-    // Auto-wake the simulation when the graph structure changes.
-    // The graphRef is now up-to-date, so the layout will run on the correct graph.
-    // If a layout is already running (from a prior stale wake), queue a pending
-    // wake so it re-runs with the new graph once the current batch finishes.
-    if (graph.getAllNodes().length > 0) {
+    // Only wake simulation if graph structure actually changed
+    if (structureChanged && allNodes.length > 0) {
       if (layoutRunningRef.current) {
         pendingWakeRef.current = true;
       } else {
         runLayoutBatchInternal(200);
       }
     }
-  }, [nodes, edges, isInitialized, runLayoutBatchInternal]);
+  }, [nodes, edges, isInitialized, runLayoutBatchInternal, computeNewNodePosition]);
 
   // ── Public API ─────────────────────────────────────────────────────────
 

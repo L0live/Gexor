@@ -116,15 +116,12 @@ export const fetchIncomingAggregates = async (uri, limit = 100) => {
  *
  * @param {string} uri — Target entity URI (the one being pointed at)
  * @param {string} pid — Predicate PID
- * @param {string} targetTypeQid — P31 type QID to filter by
  * @param {number} [limit=50]
  * @returns {Promise<{nodes: LodNode[], edges: LodEdge[]}>}
  */
-export const fetchAggregateChildren = async (uri, pid, targetTypeQid, limit = 50) => {
+export const fetchAggregateChildren = async (uri, pid, limit = 50) => {
   const qid = uri.replace(WD, '');
-  // targetTypeQid is no longer strictly used for filtering in backend, but kept for signature compatibility
-  const typeParam = targetTypeQid ? `&type=${targetTypeQid}` : '';
-  const response = await fetch(`/api/entity/${qid}/aggregate-children?pids=${pid}${typeParam}&limit=${limit}`);
+  const response = await fetch(`/api/entity/${qid}/aggregate-children?pids=${pid}&limit=${limit}`);
   if (!response.ok) throw new Error(`Aggregate children fetch failed: ${response.status}`);
   return await response.json();
 };
@@ -159,6 +156,7 @@ export const fetchSimilarByProperties = async (uri, properties, lang = 'fr', lim
     if (!alwaysPrimary.has(pid)) continue;
     const qids = [];
     for (const v of prop.values || []) {
+      if (!v.isEntity) continue;
       const valueQid = v.value?.startsWith?.('http') ? v.value.replace(WD, '') : v.value;
       if (valueQid && /^Q\d+$/.test(valueQid)) qids.push(valueQid);
     }

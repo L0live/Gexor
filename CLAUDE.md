@@ -175,7 +175,8 @@ The Vite dev server proxies `/api/*` to `http://localhost:3001` (Fastify backend
 - **Backend call consolidation**: `fetchEntityExpand()` fetches entity + neighbors in 1 round-trip
 - **Image proxy**: `/api/image` proxies Wikimedia Commons images with CORP headers (fixes COEP conflict)
 - **Property classification**: Wikidata properties are auto-classified (primary/secondary/context-dependent) via `wikidata_properties.json` — loaded both server-side and client-side
-- **Classify-first fetch**: `fetchOutgoingNeighbors` iterates ALL claims, classifies each PID, deduplicates redundancy groups, then applies per-tier budgets (D→all, C promoted→all, unclassified→20, A→survivor, B→excluded)
+- **Classify-first fetch**: `fetchOutgoingNeighbors` iterates ALL claims, classifies each PID, deduplicates redundancy groups, then applies per-tier budgets (D→all, C promoted→all, C non-promoted→excluded, unclassified→20, A→survivor, B→excluded)
+- **Incoming neighbors asymmetry** (intentional): `fetchIncomingNeighbors` applies only ExternalId filtering (via SPARQL `MINUS`) and label resolution — no classification, no redundancy dedup, no budget. Incoming edges are "received" (not "chosen"), and their volume is managed by the aggregate system rather than per-edge filtering
 - **Context Resolver**: `contextRules.json` maps 20 P31 type families to context-dependent PID promotions (e.g. P36 for countries, P407 for literary works)
 - **Redundancy dedup**: A-axis groups (A1 location, A2 biography…) keep only the most specific PID per group
 - **Wikimedia noise filter**: 7 Wikimedia internal types (categories, disambiguation pages, templates…) are excluded from graph

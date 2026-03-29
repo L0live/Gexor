@@ -85,10 +85,10 @@ export const FORCE_LAYOUT_DEFAULTS = {
   gravity: 0,                             // attractive pull toward center
   nodeStrength: 100,                      // global repulsion (positive; library applies sign)
   edgeStrength: 100,
-  linkDistance: 30,
+  linkDistance: 80,                          // PERF-3: was 30, raised to match NODE_RADIUS=8
   coulombDisScale: 0.005,
-  damping: 0.8,
-  maxSpeed: 500,
+  damping: 0.9,                             // PERF-4: was 0.8, smoother convergence
+  maxSpeed: 120,                            // PERF-4: was 500, avoids "big bang" on large graphs
   interval: 1/60, // 60fps
   factor: 1,
   preventOverlap: true,

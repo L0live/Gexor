@@ -188,6 +188,20 @@ const PropertiesGrouped = ({ nodeUri, properties, totalPropertyCount, selectNode
   const refreshNode = useGraphStore(s => s.refreshNode);
   const fetchOutgoingForDisplay = useGraphStore(s => s.fetchOutgoingForDisplay);
   const openSearchModal = useGraphStore(s => s.openSearchModal);
+  const loadedRelations = useGraphStore(s => s.loadedRelations);
+
+  const activePids = useMemo(() => {
+    const result = new Set();
+    const WDT = 'http://www.wikidata.org/prop/direct/';
+    for (const edge of Object.values(loadedRelations)) {
+      if (edge.source === nodeUri || edge.target === nodeUri) {
+        const pred = typeof edge.predicate === 'string' ? edge.predicate : null;
+        const pid = pred?.startsWith(WDT) ? pred.slice(WDT.length) : null;
+        if (pid) result.add(pid);
+      }
+    }
+    return result;
+  }, [loadedRelations, nodeUri]);
 
   const { relationProps, redundancySections, hiddenCount } = useMemo(() => {
     if (!properties || Object.keys(properties).length === 0) {
@@ -261,7 +275,7 @@ const PropertiesGrouped = ({ nodeUri, properties, totalPropertyCount, selectNode
               className="p-1 rounded transition-colors text-slate-600 hover:text-blue-400"
               title="Charger les propriétés sortantes"
             >
-              <RefreshCcw className="w-3 h-3" />
+              <Eye className="w-3 h-3" />
             </button>
           )}
           <button
@@ -297,7 +311,7 @@ const PropertiesGrouped = ({ nodeUri, properties, totalPropertyCount, selectNode
         {hasRelations && (
           <div className={editMode ? "space-y-1.5" : "columns-2 space-y-1.5"}>
             {relationProps.map(prop => {
-              const isActive = true; return (
+              const isActive = activePids.has(prop.pid); return (
                 <div key={prop.pid} className="flex items-start gap-2">
                   <div className="flex-1 flex flex-wrap gap-2 min-w-0">
                     <ClickableProperty pid={prop.pid} label={prop.label}>
@@ -374,6 +388,8 @@ const NodeSettingsSection = ({ nodeUri }) => {
   const nodeSettings = useGraphStore(s => s.nodeSettings);
   const getOrCreateNodeSettings = useGraphStore(s => s.getOrCreateNodeSettings);
   const loadingUris = useGraphStore(s => s.loadingUris);
+  const expandedUris = useGraphStore(s => s.expandedUris);
+  const incomingExpandedUris = useGraphStore(s => s.incomingExpandedUris);
 
   const settings = nodeSettings[nodeUri] || getOrCreateNodeSettings(nodeUri);
   const renderMode = settings?.renderMode || 'force';
@@ -404,37 +420,39 @@ const NodeSettingsSection = ({ nodeUri }) => {
   return (
     <CollapsibleSection title="Paramètres" icon={Settings} iconColor="text-purple-400" defaultOpen={false}>
       <div className="space-y-4">
-        {/* Render Mode */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-            <Target className="w-3 h-3 text-purple-400" />
-            <span>Mode Rendu</span>
+        {/* Render Mode — UI-8: only shown when explored */}
+        {explored && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              <Target className="w-3 h-3 text-purple-400" />
+              <span>Mode Rendu</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setNodeRenderMode(nodeUri, 'force')}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border ${
+                  renderMode === 'force'
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/50'
+                    : 'bg-slate-800/30 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-300'
+                }`}
+              >
+                Force
+              </button>
+              <button
+                onClick={() => setNodeRenderMode(nodeUri, 'radial')}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border ${
+                  renderMode === 'radial'
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/50'
+                    : 'bg-slate-800/30 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-300'
+                }`}
+              >
+                Radial
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setNodeRenderMode(nodeUri, 'force')}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border ${
-                renderMode === 'force'
-                  ? 'bg-blue-500/20 text-blue-300 border-blue-500/50'
-                  : 'bg-slate-800/30 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-300'
-              }`}
-            >
-              Force
-            </button>
-            <button
-              onClick={() => setNodeRenderMode(nodeUri, 'radial')}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border ${
-                renderMode === 'radial'
-                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/50'
-                  : 'bg-slate-800/30 text-slate-400 border-slate-700/50 hover:bg-slate-700/50 hover:text-slate-300'
-              }`}
-            >
-              Radial
-            </button>
-          </div>
-        </div>
+        )}
 
-        {/* Direction d'exploration */}
+        {/* Direction d'exploration — traversée du graphe */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
@@ -455,16 +473,25 @@ const NodeSettingsSection = ({ nodeUri }) => {
                 outgoingActive ? 'bg-teal-500/20 text-teal-300 border-teal-500/50' : 'bg-slate-800/30 text-slate-400 border-slate-700/50'
               }`}
             >Sortants</button>
-            <button
-              onClick={() => handleToggleDirection('shared')}
-              className={`px-2 py-1 rounded text-[10px] font-bold uppercase border transition-all ${
-                sharedActive ? 'bg-teal-500/20 text-teal-300 border-teal-500/50' : 'bg-slate-800/30 text-slate-400 border-slate-700/50'
-              }`}
-            >Similaires</button>
           </div>
         </div>
 
-        {/* Bouton Explorer */}
+        {/* UI-3: Similaires — séparé visuellement (arêtes synthétiques) */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+            <ArrowLeftRight className="w-3 h-3 text-violet-400" />
+            <span>Similarité</span>
+            <span className="text-[8px] text-violet-500 font-normal normal-case tracking-normal">(synthétique)</span>
+          </div>
+          <button
+            onClick={() => handleToggleDirection('shared')}
+            className={`px-2 py-1 rounded text-[10px] font-bold uppercase border transition-all ${
+              sharedActive ? 'bg-violet-500/20 text-violet-300 border-violet-500/50' : 'bg-slate-800/30 text-slate-400 border-slate-700/50'
+            }`}
+          >Similaires</button>
+        </div>
+
+        {/* Bouton Explorer — UI-4: feedback on loaded directions */}
         <button
           onClick={handleExplore}
           disabled={loading}
@@ -473,9 +500,16 @@ const NodeSettingsSection = ({ nodeUri }) => {
           {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
           {explored ? "Réexplorer" : "Explorer"}
         </button>
+        {explored && (
+          <div className="flex gap-2 text-[9px] text-slate-500">
+            {expandedUris.has(nodeUri) && <span className="px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-500 border border-teal-500/20">sortants chargés</span>}
+            {incomingExpandedUris.has(nodeUri) && <span className="px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-500 border border-teal-500/20">entrants chargés</span>}
+            {sharedActive && explored && <span className="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 border border-violet-500/20">similaires chargés</span>}
+          </div>
+        )}
 
-        {/* Radial controls */}
-        {renderMode === 'radial' && (
+        {/* Radial controls — also gated by explored (UI-8) */}
+        {explored && renderMode === 'radial' && (
           <div className="pl-2 space-y-2 border-l-2 border-purple-500/30 ml-2 mt-4">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider min-w-[70px]">
@@ -544,6 +578,7 @@ const NodeSettingsSection = ({ nodeUri }) => {
 const AggregateEntityList = ({ aggregateId, selectNode, addNodeToGraph }) => {
   const loadedAggregates = useGraphStore(s => s.loadedAggregates);
   const loadedNodes = useGraphStore(s => s.loadedNodes);
+  const expandAggregateForList = useGraphStore(s => s.expandAggregateForList);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -557,27 +592,15 @@ const AggregateEntityList = ({ aggregateId, selectNode, addNodeToGraph }) => {
       setOpen(prev => !prev);
       return;
     }
-    // Fetch children just for listing (not adding to graph)
     setLoading(true);
     try {
-      const { fetchAggregateChildren } = await import('../../services/queries/wikidata');
-      const maxChildren = aggNode.count > 30 ? 50 : aggNode.count + 5;
-      const result = await fetchAggregateChildren(aggNode.sourceUri, aggNode.predicate, null, maxChildren);
-      const newAggregates = { ...useGraphStore.getState().loadedAggregates };
-      const newLoadedNodes = { ...useGraphStore.getState().loadedNodes };
-      const childUris = [];
-      for (const n of result.nodes) {
-        if (!newLoadedNodes[n.uri]) newLoadedNodes[n.uri] = n;
-        childUris.push(n.uri);
-      }
-      newAggregates[aggregateId] = { ...aggNode, children: childUris };
-      useGraphStore.setState({ loadedAggregates: newAggregates, loadedNodes: newLoadedNodes });
+      await expandAggregateForList(aggregateId);
       setOpen(true);
     } catch (err) {
       console.warn('[AggregateEntityList] Failed to fetch children:', err);
     }
     setLoading(false);
-  }, [aggregateId, aggNode, hasChildren]);
+  }, [aggregateId, aggNode, hasChildren, expandAggregateForList]);
 
   if (!aggNode) return null;
 
@@ -707,8 +730,8 @@ const NodeDetailPanel = ({
                   )}.
                 </p>
 
-                {/* Expand / Collapse button — Intentionally not saving to history */}
-                {selectedNode.loadingChildren ? (
+                {/* Expand / Collapse button — Intentionally not saving to history. Hidden in preview mode. */}
+                {selectedNode.isPreview ? null : selectedNode.loadingChildren ? (
                   <div className="flex items-center gap-2 text-slate-500 text-sm py-4">
                     <Loader className="w-4 h-4 animate-spin text-violet-400" />
                     Chargement des entités…
@@ -733,6 +756,7 @@ const NodeDetailPanel = ({
                 <AggregateEntityList
                   aggregateId={selectedNode.aggregateId}
                   selectNode={selectNode}
+                  addNodeToGraph={addNodeToGraph}
                 />
               </div>
             </div>
@@ -745,8 +769,8 @@ const NodeDetailPanel = ({
                 <button
                   onClick={(e) => { e.stopPropagation(); const typeQid = selectedNode.types?.[0]; if (typeQid) selectNode(typeQid.startsWith('http') ? typeQid : `http://www.wikidata.org/entity/${typeQid}`); }}
                   onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const typeQid = selectedNode.types?.[0]; const qid = typeQid?.startsWith?.('http') ? typeQid.split('/').pop() : typeQid; if (qid) { const { addFilter } = useGraphStore.getState(); addFilter(createFilter(FILTER_TYPES.TYPE, qid, selectedNode.typeLabels?.[0])); } }}
-                  className="text-[12px] font-bold text-slate-400 uppercase tracking-widest px-2.5 py-1 hover:text-red-400/80 transition-colors cursor-pointer"
-                  title={`Gauche: naviguer · Droit: filtre type`}
+                  className="text-[12px] font-bold text-slate-400 uppercase tracking-widest px-2.5 py-1 hover:text-red-400/80 hover:underline decoration-red-400/40 transition-colors cursor-pointer"
+                  title="Gauche: naviguer vers le type · Droit: ajouter filtre type"
                 >
                   {selectedNode.type}
                 </button>
@@ -853,9 +877,14 @@ const NodeDetailPanel = ({
                     <span className="text-md text-slate-400 font-bold">Connexions ({connectedNodes.length})</span>
                   </div>
                 </button>
-                <div className="flex items-center justify-center bg-slate-800/40 rounded-2xl border border-slate-700/30 group hover:border-blue-500/30 transition-colors">
-                  <span className="text-md font-bold text-slate-400 capitalize">{selectedNode.type}</span>
-                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); const typeQid = selectedNode.types?.[0]; if (typeQid) selectNode(typeQid.startsWith('http') ? typeQid : `http://www.wikidata.org/entity/${typeQid}`); }}
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const typeQid = selectedNode.types?.[0]; const qid = typeQid?.startsWith?.('http') ? typeQid.split('/').pop() : typeQid; if (qid) { const { addFilter } = useGraphStore.getState(); addFilter(createFilter(FILTER_TYPES.TYPE, qid, selectedNode.typeLabels?.[0])); } }}
+                  className="flex items-center justify-center bg-slate-800/40 rounded-2xl border border-slate-700/30 group hover:border-blue-500/30 hover:text-blue-300 transition-colors cursor-pointer"
+                  title="Gauche: naviguer vers le type · Droit: ajouter filtre type"
+                >
+                  <span className="text-md font-bold text-slate-400 capitalize group-hover:text-blue-300 transition-colors">{selectedNode.type}</span>
+                </button>
               </div>
             </div>
           </div>

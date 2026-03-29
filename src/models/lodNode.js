@@ -15,7 +15,7 @@
  * @property {string[]} types
  * @property {string[]} typeLabels
  * @property {Object} properties
- * @property {{ start: string|null, end: string|null, precision: string|null }} temporal
+ * @property {{ start: string|null, end: string|null, birthDate: string|null, precision: string|null }} temporal
  * @property {{ lat: number|null, lon: number|null }} geo
  * @property {LodSource[]} sources
  * @property {string|null} thumbnailUrl
@@ -83,7 +83,7 @@ export const createLodNode = ({
   types = [],
   typeLabels = [],
   properties = {},
-  temporal = { start: null, end: null, precision: null },
+  temporal = { start: null, end: null, birthDate: null, precision: null },
   geo = { lat: null, lon: null },
   sources = [],
   thumbnailUrl = null,

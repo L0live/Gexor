@@ -19,6 +19,7 @@ export default async function sparqlRoutes(fastify) {
         required: ['query'],
         properties: {
           query: { type: 'string', minLength: 10 },
+          // max 60000ms = Wikidata Query Service hard timeout limit
           timeout: { type: 'integer', default: 10000, minimum: 1000, maximum: 60000 },
         },
       },

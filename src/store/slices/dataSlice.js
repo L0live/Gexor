@@ -269,7 +269,7 @@ export const createDataSlice = (set, get) => ({
 
         if (agg.count <= AGGREGATE_THRESHOLD) {
           try {
-            const childrenData = await fetchAggregateChildren(uri, agg.predicate, null, agg.count + 5);
+            const childrenData = await fetchAggregateChildren(uri, agg.predicate, agg.count + 5);
             for (const n of childrenData.nodes) {
               const isNew = !newLoadedNodes[n.uri];
               if (isNew) newLoadedNodes[n.uri] = n;
@@ -468,7 +468,6 @@ export const createDataSlice = (set, get) => ({
       const childrenData = await fetchAggregateChildren(
         aggNode.sourceUri,
         aggNode.predicate,
-        null,
         maxChildren
       );
 
@@ -619,6 +618,33 @@ export const createDataSlice = (set, get) => ({
   },
 
   /**
+   * Fetch aggregate children for listing in the detail panel (not for graph expansion).
+   * Stores results in loadedAggregates and loadedNodes.
+   *
+   * @param {string} aggregateId
+   * @returns {Promise<void>}
+   */
+  expandAggregateForList: async (aggregateId) => {
+    const { loadedAggregates, loadedNodes } = get();
+    const aggNode = loadedAggregates[aggregateId];
+    if (!aggNode) return;
+    if (aggNode.children?.length > 0) return;
+
+    const maxChildren = aggNode.count > 30 ? 50 : aggNode.count + 5;
+    const result = await fetchAggregateChildren(aggNode.sourceUri, aggNode.predicate, maxChildren);
+
+    const newLoadedNodes = { ...get().loadedNodes };
+    const childUris = [];
+    for (const n of result.nodes) {
+      if (!newLoadedNodes[n.uri]) newLoadedNodes[n.uri] = n;
+      childUris.push(n.uri);
+    }
+    const newLoadedAggregates = { ...get().loadedAggregates };
+    newLoadedAggregates[aggregateId] = { ...aggNode, children: childUris };
+    set({ loadedAggregates: newLoadedAggregates, loadedNodes: newLoadedNodes });
+  },
+
+  /**
    * Initialize the graph from a search result.
    * Fetches the entity, pins it, and triggers the layout.
    *
@@ -748,7 +774,7 @@ export const createDataSlice = (set, get) => ({
         if (agg.count <= AGGREGATE_THRESHOLD) {
           // Auto-expand: fetch individual children and add them directly to the graph
           try {
-            const childrenData = await fetchAggregateChildren(uri, agg.predicate, null, agg.count + 5);
+            const childrenData = await fetchAggregateChildren(uri, agg.predicate, agg.count + 5);
             const batchLoadedNodes = { ...get().loadedNodes };
             const batchLoadedRelations = { ...get().loadedRelations };
             const batchIncomingEdgeIds = new Set(get().incomingEdgeIds);
@@ -823,9 +849,10 @@ export const createDataSlice = (set, get) => ({
           });
         }
 
-        // Progressive display: update graph after each aggregate
-        get().updateGraphData();
       }
+
+      // Single graph rebuild after all aggregates are processed (was per-aggregate before — UI-1 fix)
+      get().updateGraphData();
 
       // Mark incoming as expanded
       set({ incomingExpandedUris: new Set([...get().incomingExpandedUris, uri]) });
@@ -959,7 +986,7 @@ export const createDataSlice = (set, get) => ({
         if (!newLoadedNodes[sUri]) {
           newLoadedNodes[sUri] = {
             uri: sUri, label, types: [], typeLabels: [],
-            properties: {}, temporal: { start: null, end: null, precision: null },
+            properties: {}, temporal: { start: null, end: null, birthDate: null, precision: null },
             geo: { lat: null, lon: null }, sources: [], thumbnailUrl: null,
             externalIds: {}, description: '', aliases: [],
           };
@@ -1058,7 +1085,28 @@ export const createDataSlice = (set, get) => ({
   removeEdgeFromGraph: (edgeId) => {
     const rel = get().loadedRelations[edgeId];
     if (!rel) return;
-    // Toggle the PID off globally (simplest approach)
+
+    // Remove the edge from loadedRelations
+    const newLoadedRelations = { ...get().loadedRelations };
+    delete newLoadedRelations[edgeId];
+
+    // If removing this edge orphans the target node (no other edges connect to it),
+    // also remove the target from nodeSettings (unless pinned)
+    const targetUri = rel.target;
+    const { pinnedNodes, nodeSettings } = get();
+    const hasOtherEdges = Object.values(newLoadedRelations).some(
+      e => e.source === targetUri || e.target === targetUri
+    );
+
+    if (!hasOtherEdges && !pinnedNodes.has(targetUri) && nodeSettings[targetUri]) {
+      const newNodeSettings = { ...nodeSettings };
+      delete newNodeSettings[targetUri];
+      set({ loadedRelations: newLoadedRelations, nodeSettings: newNodeSettings });
+    } else {
+      set({ loadedRelations: newLoadedRelations });
+    }
+
+    get().updateGraphData();
   },
 
   /**
@@ -1196,7 +1244,7 @@ export const createDataSlice = (set, get) => ({
           types: [],
           typeLabels: [],
           properties: {},
-          temporal: { start: null, end: null, precision: null },
+          temporal: { start: null, end: null, birthDate: null, precision: null },
           geo: { lat: null, lon: null },
           sources: [],
           thumbnailUrl: null,
