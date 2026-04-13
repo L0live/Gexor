@@ -1,0 +1,56 @@
+{
+  "_description": "Mapping QID type P31 → tags d'exploration contextuels pour TagsFormat",
+  "_version": "1.0",
+  "Q5": {
+    "label": "être humain",
+    "explorationTags": [
+      { "id": "chronologie", "label": "Chronologie", "plugin": "temporal", "icon": "Calendar" },
+      { "id": "contemporains", "label": "Contemporains", "plugin": "cluster-shared", "icon": "Users" }
+    ]
+  },
+  "Q6256": {
+    "label": "pays",
+    "explorationTags": [
+      { "id": "globe", "label": "Globe 3D", "plugin": "geographic", "icon": "Globe" },
+      { "id": "territoire", "label": "Territoire", "plugin": "cluster-shared", "icon": "Layers" }
+    ]
+  },
+  "Q3624078": {
+    "label": "état souverain",
+    "explorationTags": [
+      { "id": "globe", "label": "Globe 3D", "plugin": "geographic", "icon": "Globe" }
+    ]
+  },
+  "Q43229": {
+    "label": "organisation",
+    "explorationTags": [
+      { "id": "membres", "label": "Membres", "pid": "P463", "icon": "Users" },
+      { "id": "siege", "label": "Siège", "plugin": "geographic", "icon": "Building" }
+    ]
+  },
+  "Q2221906": {
+    "label": "lieu géographique",
+    "explorationTags": [
+      { "id": "globe", "label": "Globe 3D", "plugin": "geographic", "icon": "Globe" },
+      { "id": "territoire", "label": "Territoire", "plugin": "cluster-shared", "icon": "Layers" }
+    ]
+  },
+  "Q515": {
+    "label": "ville",
+    "explorationTags": [
+      { "id": "globe", "label": "Globe 3D", "plugin": "geographic", "icon": "Globe" }
+    ]
+  },
+  "Q11424": {
+    "label": "film",
+    "explorationTags": [
+      { "id": "acteurs", "label": "Distribution", "pid": "P161", "icon": "Users" }
+    ]
+  },
+  "Q7725634": {
+    "label": "œuvre littéraire",
+    "explorationTags": [
+      { "id": "auteur", "label": "Auteur", "pid": "P50", "icon": "PenLine" }
+    ]
+  }
+}

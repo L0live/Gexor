@@ -295,6 +295,64 @@ const _parseDate = (val) => {
   return val;
 };
 
+// ── Qualifier PIDs à exploiter (pré-lancement) ────────────────────────────
+
+const QUALIFIER_PIDS = new Set([
+  'P580', 'P582', 'P585', 'P571', 'P576',  // temporal
+  'P453', 'P794', 'P3831', 'P1932',          // role/nature
+]);
+
+/**
+ * Parse claim.qualifiers into a structured object.
+ * Only processes QUALIFIER_PIDS — everything else is silently skipped.
+ * No network calls: operates on data already present in the claim.
+ *
+ * @param {object} claim — Raw Wikidata claim object
+ * @returns {{ [pid: string]: Array<{value: string, label: string, isEntity: boolean, datatype: string}> } | null}
+ */
+const _parseQualifiers = (claim) => {
+  if (!claim.qualifiers || Object.keys(claim.qualifiers).length === 0) return null;
+
+  const result = {};
+
+  for (const [qpid, snaks] of Object.entries(claim.qualifiers)) {
+    if (!QUALIFIER_PIDS.has(qpid)) continue;
+
+    const parsedSnaks = [];
+    for (const snak of snaks) {
+      if (snak.snaktype !== 'value') continue;
+      const dv = snak?.datavalue;
+      if (!dv) continue;
+
+      const dvType = dv.type;
+      const dvValue = dv.value;
+      const datatype = snak.datatype || 'string';
+      let value, isEntity = false;
+
+      if (dvType === 'wikibase-entityid') {
+        value = dvValue.id || `Q${dvValue['numeric-id']}`;
+        isEntity = true;
+      } else if (dvType === 'time') {
+        value = _parseDate(dvValue.time);
+      } else if (dvType === 'quantity') {
+        value = dvValue.amount ? dvValue.amount.replace(/^\+/, '') : String(dvValue);
+      } else if (dvType === 'monolingualtext') {
+        value = dvValue.text;
+      } else if (typeof dvValue === 'string') {
+        value = dvValue;
+      }
+
+      if (value !== undefined && value !== null) {
+        parsedSnaks.push({ value, label: value, isEntity, datatype });
+      }
+    }
+
+    if (parsedSnaks.length > 0) result[qpid] = parsedSnaks;
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+};
+
 // ════════════════════════════════════════════════════════════════════════════
 // PUBLIC API
 // ════════════════════════════════════════════════════════════════════════════
@@ -385,9 +443,11 @@ export const fetchEntityProperties = async (qid) => {
         thumbnailUrl = _commonsThumbUrl(`http://commons.wikimedia.org/wiki/Special:FilePath/${val}`);
       } else if (pid === 'P569' && valType === 'time') {
         temporal.birthDate = _parseDate(val.time);
-        if (val.precision) temporal.precision = val.precision;
+        // P569 ne met à jour la précision que si P580 n'a pas encore été traité
+        if (val.precision && temporal.start === null) temporal.precision = val.precision;
       } else if (pid === 'P580' && valType === 'time') {
         temporal.start = _parseDate(val.time);
+        // P580 a priorité inconditionnelle sur la précision temporelle
         if (val.precision) temporal.precision = val.precision;
       } else if (['P570', 'P582'].includes(pid) && valType === 'time') {
         temporal.end = _parseDate(val.time);
@@ -422,7 +482,8 @@ export const fetchEntityProperties = async (qid) => {
         } else {
           displayVal = typeof val === 'string' ? val : (val.text || String(val));
         }
-        properties[pid].values.push({ value: displayVal, label: displayVal, isEntity, datatype: datatype || 'string', unitQid });
+        const qualifiers = _parseQualifiers(claim);
+        properties[pid].values.push({ value: displayVal, label: displayVal, isEntity, datatype: datatype || 'string', unitQid, qualifiers });
       }
     }
   }
@@ -436,12 +497,28 @@ export const fetchEntityProperties = async (qid) => {
     }
   }
 
+  // Collecte des QIDs et PIDs issus des qualifiers pour résolution batch
+  const qualifierPidsToResolve = new Set();
+  for (const prop of Object.values(properties)) {
+    for (const v of prop.values) {
+      if (!v.qualifiers) continue;
+      for (const [qpid, snaks] of Object.entries(v.qualifiers)) {
+        qualifierPidsToResolve.add(qpid);
+        for (const snak of snaks) {
+          if (snak.isEntity && /^Q\d+$/.test(snak.value)) {
+            entityQidsToResolve.add(snak.value);
+          }
+        }
+      }
+    }
+  }
+
   // Fallback: birthDate fills start if no P580 was found
   if (temporal.birthDate && !temporal.start) temporal.start = temporal.birthDate;
 
   // Resolve PIDs, entity QIDs, and type QIDs concurrently
   const [pidLabels, entityLabels, typeLabels] = await Promise.all([
-    resolvePidLabels(Array.from(allPids)),
+    resolvePidLabels([...Array.from(allPids), ...Array.from(qualifierPidsToResolve)]),
     entityQidsToResolve.size > 0
       ? resolveQidLabels(Array.from(entityQidsToResolve))
       : {},
@@ -464,6 +541,20 @@ export const fetchEntityProperties = async (qid) => {
       if (v.unitQid && entityLabels[v.unitQid]) {
         v.label = v.label.replace(v.unitQid, entityLabels[v.unitQid].label);
         v.value = v.value.replace(v.unitQid, entityLabels[v.unitQid].label);
+      }
+    }
+  }
+
+  // Application des labels résolus aux valeurs de qualifiers
+  for (const prop of Object.values(properties)) {
+    for (const v of prop.values) {
+      if (!v.qualifiers) continue;
+      for (const snaks of Object.values(v.qualifiers)) {
+        for (const snak of snaks) {
+          if (snak.isEntity && entityLabels[snak.value]) {
+            snak.label = entityLabels[snak.value].label;
+          }
+        }
       }
     }
   }
@@ -548,6 +639,7 @@ export const fetchOutgoingNeighbors = async (qid, limit = 50, promotedPids = new
         rank: claim.rank || 'normal',
         refCount: (claim.references || []).length,
         classification: cls,
+        qualifiers: _parseQualifiers(claim),
       });
     }
   }
@@ -646,15 +738,29 @@ export const fetchOutgoingNeighbors = async (qid, limit = 50, promotedPids = new
     return true;
   });
 
-  // Resolve all type QIDs and edge PIDs concurrently
+  // Résolution all type QIDs and edge PIDs concurrently
   const allTypeQids = new Set();
   for (const info of Object.values(neighborInfoMap)) {
     for (const t of info.types) allTypeQids.add(t);
   }
 
-  const [typeLabelsMap, pidLabels] = await Promise.all([
+  // Collecte des QIDs et PIDs de qualifiers d'arête pour résolution de labels
+  const qualifierEntityQids = new Set();
+  const qualifierEdgePids = new Set();
+  for (const edge of filteredEdges) {
+    if (!edge.qualifiers) continue;
+    for (const [qpid, snaks] of Object.entries(edge.qualifiers)) {
+      qualifierEdgePids.add(qpid);
+      for (const snak of snaks) {
+        if (snak.isEntity && /^Q\d+$/.test(snak.value)) qualifierEntityQids.add(snak.value);
+      }
+    }
+  }
+
+  const [typeLabelsMap, pidLabels, qualifierEntityLabels] = await Promise.all([
     allTypeQids.size > 0 ? resolveQidLabels(Array.from(allTypeQids)) : {},
-    resolvePidLabels(Array.from(edgePids)),
+    resolvePidLabels([...Array.from(edgePids), ...Array.from(qualifierEdgePids)]),
+    qualifierEntityQids.size > 0 ? resolveQidLabels(Array.from(qualifierEntityQids)) : {},
   ]);
 
   // Apply type labels
@@ -689,6 +795,17 @@ export const fetchOutgoingNeighbors = async (qid, limit = 50, promotedPids = new
 
     const cls = raw._contextPromoted ? 'context-dependent' : raw.classification;
 
+    // Appliquer les labels résolus aux qualifiers avant push
+    if (raw.qualifiers) {
+      for (const snaks of Object.values(raw.qualifiers)) {
+        for (const snak of snaks) {
+          if (snak.isEntity && qualifierEntityLabels[snak.value]) {
+            snak.label = qualifierEntityLabels[snak.value].label;
+          }
+        }
+      }
+    }
+
     edges.push({
       id: `${uri}-${raw.pid}-${neighborUri}`,
       source: uri,
@@ -704,6 +821,7 @@ export const fetchOutgoingNeighbors = async (qid, limit = 50, promotedPids = new
       direction: 'outgoing',
       contextPromoted: raw._contextPromoted || false,
       weight: cls === 'primary' ? 100 : (raw._contextPromoted ? 90 : (cls === 'unclassified' ? 70 : 30)),
+      qualifiers: raw.qualifiers || null,
     });
   }
 

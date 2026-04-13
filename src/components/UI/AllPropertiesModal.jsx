@@ -35,7 +35,7 @@ const GROUP_META = {
   identifiant:  { label: 'Identifiants',             icon: ExternalLink, color: 'slate', bg: 'bg-slate-500/5', border: 'border-slate-600/20' },
 };
 
-const MODAL_GROUP_ORDER = ['relation', 'redundancy', 'temporel', 'spatial', 'numérique', 'texte', 'média', 'web', 'noise', 'identifiant'];
+const MODAL_GROUP_ORDER = ['média', 'redundancy', 'temporel', 'spatial', 'relation', 'numérique', 'texte', 'web', 'noise', 'identifiant'];
 
 // ── Value renderer ──────────────────────────────────────────────────────
 const ModalPropertyValue = ({ prop, groupKey, selectNode, visibleNodeIds, addNodeToGraph }) => {

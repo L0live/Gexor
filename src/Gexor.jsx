@@ -10,7 +10,8 @@ import { getCategoryColor, getCategoryColorDark } from './constants/graphConstan
 import Scene from './components/Graph/Scene';
 import Minimap from './components/Graph/Minimap';
 import SettingsPanel from './components/UI/SettingsPanel';
-import NodeDetailPanel from './components/UI/NodeDetailPanel';
+import InfoPanel from './components/UI/InfoPanel';
+import RightPanel from './components/UI/RightPanel';
 import AllPropertiesModal from './components/UI/AllPropertiesModal';
 import SearchModal from './components/UI/SearchModal';
 import { createFilter, FILTER_TYPES } from './models/searchFilter';
@@ -47,7 +48,6 @@ const Gexor = () => {
     redo,
     canUndo,
     canRedo,
-    pinnedNodes,
     resetAllSettings,
     setAutoDragNode,
     fetchAndExpandNode,
@@ -65,6 +65,7 @@ const Gexor = () => {
     outgoingFetchedUris,
     outgoingDisplayRelations,
     openSearchModal,
+    rightPanelOpen,
   } = useGraphStore();
   
   const [showSettings, setShowSettings] = useState(false);
@@ -211,10 +212,10 @@ const Gexor = () => {
     <div className="w-full h-screen bg-slate-900 flex flex-col">
       {/* Layout principal : Canvas + Sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Canvas 3D */}
-        <div className="flex-1 relative">
+        {/* Canvas 3D — contrainte de largeur quand RightPanel est ouvert */}
+        <div className={`${rightPanelOpen ? 'w-[calc(100%-500px)]' : 'flex-1'} relative`}>
           {/* Settings flottant en haut à gauche */}
-          <div className="absolute top-4 left-4 z-[100] flex flex-col items-start gap-2" ref={settingsRef}>
+          <div className="absolute bottom-4 left-4 z-[100] flex flex-col-reverse items-start gap-2" ref={settingsRef}>
             <div className="flex items-center gap-3">
               <div className="flex bg-slate-800/10 backdrop-blur-sm p-2 rounded-xl border border-slate-700/20 shadow-xl transition-all hover:bg-slate-800/50">
                 <button
@@ -289,10 +290,6 @@ const Gexor = () => {
                 showBackground={showBackground}
                 toggleBackground={toggleBackground}
                 resetAllSettings={resetAllSettings}
-                selectNode={selectNode}
-                selectedNode={selectedNode}
-                pinnedNodes={pinnedNodes}
-
               />
             )}
           </div>
@@ -357,6 +354,7 @@ const Gexor = () => {
               </div>
 
               <Canvas
+                frameloop="demand"
                 camera={{ position: [0, 150, 100], fov: 70, near: 0.1, far: 10000 }}
                 style={{ background: 'transparent' }}
                 gl={{ antialias: true, alpha: true }}
@@ -406,30 +404,9 @@ const Gexor = () => {
             </div>
           }
 
-          {/* Panel d'information flottant (Node/Edge Details) */}
-          <NodeDetailPanel
-            selectedNode={selectedNode}
-            selectedEdge={selectedEdge}
-            nodes={nodes}
-            connectedNodes={connectedNodes}
-            isPinned={isPinned}
-            toggleNodePin={toggleNodePin}
-            clearSelectedNode={clearSelectedNode}
-            selectNode={selectNode}
-            onShowConnectedNodes={() => {
-              if (selectedNode) {
-                openSearchModal([
-                  createFilter(FILTER_TYPES.ENTITY, selectedNode.id, selectedNode.label),
-                ], 'graph');
-              }
-            }}
-            loadingSelectedNodeProperties={loadingSelectedNodeProperties}
-            expandAggregate={expandAggregate}
-            collapseAggregate={collapseAggregate}
-            loadedAggregates={loadedAggregates}
-            addNodeToGraph={addNodeToGraph}
-            visibleNodeIds={visibleNodeIds}
-          />
+          {/* InfoPanel + RightPanel (remplacent NodeDetailPanel) */}
+          <InfoPanel nodes={nodes} />
+          <RightPanel />
 
           {/* Section flottante Nœuds Connectés */}
           {/* Modal toutes les propriétés */}
@@ -439,6 +416,7 @@ const Gexor = () => {
               onClose={() => setShowAllProperties(false)}
               selectNode={selectNode}
               visibleNodeIds={visibleNodeIds}
+              addNodeToGraph={addNodeToGraph}
             />
           )}
 

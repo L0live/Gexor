@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -52,7 +52,7 @@ const InstancedEdges = () => {
     return hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
   }, [hoveredEdgeId, edges]);
 
-  const [_hoveredMidpoint, setHoveredMidpoint] = useState(new THREE.Vector3());
+  const hoveredMidpointRef = useRef(new THREE.Vector3());
 
   // UseFrame pour mettre à jour les matrices
   useFrame((state) => {
@@ -110,9 +110,7 @@ const InstancedEdges = () => {
       // Update midpoint if this edge is hovered
       if (currentHoveredEdgeId === edge.id) {
         _mid.addVectors(_v1, _v2).multiplyScalar(0.5);
-        if (_hoveredMidpoint.distanceTo(_mid) > 1) {
-          setHoveredMidpoint(_mid.clone());
-        }
+        hoveredMidpointRef.current.copy(_mid);
       }
 
       _dir.subVectors(_v2, _v1);
@@ -424,8 +422,8 @@ const InstancedEdges = () => {
 
       {/* Tooltip HTML pour la relation survolée */}
       {hoveredEdge && (
-        <Html 
-          position={[_hoveredMidpoint.x, _hoveredMidpoint.y + 1, _hoveredMidpoint.z]} 
+        <Html
+          position={[hoveredMidpointRef.current.x, hoveredMidpointRef.current.y + 1, hoveredMidpointRef.current.z]}
           center 
           style={{ pointerEvents: 'none', zIndex: 1000 }}
         >

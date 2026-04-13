@@ -81,7 +81,7 @@ export const FORCE_LAYOUT_DEFAULTS = {
   dimensions: 3,
   maxIteration: 500,
   minMovement: 0.01,
-  distanceThresholdMode: 'max',
+  distanceThresholdMode: 'max',           // 'max' (default): uses max(nodeRadius*2, linkDistance) for optimal performance and visual results
   gravity: 0,                             // attractive pull toward center
   nodeStrength: 100,                      // global repulsion (positive; library applies sign)
   edgeStrength: 100,

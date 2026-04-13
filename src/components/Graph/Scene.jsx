@@ -27,12 +27,35 @@ const Scene = () => {
   const pinnedNodes = useGraphStore(state => state.pinnedNodes);
   const autoDragNode = useGraphStore(state => state.autoDragNode);
   const setAutoDragNode = useGraphStore(state => state.setAutoDragNode);
-  
-  const { camera, size, gl } = useThree();
+
+  const { camera, size, gl, invalidate } = useThree();
   const layoutReady = useGraphStore(state => state.layoutReady);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const dragStartInfoRef = useRef(null);
   const radialFrameCounterRef = useRef(0);
+
+  // frameloop="demand" : invalider le canvas uniquement pour les changements visuellement pertinents.
+  // Les mutations non-visuelles (loadedNodes, sparqlRequestCount, loadingUris, etc.)
+  // ne déclenchent pas de frame → zéro rendu superflu à l'idle.
+  useEffect(() => {
+    const visualKeys = [
+      'positions', 'nodes', 'edges',
+      'hoveredNodeId', 'hoveredEdgeId',
+      'selectedNode', 'selectedEdge',
+      'radialTargets', 'recentlyAddedNodes',
+    ];
+    let prev = useGraphStore.getState();
+    return useGraphStore.subscribe((state) => {
+      for (const key of visualKeys) {
+        if (state[key] !== prev[key]) {
+          prev = state;
+          invalidate();
+          return;
+        }
+      }
+      prev = state;
+    });
+  }, [invalidate]);
 
   // Convertir des coordonnées écran en position 3D dans le monde
   const getWorldPosFromScreen = useCallback((clientX, clientY, depthReference = new THREE.Vector3(0, 0, 0)) => {
@@ -334,8 +357,8 @@ const Scene = () => {
   }, [gl, nodes, positions]);
 
   // Drag position override + radial update (physics is handled by the Web Worker)
-  useFrame(() => {
-    const { 
+  useFrame((state) => {
+    const {
       draggedNodeId: currentDraggedId,
       pinnedNodes: currentPinnedNodes,
       layoutInstance: worker
@@ -367,6 +390,9 @@ const Scene = () => {
       if (worker?.postMessage) {
         worker.postMessage({ type: 'setBodyPosition', nodeId: currentDraggedId, ...dragPos });
       }
+
+      // frameloop="demand" : maintenir le rendu pendant le drag
+      state.invalidate();
     }
 
     // ── Radial plugin — update target positions (purely visual) ──
@@ -387,6 +413,8 @@ const Scene = () => {
           radialFrameCounterRef.current = 0;
           updateRadialTargets();
         }
+        // frameloop="demand" : maintenir le rendu pendant le mode radial
+        state.invalidate();
       } else {
         if (radialFrameCounterRef.current !== 0) {
           radialFrameCounterRef.current = 0;

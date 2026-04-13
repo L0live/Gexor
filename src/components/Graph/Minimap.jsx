@@ -12,25 +12,19 @@ const Minimap = () => {
   const simulationStable = useGraphStore(state => state.simulationStable);
   const simulationPaused = useGraphStore(state => state.simulationPaused);
 
-  // Throttled position reads to avoid re-renders on every layout tick
+  // Throttled position reads — abonnement Zustand au lieu d'une boucle RAF 60fps
   const [throttledPositions, setThrottledPositions] = useState({});
-  const rafRef = useRef(null);
-  const lastUpdateRef = useRef(0);
+  const throttleTimerRef = useRef(null);
 
   useEffect(() => {
-    const update = () => {
-      const now = Date.now();
-      if (now - lastUpdateRef.current >= MINIMAP_THROTTLE_MS) {
-        const positions = useGraphStore.getState().positions;
-        setThrottledPositions(positions);
-        lastUpdateRef.current = now;
+    return useGraphStore.subscribe((state) => {
+      if (!throttleTimerRef.current) {
+        throttleTimerRef.current = setTimeout(() => {
+          setThrottledPositions(useGraphStore.getState().positions);
+          throttleTimerRef.current = null;
+        }, MINIMAP_THROTTLE_MS);
       }
-      rafRef.current = requestAnimationFrame(update);
-    };
-    rafRef.current = requestAnimationFrame(update);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+    });
   }, []);
   
   // Calculer les limites pour le cadrage

@@ -33,6 +33,10 @@ export const createUiSlice = (set, get) => ({
   simulationPaused: false,
   simulationStable: false,
 
+  // RightPanel state
+  rightPanelOpen: false,
+  rightPanelActiveTab: null,
+
   // Simple setters
   setAutoDragNode: (data) => set({ autoDragNode: data }),
   setLayoutInstance: (layout) => set({ layoutInstance: layout }),
@@ -181,8 +185,8 @@ export const createUiSlice = (set, get) => ({
     set({ selectedEdge: edge, selectedNode: null });
   },
 
-  clearSelection: () => set({ selectedNode: null, selectedEdge: null }),
-  clearSelectedNode: () => set({ selectedNode: null, selectedEdge: null }),
+  clearSelection: () => set({ selectedNode: null, selectedEdge: null, rightPanelOpen: false }),
+  clearSelectedNode: () => set({ selectedNode: null, selectedEdge: null, rightPanelOpen: false }),
   
   setPositions: (positions) => set({ positions }),
   
@@ -293,6 +297,22 @@ export const createUiSlice = (set, get) => ({
     }
   },
   
+  // RightPanel actions
+  openRightPanel: ({ tab } = {}) => set(state => ({
+    rightPanelOpen: true,
+    rightPanelActiveTab: tab ?? state.rightPanelActiveTab ?? 'properties',
+  })),
+  closeRightPanel: () => set({ rightPanelOpen: false }),
+  toggleRightPanel: ({ tab } = {}) => {
+    const state = get();
+    if (state.rightPanelOpen) {
+      set({ rightPanelOpen: false });
+    } else {
+      set({ rightPanelOpen: true, rightPanelActiveTab: tab ?? state.rightPanelActiveTab ?? 'properties' });
+    }
+  },
+  setRightPanelTab: (tab) => set({ rightPanelActiveTab: tab }),
+
   // Camera controls
   setCameraControlsRef: (ref) => set({ cameraControlsRef: ref }),
   triggerCenterOnNode: (nodeId) => set({ centerOnNodeId: nodeId }),

@@ -6,6 +6,9 @@ import { getCategoryColor, MAX_INSTANCES, NODE_RADIUS, AGGREGATE_NODE_COLOR, AGG
 import { getRadialDisplayPos } from '../../utils/radialLayout';
 import { readPosition } from '../../utils/sharedPositions';
 
+// Pré-alloué au niveau module — évite new THREE.Color() à chaque frame
+const _pulseColor = new THREE.Color(ADDED_PULSE_COLOR);
+
 const InstancedNodes = () => {
   const nodes = useGraphStore(state => state.nodes);
   
@@ -96,6 +99,8 @@ const AllNodesGroup = ({
       nodeSettings: nodeSettingsRef.current,
     };
 
+    let hasPulse = false;
+
     // Per-instance frustum culling (Three.js only culls the whole InstancedMesh)
     // Only worthwhile with enough nodes to justify the frustum setup cost
     const doCulling = safeCount >= 100;
@@ -153,6 +158,7 @@ const AllNodesGroup = ({
       const recentlyAdded = storeState.recentlyAddedNodes?.[node.id];
       const addedElapsed = recentlyAdded ? Date.now() - recentlyAdded : Infinity;
       if (addedElapsed < ADDED_PULSE_DURATION) {
+        hasPulse = true;
         const pulse = Math.max(0, 1 - addedElapsed / ADDED_PULSE_DURATION) * (0.5 + 0.5 * Math.sin(addedElapsed * 0.008));
         size *= (1 + pulse * 0.3);
       }
@@ -170,8 +176,7 @@ const AllNodesGroup = ({
           ? (node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR)
           : getCategoryColor(node.type);
         _color.set(baseColor);
-        const pulseColor = new THREE.Color(ADDED_PULSE_COLOR);
-        _color.lerp(pulseColor, t);
+        _color.lerp(_pulseColor, t);
       } else {
         c = isAggregate
           ? (node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR)
@@ -184,7 +189,10 @@ const AllNodesGroup = ({
     meshRef.current.count = safeCount;
     meshRef.current.instanceMatrix.needsUpdate = true;
     if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
-    
+
+    // frameloop="demand" : maintenir le rendu pendant les animations pulse
+    if (hasPulse) state.invalidate();
+
     // Throttle expensive computeBoundingSphere to every 30 frames
     boundsFrameRef.current++;
     if (boundsFrameRef.current >= 30) {

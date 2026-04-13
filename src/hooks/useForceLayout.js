@@ -47,6 +47,8 @@ const useForceLayout = () => {
   const pendingWakeRef = useRef(false);
   const simulationDoneResolveRef = useRef(null);   // Promise resolver
   const proxyRef = useRef(null);                   // stable proxy object
+  const forceRef = useRef(null);                   // persistent ForceLayout — reused across batches
+  const forceThreadsRef = useRef(null);            // threads object used to build forceRef (for invalidation)
 
   // ── Proxy message handler (backward compat) ─────────────────────────────
   //    Every place that previously did `worker.postMessage(msg)` now calls
@@ -146,25 +148,26 @@ const useForceLayout = () => {
       pinnedPositions[draggedNodeId] = { x: nd.data.x, y: nd.data.y, z: nd.data.z };
     }
 
-    // Single ForceLayout instance for the entire run (no per-batch re-init)
-    const executeWithThreads = async (t) => {
-      const force = new ForceLayout({
-        threads: t,
-        ...FORCE_LAYOUT_DEFAULTS,
-        maxIteration: iterations,
-      });
-      return force.execute(graph);
+    // Reuse persistent ForceLayout instance — creates a new thread pool only when
+    // threads change (e.g. single-thread fallback). FORCE_LAYOUT_DEFAULTS.maxIteration (500)
+    // is used as the cap; minMovement: 0.01 ensures early-exit for already-converged layouts.
+    const getOrCreateForce = (t) => {
+      if (!forceRef.current || forceThreadsRef.current !== t) {
+        forceRef.current = new ForceLayout({ threads: t, ...FORCE_LAYOUT_DEFAULTS, distanceThresholdMode: 'max' });
+        forceThreadsRef.current = t;
+      }
+      return forceRef.current;
     };
 
     try {
       let result;
       try {
-        result = await executeWithThreads(threads);
+        result = await getOrCreateForce(threads).execute(graph);
       } catch (err) {
         console.warn('[useForceLayout] multi-thread failed, falling back to single-thread:', err.message);
         const stThreads = await initThreads(false);
         threadsRef.current = stThreads;
-        result = await executeWithThreads(stThreads);
+        result = await getOrCreateForce(stThreads).execute(graph);
       }
 
       // Build positions map and restore pinned nodes
