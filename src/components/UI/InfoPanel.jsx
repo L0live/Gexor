@@ -224,11 +224,17 @@ const AggregateHeader = ({ selectedNode, clearSelectedNode, toggleRightPanel }) 
 };
 
 // ── InfoPanel header for Edge mode ────────────────────────────────────────
-const EdgeHeader = ({ selectedEdge, nodes, clearSelectedNode, toggleRightPanel }) => {
+const EdgeHeader = ({ selectedEdge, clearSelectedNode, toggleRightPanel }) => {
   const selectNode = useGraphStore(s => s.selectNode);
+  const nodes = useGraphStore(s => s.nodes);
 
   const sourceNode = nodes.find(n => n.id === selectedEdge.source);
   const targetNode = nodes.find(n => n.id === selectedEdge.target);
+
+  const primaryLabel = selectedEdge.relations?.[0]?.type
+    || selectedEdge.type
+    || 'Connexion';
+  const extraCount = (selectedEdge.relations?.length || 1) - 1;
 
   return (
     <div className="p-4 bg-gradient-to-br from-slate-700/30 to-slate-600/10 border-b border-slate-700/30 flex-shrink-0">
@@ -246,8 +252,14 @@ const EdgeHeader = ({ selectedEdge, nodes, clearSelectedNode, toggleRightPanel }
         </div>
       </div>
       <h2 className="text-xl font-black text-white mb-2">
-        {selectedEdge.label || selectedEdge.type || 'Connexion'}
+        {primaryLabel}
       </h2>
+      {extraCount > 0 && (
+        <p className="text-[11px] text-slate-500 -mt-1 mb-2">
+          + {extraCount} autre{extraCount > 1 ? 's' : ''} relation{extraCount > 1 ? 's' : ''}
+          <span className="ml-1 text-slate-600">— voir Détail →</span>
+        </p>
+      )}
       <div className="flex items-center gap-2 text-sm">
         <button
           onClick={() => selectNode(selectedEdge.source)}
@@ -270,7 +282,7 @@ const EdgeHeader = ({ selectedEdge, nodes, clearSelectedNode, toggleRightPanel }
 // ══════════════════════════════════════════════════════════════════════════
 // Main InfoPanel component
 // ══════════════════════════════════════════════════════════════════════════
-const InfoPanel = ({ nodes }) => {
+const InfoPanel = () => {
   const selectedNode = useGraphStore(s => s.selectedNode);
   const selectedEdge = useGraphStore(s => s.selectedEdge);
   const clearSelectedNode = useGraphStore(s => s.clearSelectedNode);
@@ -421,7 +433,6 @@ const InfoPanel = ({ nodes }) => {
           <>
             <EdgeHeader
               selectedEdge={selectedEdge}
-              nodes={nodes || []}
               clearSelectedNode={clearSelectedNode}
               toggleRightPanel={toggleRightPanel}
             />

@@ -15,7 +15,6 @@ export const createUiSlice = (set, get) => ({
   centralNodeId: null,
   loadingSelectedNodeProperties: false,
   autoFetchProperties: false, // When true, auto-fetch outgoing properties on node select
-  aggregateThreshold: 5, // Threshold below which incoming aggregates auto-expand
 
   positions: {},
   radialTargets: {},  // { [nodeId]: {x,y,z} } — computed radial target positions
@@ -43,7 +42,6 @@ export const createUiSlice = (set, get) => ({
   setHoveredNodeId: (id) => set({ hoveredNodeId: id }),
   setHoveredEdgeId: (id) => set({ hoveredEdgeId: id }),
   setAutoFetchProperties: (value) => set({ autoFetchProperties: value }),
-  setAggregateThreshold: (value) => set({ aggregateThreshold: value }),
 
   selectNode: (nodeId) => {
     let node = get().nodes.find(n => n.id === nodeId);
@@ -332,5 +330,7 @@ export const createUiSlice = (set, get) => ({
       showRelations: true,
       showBackground: false
     });
+
+    get().resetSettingsParams?.();
   },
 });

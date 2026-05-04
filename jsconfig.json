@@ -4,8 +4,7 @@
     "strict": false,
     "moduleResolution": "bundler",
     "target": "ES2022",
-    "jsx": "react-jsx",
-    "baseUrl": "."
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*.js", "src/**/*.jsx"],
   "exclude": ["node_modules", "dist"]

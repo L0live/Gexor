@@ -5,13 +5,17 @@ import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
 import { getCategoryColor } from '../../constants/graphConstants';
 import { AGGREGATE_NODE_COLOR, AGGREGATE_NODE_COLOR_LOADING, getAggregateScale, SELECTION_OUTLINE_COLOR, ADDED_PULSE_COLOR, ADDED_PULSE_DURATION } from '../../constants/graphConstants';
+import { getTheme } from '../../constants/themes';
 import { getRadialDisplayPos } from '../../utils/radialLayout';
 
-// Generics textures cache for LoD
+const resolveNodeColor = (type, theme) =>
+  theme?.useCategoryColors === false ? (theme.nodeColor || '#64748b') : getCategoryColor(type);
+
+// Generics textures cache for LoD — keyed by color (per-theme fallback included)
 const lodTextures = {};
 
-const getLodTexture = (type) => {
-  const color = getCategoryColor(type);
+const getLodTexture = (type, theme) => {
+  const color = resolveNodeColor(type, theme);
   if (lodTextures[color]) return lodTextures[color];
 
   const canvas = document.createElement('canvas');
@@ -35,8 +39,8 @@ const getLodTexture = (type) => {
 };
 
 const borderTextures = {};
-const getBorderTexture = (type) => {
-  const color = getCategoryColor(type);
+const getBorderTexture = (type, theme) => {
+  const color = resolveNodeColor(type, theme);
   if (borderTextures[color]) return borderTextures[color];
 
   const canvas = document.createElement('canvas');
@@ -69,6 +73,11 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
   const [shouldShow, setShouldShow] = useState(true);
   const globalHoveredNodeId = useGraphStore(state => state.hoveredNodeId);
   const setGlobalHoveredNodeId = useGraphStore(state => state.setHoveredNodeId);
+  const themeId = useGraphStore(state => state.theme);
+  const theme = useMemo(() => getTheme(themeId), [themeId]);
+  const aggregateParams = useGraphStore(state => state.aggregateParams);
+  const aggColor = aggregateParams?.color ?? AGGREGATE_NODE_COLOR;
+  const aggColorLoading = aggregateParams?.colorLoading ?? AGGREGATE_NODE_COLOR_LOADING;
   
   // Le node est considéré survolé soit via ses propres événements (Billboard), 
   // soit via l'instancier (Global store)
@@ -158,15 +167,18 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
         lowResMatRef.current.color.setRGB(1, 1, 1);
     }
     if (borderMatRef.current) {
+        const hlParams = useGraphStore.getState().highlightParams || {};
+        const selColor = hlParams.selectionColor ?? SELECTION_OUTLINE_COLOR;
+        const pulseColor = hlParams.addedPulseColor ?? ADDED_PULSE_COLOR;
         // Priority: selection outline > recently-added pulse > opacityLevel highlight
         if (isSelected) {
           borderMatRef.current.opacity = 0.8;
           borderMatRef.current.visible = true;
-          borderMatRef.current.color.set(SELECTION_OUTLINE_COLOR);
+          borderMatRef.current.color.set(selColor);
         } else if (isRecentlyAdded) {
           borderMatRef.current.opacity = Math.max(0, pulseFactor);
           borderMatRef.current.visible = borderMatRef.current.opacity > 0.01;
-          borderMatRef.current.color.set(ADDED_PULSE_COLOR);
+          borderMatRef.current.color.set(pulseColor);
         } else {
           borderMatRef.current.opacity = borderOpacity;
           borderMatRef.current.visible = borderOpacity > 0.001;
@@ -205,7 +217,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     // Aggregate nodes: draw hexagonal shape with count
     if (node.isAggregate) {
       // Draw hexagon background
-      ctx.fillStyle = node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR;
+      ctx.fillStyle = node.loadingChildren ? aggColorLoading : aggColor;
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const angle = (Math.PI / 3) * i - Math.PI / 6;
@@ -292,7 +304,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
     });
 
     return new THREE.CanvasTexture(canvas);
-  }, [node.label, node.type, lodLevel, node.isAggregate, node.aggregateCount, node.loadingChildren, node.predicateLabel]);
+  }, [node.label, node.type, lodLevel, node.isAggregate, node.aggregateCount, node.loadingChildren, node.predicateLabel, aggColor, aggColorLoading]);
 
   const lowResTexture = useMemo(() => {
     if (node.isAggregate) {
@@ -303,7 +315,7 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
       canvas.height = size;
       const ctx = canvas.getContext('2d');
       const cx = size / 2, cy = size / 2, r = size * 0.4;
-      ctx.fillStyle = node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR;
+      ctx.fillStyle = node.loadingChildren ? aggColorLoading : aggColor;
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const angle = (Math.PI / 3) * i - Math.PI / 6;
@@ -316,9 +328,9 @@ const Node = ({ node, position, onClick, visible, isSelected, onDragStart, onDra
       ctx.fill();
       return new THREE.CanvasTexture(canvas);
     }
-    return getLodTexture(node.type);
-  }, [node.type, node.isAggregate, node.loadingChildren]);
-  const borderTexture = useMemo(() => getBorderTexture(node.type), [node.type]);
+    return getLodTexture(node.type, theme);
+  }, [node.type, node.isAggregate, node.loadingChildren, theme, aggColor, aggColorLoading]);
+  const borderTexture = useMemo(() => getBorderTexture(node.type, theme), [node.type, theme]);
   
   // Créer la texture de l'icône de pin
   const pinTexture = useMemo(() => {

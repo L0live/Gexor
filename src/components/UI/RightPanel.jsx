@@ -1,10 +1,10 @@
-import React, { Suspense, useMemo, useEffect } from 'react';
+import { Suspense, useMemo, useEffect } from 'react';
 import {
   X, Focus, Pin, Trash2, Layers, Plus, ChevronRight, Loader,
-  Info, Users, Globe, Calendar, MapPin, Network, Star
+  Info, Users, Globe, Calendar, MapPin, Network, Star, GitMerge
 } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
-import { getPlugin, getTabsForMode } from '../../plugins/pluginRegistry';
+import { getTabsForMode, getLazyTabComponent } from '../../plugins/pluginRegistry';
 import {
   getCategoryColorAlpha,
   AGGREGATE_NODE_COLOR,
@@ -12,7 +12,7 @@ import {
 import { createFilter, FILTER_TYPES } from '../../models/searchFilter';
 
 const ICON_MAP = {
-  Info, Users, Globe, Calendar, MapPin, Layers, Network, Star,
+  Info, Users, Globe, Calendar, MapPin, Layers, Network, Star, GitMerge,
 };
 
 // ── RightPanel Header ────────────────────────────────────────────────────
@@ -210,10 +210,7 @@ const RightPanel = () => {
 
   if (!rightPanelOpen || !mode) return null;
 
-  const activePlugin = resolvedTab ? getPlugin(resolvedTab) : null;
-  const LazyTabComponent = activePlugin?.tab?.component
-    ? React.lazy(activePlugin.tab.component)
-    : null;
+  const LazyTabComponent = getLazyTabComponent(resolvedTab);
 
   return (
     <div className="fixed right-0 top-0 h-screen w-[500px] z-40 bg-slate-900/95 backdrop-blur-sm flex flex-col shadow-2xl">

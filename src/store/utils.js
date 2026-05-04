@@ -47,6 +47,7 @@ export const mapLodEdgeToGraphEdge = (lodEdge) => ({
   contextPromoted: lodEdge.contextPromoted || false,
   weight: lodEdge.weight ?? 100,
   aggregateCount: lodEdge.aggregateCount || null,
+  qualifiers: lodEdge.qualifiers || null,
 });
 
 /**

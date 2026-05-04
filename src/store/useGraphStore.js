@@ -15,6 +15,7 @@ import { createUiSlice } from './slices/uiSlice';
 import { createHistorySlice } from './slices/historySlice';
 import { createPinSlice } from './slices/pinSlice';
 import { createSearchSlice } from './slices/searchSlice';
+import { createSettingsSlice } from './slices/settingsSlice';
 import { initPrefetchQueue } from '../services/prefetchQueue';
 
 const useGraphStore = create((...a) => ({
@@ -24,6 +25,7 @@ const useGraphStore = create((...a) => ({
   ...createHistorySlice(...a),
   ...createPinSlice(...a),
   ...createSearchSlice(...a),
+  ...createSettingsSlice(...a),
 }));
 
 // Wire the prefetch queue to the store so it can read/write/subscribe to state

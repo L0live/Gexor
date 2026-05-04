@@ -55,6 +55,7 @@ export const createDataSlice = (set, get) => ({
   failedUris: new Set(),    // URIs that failed to load
   expandedUris: new Set(),  // URIs whose outgoing neighbors have been fully fetched
   incomingExpandedUris: new Set(), // URIs whose incoming neighbors have been fully fetched
+  sharedExpandedUris: new Set(),   // URIs dont les similaires ont été chargés via _fetchSharedNeighbors
   emptyIncomingUris: new Set(), // URIs with zero incoming references
   outgoingFetchedUris: new Set(), // URIs whose outgoing properties have been fetched (on-demand, for display only)
   initLoading: false,       // True when initFromEntity is in progress
@@ -233,24 +234,15 @@ export const createDataSlice = (set, get) => ({
       set({ loadedNodes: newLoadedNodes, loadedRelations: newLoadedRelations, loadedBy: newLoadedBy, loadedByDirection: newLoadedByDirection, nodeSettings: newNodeSettings, allDiscoveredTypes: newDiscoveredTypes });
     };
 
-    // ── Helper : traite et applique les agrégats entrants ─────────────────
+    // ── Helper : traite et applique les agrégats entrants (progressif) ───────
     const applyIncoming = async (aggregatesArr) => {
-      const AGGREGATE_THRESHOLD = get().aggregateThreshold || 5;
+      const AGGREGATE_THRESHOLD = get().aggregateParams?.threshold ?? 5;
       const WD_PREFIX = 'http://www.wikidata.org/entity/';
       const qid = uri.replace(WD_PREFIX, '');
-      const s = get();
-      const newLoadedAggregates = { ...s.loadedAggregates };
-      const newLoadedNodes = { ...s.loadedNodes };
-      const newLoadedRelations = { ...s.loadedRelations };
-      const newLoadedBy = { ...s.loadedBy };
-      const newLoadedByDirection = { ...s.loadedByDirection };
-      const newNodeSettings = { ...s.nodeSettings };
-      const newDiscoveredTypes = new Set(s.allDiscoveredTypes);
-      const newIncomingEdgeIds = new Set(s.incomingEdgeIds);
-      const newEmptyIncomingUris = new Set(s.emptyIncomingUris);
 
       if (!aggregatesArr || aggregatesArr.length === 0) {
-        newEmptyIncomingUris.add(uri);
+        set(s => ({ emptyIncomingUris: new Set([...s.emptyIncomingUris, uri]) }));
+        return;
       }
 
       const makeEdge = (agg, aggId) => ({
@@ -263,13 +255,24 @@ export const createDataSlice = (set, get) => ({
         contextPromoted: false, weight: 50, aggregateCount: agg.count,
       });
 
-      for (const agg of (aggregatesArr || [])) {
+      for (const agg of aggregatesArr) {
+        // Lire l'état frais à chaque itération (un set() a pu être appelé entre deux awaits)
+        const s = get();
         const aggId = `agg:${qid}:${agg.predicate}`;
-        if (newLoadedAggregates[aggId]) continue;
+        if (s.loadedAggregates[aggId]) continue;
 
         if (agg.count <= AGGREGATE_THRESHOLD) {
           try {
             const childrenData = await fetchAggregateChildren(uri, agg.predicate, agg.count + 5);
+            // Relire l'état après l'await
+            const s2 = get();
+            const newLoadedNodes = { ...s2.loadedNodes };
+            const newLoadedRelations = { ...s2.loadedRelations };
+            const newLoadedBy = { ...s2.loadedBy };
+            const newLoadedByDirection = { ...s2.loadedByDirection };
+            const newNodeSettings = { ...s2.nodeSettings };
+            const newDiscoveredTypes = new Set(s2.allDiscoveredTypes);
+            const newIncomingEdgeIds = new Set(s2.incomingEdgeIds);
             for (const n of childrenData.nodes) {
               const isNew = !newLoadedNodes[n.uri];
               if (isNew) newLoadedNodes[n.uri] = n;
@@ -283,32 +286,48 @@ export const createDataSlice = (set, get) => ({
               newLoadedRelations[e.id] = e;
               newIncomingEdgeIds.add(e.id);
             }
+            set({ loadedNodes: newLoadedNodes, loadedRelations: newLoadedRelations, loadedBy: newLoadedBy, loadedByDirection: newLoadedByDirection, nodeSettings: newNodeSettings, allDiscoveredTypes: newDiscoveredTypes, incomingEdgeIds: newIncomingEdgeIds });
+            get().updateGraphData();
           } catch (err) {
             handleApiError(err, `autoExpandAggregate ${aggId}`);
+            // Fallback : créer un nœud agrégat
+            const s3 = get();
             const aggNode = createAggregateNode({ id: aggId, sourceUri: uri, predicate: agg.predicate, predicateLabel: agg.predicateLabel, targetClasses: agg.targetClasses, targetClassLabels: agg.targetClassLabels, count: agg.count });
-            newLoadedAggregates[aggId] = aggNode;
-            newLoadedNodes[aggId] = aggNode;
-            if (!newNodeSettings[aggId]) newNodeSettings[aggId] = defaultNodeSettings();
-            _addParent(newLoadedBy, aggId, uri);
-            _addDirectionSource(newLoadedByDirection, aggId, uri, 'incoming');
             const edge = makeEdge(agg, aggId);
-            newLoadedRelations[edge.id] = edge;
-            newIncomingEdgeIds.add(edge.id);
+            const newLoadedBy3 = { ...s3.loadedBy };
+            const newLoadedByDirection3 = { ...s3.loadedByDirection };
+            _addParent(newLoadedBy3, aggId, uri);
+            _addDirectionSource(newLoadedByDirection3, aggId, uri, 'incoming');
+            set({
+              loadedAggregates: { ...s3.loadedAggregates, [aggId]: aggNode },
+              loadedNodes: { ...s3.loadedNodes, [aggId]: aggNode },
+              loadedRelations: { ...s3.loadedRelations, [edge.id]: edge },
+              loadedBy: newLoadedBy3,
+              loadedByDirection: newLoadedByDirection3,
+              nodeSettings: { ...s3.nodeSettings, ...(s3.nodeSettings[aggId] ? {} : { [aggId]: defaultNodeSettings() }) },
+              incomingEdgeIds: new Set([...s3.incomingEdgeIds, edge.id]),
+            });
+            get().updateGraphData();
           }
         } else {
           const aggNode = createAggregateNode({ id: aggId, sourceUri: uri, predicate: agg.predicate, predicateLabel: agg.predicateLabel, targetClasses: agg.targetClasses, targetClassLabels: agg.targetClassLabels, count: agg.count });
-          newLoadedAggregates[aggId] = aggNode;
-          newLoadedNodes[aggId] = aggNode;
-          if (!newNodeSettings[aggId]) newNodeSettings[aggId] = defaultNodeSettings();
-          _addParent(newLoadedBy, aggId, uri);
-          _addDirectionSource(newLoadedByDirection, aggId, uri, 'incoming');
           const edge = makeEdge(agg, aggId);
-          newLoadedRelations[edge.id] = edge;
-          newIncomingEdgeIds.add(edge.id);
+          const newLoadedBy2 = { ...s.loadedBy };
+          const newLoadedByDirection2 = { ...s.loadedByDirection };
+          _addParent(newLoadedBy2, aggId, uri);
+          _addDirectionSource(newLoadedByDirection2, aggId, uri, 'incoming');
+          set({
+            loadedAggregates: { ...s.loadedAggregates, [aggId]: aggNode },
+            loadedNodes: { ...s.loadedNodes, [aggId]: aggNode },
+            loadedRelations: { ...s.loadedRelations, [edge.id]: edge },
+            loadedBy: newLoadedBy2,
+            loadedByDirection: newLoadedByDirection2,
+            nodeSettings: { ...s.nodeSettings, ...(s.nodeSettings[aggId] ? {} : { [aggId]: defaultNodeSettings() }) },
+            incomingEdgeIds: new Set([...s.incomingEdgeIds, edge.id]),
+          });
+          get().updateGraphData();
         }
       }
-
-      set({ loadedAggregates: newLoadedAggregates, loadedNodes: newLoadedNodes, loadedRelations: newLoadedRelations, loadedBy: newLoadedBy, loadedByDirection: newLoadedByDirection, nodeSettings: newNodeSettings, allDiscoveredTypes: newDiscoveredTypes, incomingEdgeIds: newIncomingEdgeIds, emptyIncomingUris: newEmptyIncomingUris });
     };
 
     try {
@@ -471,34 +490,40 @@ export const createDataSlice = (set, get) => ({
         maxChildren
       );
 
-      // Merge children into store
-      const newLoadedNodes = { ...get().loadedNodes };
-      const newLoadedRelations = { ...get().loadedRelations };
-      const newIncomingEdgeIds = new Set(get().incomingEdgeIds);
-      const newNodeSettings = { ...get().nodeSettings };
-      const newLoadedBy = { ...get().loadedBy };
-      const newLoadedByDirection = { ...get().loadedByDirection };
-
+      // Phase 1 : ajouter les enfants un par un (l'agrégat reste visible pendant ce temps)
       const childUris = [];
-
       for (const node of childrenData.nodes) {
-        if (!newLoadedNodes[node.uri]) {
-          newLoadedNodes[node.uri] = node;
-          prefetchEnqueue(node.uri);
-        }
         childUris.push(node.uri);
-        if (!newNodeSettings[node.uri]) newNodeSettings[node.uri] = defaultNodeSettings();
+        const edge = childrenData.edges.find(e => e.source === node.uri || e.target === node.uri);
+        const s = get();
+        const newLoadedBy = { ...s.loadedBy };
+        const newLoadedByDirection = { ...s.loadedByDirection };
         _addParent(newLoadedBy, node.uri, aggNode.sourceUri);
         _addDirectionSource(newLoadedByDirection, node.uri, aggNode.sourceUri, 'incoming');
+        set({
+          loadedNodes: s.loadedNodes[node.uri]
+            ? s.loadedNodes
+            : (() => { prefetchEnqueue(node.uri); return { ...s.loadedNodes, [node.uri]: node }; })(),
+          loadedRelations: edge ? { ...s.loadedRelations, [edge.id]: edge } : s.loadedRelations,
+          nodeSettings: s.nodeSettings[node.uri] ? s.nodeSettings : { ...s.nodeSettings, [node.uri]: defaultNodeSettings() },
+          loadedBy: newLoadedBy,
+          loadedByDirection: newLoadedByDirection,
+          incomingEdgeIds: edge ? new Set([...s.incomingEdgeIds, edge.id]) : s.incomingEdgeIds,
+        });
+        get().updateGraphData();
       }
 
-      for (const edge of childrenData.edges) {
-        newLoadedRelations[edge.id] = edge;
-        newIncomingEdgeIds.add(edge.id);
-      }
+      // Phase 2 : supprimer l'agrégat et le marquer comme expanded
+      const aggEdgeId = `${aggNode.sourceUri}-${aggNode.predicate}-${aggregateId}`;
+      const s2 = get();
+      const newLoadedNodes2 = { ...s2.loadedNodes };
+      const newLoadedRelations2 = { ...s2.loadedRelations };
+      const newNodeSettings2 = { ...s2.nodeSettings };
+      delete newLoadedNodes2[aggregateId];
+      delete newNodeSettings2[aggregateId];
+      delete newLoadedRelations2[aggEdgeId];
 
-      // Mark aggregate as expanded, remove from loadedNodes + nodeSettings (replaced by children)
-      const finalAggregates = { ...get().loadedAggregates };
+      const finalAggregates = { ...s2.loadedAggregates };
       finalAggregates[aggregateId] = {
         ...aggNode,
         expanded: true,
@@ -507,20 +532,11 @@ export const createDataSlice = (set, get) => ({
         children: childUris,
       };
 
-      delete newLoadedNodes[aggregateId];
-      delete newNodeSettings[aggregateId];
-      // Remove the aggregate edge
-      const aggEdgeId = `${aggNode.sourceUri}-${aggNode.predicate}-${aggregateId}`;
-      delete newLoadedRelations[aggEdgeId];
-
       set({
-        loadedNodes: newLoadedNodes,
-        loadedRelations: newLoadedRelations,
+        loadedNodes: newLoadedNodes2,
+        loadedRelations: newLoadedRelations2,
         loadedAggregates: finalAggregates,
-        nodeSettings: newNodeSettings,
-        loadedBy: newLoadedBy,
-        loadedByDirection: newLoadedByDirection,
-        incomingEdgeIds: newIncomingEdgeIds,
+        nodeSettings: newNodeSettings2,
       });
 
       get().updateGraphData();
@@ -753,7 +769,7 @@ export const createDataSlice = (set, get) => ({
         console.warn(`[initFromEntity] Incoming aggregates fetch failed (non-fatal):`, aggErr);
       }
 
-      const AGGREGATE_THRESHOLD = get().aggregateThreshold || 5;
+      const AGGREGATE_THRESHOLD = get().aggregateParams?.threshold ?? 5;
       const aggregates = incomingAggregatesData.aggregates || [];
 
       if (aggregates.length === 0) {
@@ -797,6 +813,7 @@ export const createDataSlice = (set, get) => ({
               loadedBy: batchLoadedBy,
               incomingEdgeIds: batchIncomingEdgeIds,
             });
+            get().updateGraphData();
           } catch (err) {
             console.warn(`[initFromEntity] Auto-expand failed for ${aggId}:`, err);
           }
@@ -847,12 +864,10 @@ export const createDataSlice = (set, get) => ({
             loadedBy: batchLoadedBy,
             incomingEdgeIds: batchIncomingEdgeIds,
           });
+          get().updateGraphData();
         }
 
       }
-
-      // Single graph rebuild after all aggregates are processed (was per-aggregate before — UI-1 fix)
-      get().updateGraphData();
 
       // Mark incoming as expanded
       set({ incomingExpandedUris: new Set([...get().incomingExpandedUris, uri]) });
@@ -977,14 +992,16 @@ export const createDataSlice = (set, get) => ({
     try {
       const similar = await fetchSimilarByProperties(uri, lodNode.properties, 'fr', 20);
 
-      const newLoadedNodes    = { ...get().loadedNodes };
-      const newLoadedRelations = { ...get().loadedRelations };
-      const newLoadedBy       = { ...get().loadedBy };
-      const newNodeSettings   = { ...get().nodeSettings };
+      // Ajouter les nœuds similaires par groupes de 5 pour un affichage progressif
+      let batchNodes = {};
+      let batchRelations = {};
+      let batchNodeSettings = {};
+      let batchCount = 0;
 
       for (const { uri: sUri, label, sharedCount } of similar) {
-        if (!newLoadedNodes[sUri]) {
-          newLoadedNodes[sUri] = {
+        const s = get();
+        if (!s.loadedNodes[sUri] && !batchNodes[sUri]) {
+          batchNodes[sUri] = {
             uri: sUri, label, types: [], typeLabels: [],
             properties: {}, temporal: { start: null, end: null, birthDate: null, precision: null },
             geo: { lat: null, lon: null }, sources: [], thumbnailUrl: null,
@@ -993,8 +1010,8 @@ export const createDataSlice = (set, get) => ({
         }
 
         const edgeId = `synthetic:${uri}:shared:${sUri}`;
-        if (!newLoadedRelations[edgeId]) {
-          newLoadedRelations[edgeId] = {
+        if (!s.loadedRelations[edgeId] && !batchRelations[edgeId]) {
+          batchRelations[edgeId] = {
             id: edgeId,
             source: uri,
             target: sUri,
@@ -1014,13 +1031,29 @@ export const createDataSlice = (set, get) => ({
           };
         }
 
-        _addParent(newLoadedBy, sUri, uri);
-        if (!newNodeSettings[sUri]) newNodeSettings[sUri] = defaultNodeSettings({ isSharedNode: true });
+        if (!s.nodeSettings[sUri] && !batchNodeSettings[sUri]) {
+          batchNodeSettings[sUri] = defaultNodeSettings({ isSharedNode: true });
+        }
+
+        batchCount++;
+        if (batchCount % 5 === 0 || batchCount === similar.length) {
+          const s2 = get();
+          const newLoadedBy = { ...s2.loadedBy };
+          for (const bUri of Object.keys(batchNodes)) _addParent(newLoadedBy, bUri, uri);
+          set({
+            loadedNodes: { ...s2.loadedNodes, ...batchNodes },
+            loadedRelations: { ...s2.loadedRelations, ...batchRelations },
+            loadedBy: newLoadedBy,
+            nodeSettings: { ...s2.nodeSettings, ...batchNodeSettings },
+          });
+          get().updateGraphData();
+          batchNodes = {};
+          batchRelations = {};
+          batchNodeSettings = {};
+        }
       }
 
-      set({ loadedNodes: newLoadedNodes, loadedRelations: newLoadedRelations,
-            loadedBy: newLoadedBy, nodeSettings: newNodeSettings });
-
+      set(s => ({ sharedExpandedUris: new Set([...s.sharedExpandedUris, uri]) }));
       get().setNodeExplored(uri);
       get().updateGraphData();
     } catch (err) {

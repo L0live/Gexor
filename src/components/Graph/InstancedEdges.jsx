@@ -64,22 +64,33 @@ const InstancedEdges = () => {
     const currentHoveredEdgeId = store.hoveredEdgeId;
     const relOpacity = 0.5;
 
+    const nodeParams = store.nodeParams || {};
+    const edgeParams = store.edgeParams || {};
+    const radius = nodeParams.radius ?? NODE_RADIUS;
+    const arrowSize = edgeParams.arrowSize ?? ARROW_SIZE;
+    const sharedEdgeOpacity = edgeParams.sharedEdgeOpacity ?? SHARED_EDGE_OPACITY;
+    const showEdges = edgeParams.showEdges !== false;
+    const showArrows = edgeParams.showArrows !== false;
+
     // Mettre à jour l'opacité globale des matériaux une fois par frame
     if (meshRef.current && meshRef.current.material) {
       const finalOp = Math.min(0.6, relOpacity);
       meshRef.current.material.opacity = finalOp;
-      meshRef.current.visible = finalOp > 0.001;
+      meshRef.current.visible = showEdges && finalOp > 0.001;
     }
     if (arrowMeshRef.current && arrowMeshRef.current.material) {
       const finalOp = Math.min(0.6, relOpacity);
       arrowMeshRef.current.material.opacity = finalOp;
-      arrowMeshRef.current.visible = finalOp > 0.001;
+      arrowMeshRef.current.visible = showArrows && finalOp > 0.001;
     }
     if (reverseArrowMeshRef.current && reverseArrowMeshRef.current.material) {
       const finalOp = Math.min(0.6, relOpacity);
       reverseArrowMeshRef.current.material.opacity = finalOp;
-      reverseArrowMeshRef.current.visible = finalOp > 0.001;
+      reverseArrowMeshRef.current.visible = showArrows && finalOp > 0.001;
     }
+    if (highlightMeshRef.current) highlightMeshRef.current.visible = showEdges;
+    if (highlightArrowMeshRef.current) highlightArrowMeshRef.current.visible = showArrows;
+    if (highlightReverseArrowMeshRef.current) highlightReverseArrowMeshRef.current.visible = showArrows;
     
     const count = visibleEdges.length;
     const safeCount = Math.min(count, MAX_INSTANCES);
@@ -117,7 +128,7 @@ const InstancedEdges = () => {
       const dist = _dir.length();
       
       // On dessine seulement si la distance est valide (plus de 0)
-      if (isNaN(dist) || dist < (NODE_RADIUS * 2 + ARROW_SIZE)) {
+      if (isNaN(dist) || dist < (radius * 2 + arrowSize)) {
         _m.makeScale(0, 0, 0);
         meshRef.current.setMatrixAt(i, _m);
         if (arrowMeshRef.current) arrowMeshRef.current.setMatrixAt(i, _m);
@@ -128,11 +139,11 @@ const InstancedEdges = () => {
       _dir.normalize();
       
       // Points effectifs du trait
-      const edgeVisibleLen = dist - (NODE_RADIUS * 2 + ARROW_SIZE);
-      
+      const edgeVisibleLen = dist - (radius * 2 + arrowSize);
+
       // Positionner le cylindre : milieu de la partie visible
       // On réutilise _mid pour éviter d'allouer de la mémoire
-      _mid.copy(_v1).addScaledVector(_dir, NODE_RADIUS + edgeVisibleLen * 0.5);
+      _mid.copy(_v1).addScaledVector(_dir, radius + edgeVisibleLen * 0.5);
 
       // Calcul LoD basé sur la distance à la caméra
       const distToCam = state.camera.position.distanceTo(_mid);
@@ -166,18 +177,19 @@ const InstancedEdges = () => {
           if (reverseArrowMeshRef.current) reverseArrowMeshRef.current.setMatrixAt(i, _m);
           if (highlightReverseArrowMeshRef.current) highlightReverseArrowMeshRef.current.setMatrixAt(i, _m);
         } else {
-          _mid.copy(_v2).addScaledVector(_dir, -(NODE_RADIUS + ARROW_SIZE / 2));
+          _mid.copy(_v2).addScaledVector(_dir, -(radius + arrowSize / 2));
           _obj.position.copy(_mid);
           _obj.quaternion.setFromUnitVectors(_up, _dir);
           // Scale de la flèche standard (1.0 pour thickness 0.2)
           const arrowScale = isSelected ? 3.0 : 1.0;
-          _obj.scale.set(arrowScale, 1.0, arrowScale); 
+          const arrowYScale = arrowSize / ARROW_SIZE;
+          _obj.scale.set(arrowScale, arrowYScale, arrowScale);
           _obj.updateMatrix();
           arrowMeshRef.current.setMatrixAt(i, _obj.matrix);
-          
+
           if (highlightArrowMeshRef.current) {
             if (isSelected || currentHoveredEdgeId === edge.id) {
-              _obj.scale.set(arrowScale * 1.2, 1.1, arrowScale * 1.2);
+              _obj.scale.set(arrowScale * 1.2, arrowYScale * 1.1, arrowScale * 1.2);
               _obj.updateMatrix();
               highlightArrowMeshRef.current.setMatrixAt(i, _obj.matrix);
             } else {
@@ -190,16 +202,16 @@ const InstancedEdges = () => {
           if (reverseArrowMeshRef.current) {
             if (edge.isBidirectional) {
               _dir_neg.copy(_dir).negate();
-              _mid.copy(_v1).addScaledVector(_dir, NODE_RADIUS + ARROW_SIZE / 2);
+              _mid.copy(_v1).addScaledVector(_dir, radius + arrowSize / 2);
               _obj.position.copy(_mid);
               _obj.quaternion.setFromUnitVectors(_up, _dir_neg);
-              _obj.scale.set(arrowScale, 1.0, arrowScale);
+              _obj.scale.set(arrowScale, arrowYScale, arrowScale);
               _obj.updateMatrix();
               reverseArrowMeshRef.current.setMatrixAt(i, _obj.matrix);
 
               if (highlightReverseArrowMeshRef.current) {
                 if (isSelected || currentHoveredEdgeId === edge.id) {
-                  _obj.scale.set(arrowScale * 1.2, 1.1, arrowScale * 1.2);
+                  _obj.scale.set(arrowScale * 1.2, arrowYScale * 1.1, arrowScale * 1.2);
                   _obj.updateMatrix();
                   highlightReverseArrowMeshRef.current.setMatrixAt(i, _obj.matrix);
                 } else {
@@ -219,7 +231,7 @@ const InstancedEdges = () => {
       // 3. Update Highlight Mesh (Contour)
       if (highlightMeshRef.current) {
         if (isSelected || currentHoveredEdgeId === edge.id) {
-          _obj.position.copy(_mid.copy(_v1).addScaledVector(_dir, NODE_RADIUS + edgeVisibleLen * 0.5));
+          _obj.position.copy(_mid.copy(_v1).addScaledVector(_dir, radius + edgeVisibleLen * 0.5));
           _obj.quaternion.setFromUnitVectors(_up, _dir);
           _obj.scale.set(thickness * 1.5, edgeVisibleLen, thickness * 1.5);
           _obj.updateMatrix();
@@ -238,7 +250,7 @@ const InstancedEdges = () => {
         _color.set('#60a5fa');
       } else if (isSynthetic) {
         // Gris-bleu atténué — facteur SHARED_EDGE_OPACITY appliqué à la luminosité
-        _color.set('#6b7eab').multiplyScalar(SHARED_EDGE_OPACITY / 0.5);
+        _color.set('#6b7eab').multiplyScalar(sharedEdgeOpacity / 0.5);
       } else {
         _color.set('#475569');
       }

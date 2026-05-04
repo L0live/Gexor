@@ -6,13 +6,13 @@ import useGraphStore from './store/useGraphStore';
 import useForceLayout from './hooks/useForceLayout';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { computeStats } from './store/utils';
-import { getCategoryColor, getCategoryColorDark } from './constants/graphConstants';
+import { getCategoryColorDark } from './constants/graphConstants';
+import { getTheme } from './constants/themes';
 import Scene from './components/Graph/Scene';
 import Minimap from './components/Graph/Minimap';
 import SettingsPanel from './components/UI/SettingsPanel';
 import InfoPanel from './components/UI/InfoPanel';
 import RightPanel from './components/UI/RightPanel';
-import AllPropertiesModal from './components/UI/AllPropertiesModal';
 import SearchModal from './components/UI/SearchModal';
 import { createFilter, FILTER_TYPES } from './models/searchFilter';
 import { preloadClassificationData } from './services/propertyClassification';
@@ -20,6 +20,57 @@ import { preloadClassificationData } from './services/propertyClassification';
 // ============================================================================
 // COUCHE 4 : INTERACTION LAYER (UI & Controls)
 // ============================================================================
+
+const SceneBackground = ({ showBackground, selectedNode }) => {
+  const themeId = useGraphStore(s => s.theme);
+  const theme = getTheme(themeId);
+  const bg = !selectedNode
+    ? theme.sceneBgFallback
+    : (theme.useCategoryColors ? getCategoryColorDark(selectedNode.type, 1) : theme.sceneBgFallback);
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden"
+      style={{ perspective: '1000px', background: bg }}
+    >
+      {showBackground && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 bottom-[-10%] w-[250vw] h-[300vh]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgba(150, 150, 150, 0.1) 0px, rgba(100, 100, 100, 0.05) 2px, transparent 5px),
+              linear-gradient(to bottom, rgba(150, 150, 150, 0.1) 0px, rgba(100, 100, 100, 0.05) 2px, transparent 5px)
+            `,
+            backgroundSize: '60px 60px',
+            transform: 'rotateX(75deg)',
+            transformOrigin: 'bottom center',
+            transformStyle: 'preserve-3d',
+            backfaceVisibility: 'hidden',
+            WebkitFontSmoothing: 'antialiased',
+            boxShadow: 'inset 0 100 100px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '50%',
+              width: '100%',
+              height: '180vh',
+              transform: 'translate(-50%, -100%) rotateX(-75deg)',
+              transformOrigin: 'bottom center',
+              backgroundImage: `url("/api/image?url=${encodeURIComponent('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/World_Map_1689.JPG/500px-World_Map_1689.JPG')}")`,
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'bottom center',
+              filter: 'brightness(0.7) contrast(1.2) saturate(1.3)',
+              maskImage: 'linear-gradient(to top, black 0px, transparent 100%)',
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Gexor = () => {
   const {
@@ -60,7 +111,6 @@ const Gexor = () => {
     expandAggregate,
     collapseAggregate,
     loadedAggregates,
-    addNodeToGraph,
     nodeSettings,
     outgoingFetchedUris,
     outgoingDisplayRelations,
@@ -69,7 +119,6 @@ const Gexor = () => {
   } = useGraphStore();
   
   const [showSettings, setShowSettings] = useState(false);
-  const [showAllProperties, setShowAllProperties] = useState(false);
   const [showPinnedNodesSection, setShowPinnedNodesSection] = useState(false);
   const initialSimulationStarted = useRef(false);
   const lastClickRef = useRef({ time: 0, id: null });
@@ -80,11 +129,6 @@ const Gexor = () => {
   useEffect(() => {
     preloadClassificationData();
   }, []);
-
-  // Fermer le modal "toutes les propriétés" quand le nœud sélectionné change
-  useEffect(() => {
-    setShowAllProperties(false);
-  }, [selectedNode?.id]);
 
   // Fermer les settings lors d'un clic à l'extérieur
   useEffect(() => {
@@ -207,9 +251,10 @@ const Gexor = () => {
   useKeyboardShortcuts({ selectedNode, toggleNodePin, undo, redo, canUndo, canRedo });
   
   const stats = useMemo(() => computeStats(nodes, edges), [nodes, edges]);
-  
+  const themeId = useGraphStore(s => s.theme);
+
   return (
-    <div className="w-full h-screen bg-slate-900 flex flex-col">
+    <div className="w-full h-screen bg-slate-900 flex flex-col" data-theme={themeId}>
       {/* Layout principal : Canvas + Sidebar */}
       <div className="flex-1 flex overflow-hidden">
         {/* Canvas 3D — contrainte de largeur quand RightPanel est ouvert */}
@@ -309,49 +354,7 @@ const Gexor = () => {
               )}
 
               {/* Grille 3D Statique (Calque de fond) */}
-              <div 
-                className="absolute inset-0 pointer-events-none overflow-hidden" 
-                style={{ perspective: '1000px', background: !selectedNode ? '#0b101e' : getCategoryColorDark(selectedNode.type, 1) }}
-              >
-                {showBackground && (
-                  <div 
-                    className="absolute left-1/2 -translate-x-1/2 bottom-[-10%] w-[250vw] h-[300vh]" 
-                    style={{ 
-                      backgroundImage: `
-                        linear-gradient(to right, rgba(150, 150, 150, 0.1) 0px, rgba(100, 100, 100, 0.05) 2px, transparent 5px),
-                        linear-gradient(to bottom, rgba(150, 150, 150, 0.1) 0px, rgba(100, 100, 100, 0.05) 2px, transparent 5px)
-                      `,
-                      backgroundSize: '60px 60px',
-                      transform: 'rotateX(75deg)',
-                      transformOrigin: 'bottom center',
-                      transformStyle: 'preserve-3d', // <--- IMPORTANT : Autorise les enfants 3D
-                      backfaceVisibility: 'hidden',
-                      WebkitFontSmoothing: 'antialiased',
-                      boxShadow: 'inset 0 100 100px rgba(0, 0, 0, 0.5)'
-                    }} 
-                  >
-                    {/* Image à l'horizon */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: '50%',
-                        width: '100%',
-                        height: '180vh',
-                        transform: 'translate(-50%, -100%) rotateX(-75deg)', // <--- Redresse l'image face caméra
-                        transformOrigin: 'bottom center',
-                        backgroundImage: `url("/api/image?url=${encodeURIComponent('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/World_Map_1689.JPG/500px-World_Map_1689.JPG')}")`,
-                        backgroundSize: 'contain',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'bottom center',
-                        filter: 'brightness(0.7) contrast(1.2) saturate(1.3)',
-                        maskImage: 'linear-gradient(to top, black 0px, transparent 100%)',
-                        // boxShadow: 'inset 0 0 200px 150px rgba(0, 0, 0, 0.5)'
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+              <SceneBackground showBackground={showBackground} selectedNode={selectedNode} />
 
               <Canvas
                 frameloop="demand"
@@ -405,20 +408,8 @@ const Gexor = () => {
           }
 
           {/* InfoPanel + RightPanel (remplacent NodeDetailPanel) */}
-          <InfoPanel nodes={nodes} />
+          <InfoPanel />
           <RightPanel />
-
-          {/* Section flottante Nœuds Connectés */}
-          {/* Modal toutes les propriétés */}
-          {showAllProperties && selectedNode && (
-            <AllPropertiesModal
-              selectedNode={selectedNode}
-              onClose={() => setShowAllProperties(false)}
-              selectNode={selectNode}
-              visibleNodeIds={visibleNodeIds}
-              addNodeToGraph={addNodeToGraph}
-            />
-          )}
 
           {/* SearchModal (overlay) */}
           <SearchModal />

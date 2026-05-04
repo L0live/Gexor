@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Download, Loader } from 'lucide-react';
+import { Network } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
 import { usePluginData } from '../../hooks/usePluginData';
 import { getCategoryColor } from '../../constants/graphConstants';
@@ -19,44 +19,20 @@ const ClassificationBadge = ({ classification }) => {
   );
 };
 
-const AssociatesTab = () => {
+const AllInGraphTab = () => {
   const selectedNode = useGraphStore(s => s.selectedNode);
   const selectNode   = useGraphStore(s => s.selectNode);
 
-  const { incoming } = usePluginData(selectedNode?.id);
+  const { graph } = usePluginData(selectedNode?.id);
 
   if (!selectedNode) return null;
 
-  if (incoming.isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-slate-500 text-sm p-6">
-        <Loader className="w-4 h-4 animate-spin text-blue-400" />
-        <span>Chargement des entrants…</span>
-      </div>
-    );
-  }
-
-  if (!incoming.isLoaded) {
-    return (
-      <div className="p-6 text-center space-y-3">
-        <Users className="w-8 h-8 text-slate-700 mx-auto" />
-        <p className="text-slate-500 text-sm">Entrants non chargés.</p>
-        <button
-          onClick={incoming.load}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-white hover:bg-slate-700/60 transition-colors text-xs"
-        >
-          <Download className="w-3.5 h-3.5" />
-          Charger les entrants
-        </button>
-      </div>
-    );
-  }
-
-  if (incoming.nodes.length === 0) {
+  if (graph.nodes.length === 0) {
     return (
       <div className="p-6 text-center space-y-2">
-        <Users className="w-8 h-8 text-slate-700 mx-auto" />
-        <p className="text-slate-500 text-sm">Aucun nœud entrant.</p>
+        <Network className="w-8 h-8 text-slate-700 mx-auto" />
+        <p className="text-slate-500 text-sm">Aucun nœud connecté dans le graphe.</p>
+        <p className="text-xs text-slate-600">Explorez des voisins via la barre d'exploration.</p>
       </div>
     );
   }
@@ -64,9 +40,9 @@ const AssociatesTab = () => {
   return (
     <div className="p-2 space-y-0.5">
       <div className="px-2 py-1 text-[10px] text-slate-600 font-bold uppercase tracking-wider">
-        {incoming.nodes.length} nœuds entrants
+        {graph.nodes.length} nœuds dans le graphe
       </div>
-      {incoming.nodes.map(node => (
+      {graph.nodes.map(node => (
         <button
           key={node.uri}
           onClick={() => selectNode(node.uri)}
@@ -90,9 +66,13 @@ const AssociatesTab = () => {
               {node.relations.slice(0, 3).map((r, i) => (
                 <span
                   key={i}
-                  className="text-[9px] px-1.5 py-0.5 rounded border bg-slate-700/30 text-slate-500 border-slate-700/30"
+                  className={`text-[9px] px-1.5 py-0.5 rounded border ${
+                    r.direction === 'outgoing'
+                      ? 'bg-teal-500/10 text-teal-500 border-teal-500/20'
+                      : 'bg-slate-700/30 text-slate-500 border-slate-700/30'
+                  }`}
                 >
-                  ← {r.label || r.pid}
+                  {r.direction === 'outgoing' ? '→' : '←'} {r.label || r.pid}
                 </span>
               ))}
               {node.relations.length > 3 && (
@@ -106,4 +86,4 @@ const AssociatesTab = () => {
   );
 };
 
-export default React.memo(AssociatesTab);
+export default React.memo(AllInGraphTab);

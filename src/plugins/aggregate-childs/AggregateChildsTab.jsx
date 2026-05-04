@@ -8,6 +8,7 @@ const AggregateChildsTab = () => {
   const loadedNodes = useGraphStore(s => s.loadedNodes);
   const expandAggregateForList = useGraphStore(s => s.expandAggregateForList);
   const addNodeToGraph = useGraphStore(s => s.addNodeToGraph);
+  const saveToHistory = useGraphStore(s => s.saveToHistory);
   const selectNode = useGraphStore(s => s.selectNode);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('');
@@ -77,7 +78,7 @@ const AggregateChildsTab = () => {
               className="flex-1 bg-slate-800/50 border border-slate-700/30 rounded-lg px-2.5 py-1 text-[11px] text-slate-300 placeholder-slate-600 outline-none focus:border-slate-600"
             />
             <button
-              onClick={() => children.forEach(uri => addNodeToGraph(uri))}
+              onClick={() => { children.forEach(uri => addNodeToGraph(uri)); saveToHistory(); }}
               className="text-[11px] px-2.5 py-1 rounded-lg bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 border border-violet-500/20 transition-all whitespace-nowrap"
               title="Tout ajouter au graphe"
             >
@@ -124,4 +125,4 @@ const AggregateChildsTab = () => {
   );
 };
 
-export default AggregateChildsTab;
+export default React.memo(AggregateChildsTab);

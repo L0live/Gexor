@@ -1,18 +1,20 @@
 import React from 'react';
-import { Loader } from 'lucide-react';
+import { Loader, Download } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
-import PropertiesGrouped from '../../components/UI/PropertiesGrouped';
+import { usePluginData } from '../../hooks/usePluginData';
+import { PropertiesContent } from './PropertiesContent';
 
 const PropertiesTab = () => {
-  const selectedNode = useGraphStore(s => s.selectedNode);
-  const selectNode = useGraphStore(s => s.selectNode);
+  const selectedNode  = useGraphStore(s => s.selectedNode);
+  const selectNode    = useGraphStore(s => s.selectNode);
   const visibleNodeIds = useGraphStore(s => s.visibleNodeIds);
   const addNodeToGraph = useGraphStore(s => s.addNodeToGraph);
-  const loadingSelectedNodeProperties = useGraphStore(s => s.loadingSelectedNodeProperties);
+
+  const { properties } = usePluginData(selectedNode?.id);
 
   if (!selectedNode || selectedNode.isAggregate) return null;
 
-  if (loadingSelectedNodeProperties) {
+  if (properties.isLoading) {
     return (
       <div className="flex items-center gap-2 text-slate-500 text-sm p-6">
         <Loader className="w-4 h-4 animate-spin text-blue-400" />
@@ -21,23 +23,25 @@ const PropertiesTab = () => {
     );
   }
 
-  const propertiesCount = selectedNode.properties ? Object.keys(selectedNode.properties).length : 0;
-
-  if (propertiesCount === 0) {
+  if (!properties.isLoaded || !properties.data || Object.keys(properties.data).length === 0) {
     return (
-      <div className="p-6 text-center text-slate-500 text-sm space-y-2">
+      <div className="p-6 text-center text-slate-500 text-sm space-y-3">
         <p>Aucune propriété chargée.</p>
-        <p className="text-xs text-slate-600">Activez "Propriétés" dans la barre d'exploration pour charger les sortants.</p>
+        <button
+          onClick={properties.load}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-white hover:bg-slate-700/60 transition-colors text-xs"
+        >
+          <Download className="w-3.5 h-3.5" />
+          Charger les propriétés
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-4">
-      <PropertiesGrouped
-        nodeUri={selectedNode.id}
-        properties={selectedNode.properties}
-        totalPropertyCount={propertiesCount}
+    <div className="overflow-y-auto p-2">
+      <PropertiesContent
+        properties={properties.data}
         selectNode={selectNode}
         visibleNodeIds={visibleNodeIds}
         addNodeToGraph={addNodeToGraph}
@@ -46,4 +50,4 @@ const PropertiesTab = () => {
   );
 };
 
-export default PropertiesTab;
+export default React.memo(PropertiesTab);

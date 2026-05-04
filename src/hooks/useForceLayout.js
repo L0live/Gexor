@@ -151,9 +151,15 @@ const useForceLayout = () => {
     // Reuse persistent ForceLayout instance — creates a new thread pool only when
     // threads change (e.g. single-thread fallback). FORCE_LAYOUT_DEFAULTS.maxIteration (500)
     // is used as the cap; minMovement: 0.01 ensures early-exit for already-converged layouts.
+    const runtimeForceParams = useGraphStore.getState().forceParams || {};
     const getOrCreateForce = (t) => {
       if (!forceRef.current || forceThreadsRef.current !== t) {
-        forceRef.current = new ForceLayout({ threads: t, ...FORCE_LAYOUT_DEFAULTS, distanceThresholdMode: 'max' });
+        forceRef.current = new ForceLayout({
+          threads: t,
+          ...FORCE_LAYOUT_DEFAULTS,
+          ...runtimeForceParams,
+          distanceThresholdMode: 'max',
+        });
         forceThreadsRef.current = t;
       }
       return forceRef.current;
@@ -469,6 +475,17 @@ const useForceLayout = () => {
     runLayoutBatchInternal(iterations);
     return promise;
   }, [runLayoutBatchInternal]);
+
+  // ── Invalidate ForceLayout when runtime params change ───────────────────
+  const forceParams = useGraphStore(s => s.forceParams);
+  useEffect(() => {
+    if (!isInitialized) return;
+    forceRef.current = null; // next batch recreates with fresh params
+    forceThreadsRef.current = null;
+    // Debounced wake so dragging a slider doesn't spam the WASM instance
+    const t = setTimeout(() => triggerWake(), 150);
+    return () => clearTimeout(t);
+  }, [forceParams, isInitialized, triggerWake]);
 
   /** Stop any running simulation. */
   const stopSimulation = useCallback(() => {

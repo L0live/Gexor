@@ -1,18 +1,16 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import { Search, X, Loader, Plus, ChevronDown, ChevronRight, ExternalLink, Copy, Check, Clock, Database, Eye, Globe, MoreVertical, ArrowRight, Filter, Compass } from 'lucide-react';
+import { Search, X, Loader, Plus, ChevronDown, ChevronRight, ExternalLink, Copy, Check, Clock, Database, Eye, Globe, ArrowRight, Filter } from 'lucide-react';
 import useGraphStore from '../../store/useGraphStore';
 import { createFilter, FILTER_TYPES } from '../../models/searchFilter';
-import FilterBadge from './FilterBadge';
 import TypeHierarchyPanel from './TypeHierarchyPanel';
-import { fetchIncomingAggregates, fetchAggregateChildren, fetchSimilarByProperties } from '../../services/queries/wikidata';
 
 const QID_PATTERN = /^Q\d+$/i;
 
 // ── Scope Selector ─────────────────────────────────────────────────────────
 const SCOPES = [
-  { key: 'graph', label: 'Graphe', icon: Database, desc: 'Nœuds chargés' },
-  { key: 'wikidata', label: 'Wikidata', icon: Globe, desc: 'Recherche distante' },
-  { key: 'visible', label: 'Visible', icon: Eye, desc: 'Nœuds visibles' },
+  { key: 'graph',    label: 'Graphe',   icon: Database, desc: 'Nœuds chargés' },
+  { key: 'wikidata', label: 'Wikidata', icon: Globe,    desc: 'Recherche distante' },
+  { key: 'visible',  label: 'Visible',  icon: Eye,      desc: 'Nœuds visibles' },
 ];
 
 const ScopeSelector = ({ scope, setScope, loadedCount, visibleCount }) => (
@@ -36,7 +34,7 @@ const ScopeSelector = ({ scope, setScope, loadedCount, visibleCount }) => (
         >
           <Icon className="w-3 h-3" />
           {label}
-          {key === 'graph' && <span className="text-[9px] opacity-60">{loadedCount}</span>}
+          {key === 'graph'   && <span className="text-[9px] opacity-60">{loadedCount}</span>}
           {key === 'visible' && <span className="text-[9px] opacity-60">{visibleCount}</span>}
         </button>
       );
@@ -44,11 +42,10 @@ const ScopeSelector = ({ scope, setScope, loadedCount, visibleCount }) => (
   </div>
 );
 
-// ── Preview Tooltip (§8.3) ─────────────────────────────────────────────────
+// ── Preview Tooltip ─────────────────────────────────────────────────────────
 const PreviewTooltip = ({ node, connectionCount }) => {
   if (!node) return null;
-  const props = node.properties || {};
-  const propEntries = Object.entries(props).slice(0, 3);
+  const propEntries = Object.entries(node.properties || {}).slice(0, 3);
 
   return (
     <div className="absolute right-full top-0 mr-2 z-[70] w-72 bg-slate-800/98 border border-slate-700/60 rounded-xl shadow-2xl p-3 animate-popover pointer-events-none">
@@ -83,22 +80,13 @@ const PreviewTooltip = ({ node, connectionCount }) => {
 };
 
 // ── Result Row with hover actions ──────────────────────────────────────────
-const ResultRow = ({ result, selectNode, closeSearchModal, addNodeToGraph, isSelected, onToggleSelect, focused, loadedNodes, loadedRelations }) => {
-  const openSearchModal = useGraphStore(s => s.openSearchModal);
+// connectionCount is pre-computed by parent (§8.2 fix)
+const ResultRow = ({ result, selectNode, closeSearchModal, addNodeToGraph, isSelected, onToggleSelect, focused, loadedNodes, connectionCount }) => {
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const hoverTimerRef = useRef(null);
   const qid = result.uri?.split('/').pop();
   const isInGraph = result.inGraph || !!loadedNodes[result.uri];
-
-  const connectionCount = useMemo(() => {
-    if (!isInGraph || !loadedRelations) return 0;
-    let count = 0;
-    for (const rel of Object.values(loadedRelations)) {
-      if (rel.source === result.uri || rel.target === result.uri) count++;
-    }
-    return count;
-  }, [isInGraph, loadedRelations, result.uri]);
 
   const handleMouseEnter = useCallback(() => {
     if (!isInGraph) return;
@@ -129,29 +117,18 @@ const ResultRow = ({ result, selectNode, closeSearchModal, addNodeToGraph, isSel
     closeSearchModal();
   }, [selectNode, closeSearchModal, result.uri]);
 
-  const handleClick = useCallback((e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      openSearchModal([], null, result.uri);
-    } else {
-      handleNavigate();
-    }
-  }, [handleNavigate, openSearchModal, result.uri]);
-
   return (
     <div
-      onClick={handleClick}
+      onClick={handleNavigate}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={`relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer group ${
         focused ? 'bg-slate-700/60 ring-1 ring-blue-500/50' : 'hover:bg-slate-800/50'
       }`}
     >
-      {/* Preview tooltip for in-graph entities */}
       {showPreview && isInGraph && loadedNodes[result.uri] && (
         <PreviewTooltip node={loadedNodes[result.uri]} connectionCount={connectionCount} />
       )}
-      {/* Pastille / Checkbox */}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleSelect(result.uri); }}
         className="w-4 h-4 flex items-center justify-center shrink-0"
@@ -167,7 +144,6 @@ const ResultRow = ({ result, selectNode, closeSearchModal, addNodeToGraph, isSel
         )}
       </button>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-slate-200 truncate">{result.label}</span>
@@ -178,7 +154,6 @@ const ResultRow = ({ result, selectNode, closeSearchModal, addNodeToGraph, isSel
         )}
       </div>
 
-      {/* Hover actions */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button
           onClick={(e) => { e.stopPropagation(); handleNavigate(); }}
@@ -212,7 +187,7 @@ const ResultRow = ({ result, selectNode, closeSearchModal, addNodeToGraph, isSel
 };
 
 // ── Collapsible Type Group ─────────────────────────────────────────────────
-const TypeGroup = ({ typeLabel, typeQid, results, defaultOpen, selectNode, closeSearchModal, addFilter, addNodeToGraph, selectedUris, onToggleSelect, focusedUri, loadedNodes, loadedRelations, style }) => {
+const TypeGroup = ({ typeLabel, typeQid, results, defaultOpen, selectNode, closeSearchModal, addFilter, addNodeToGraph, selectedUris, onToggleSelect, focusedUri, loadedNodes, connectionsByUri, style }) => {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -249,7 +224,7 @@ const TypeGroup = ({ typeLabel, typeQid, results, defaultOpen, selectNode, close
               onToggleSelect={onToggleSelect}
               focused={focusedUri === result.uri}
               loadedNodes={loadedNodes}
-              loadedRelations={loadedRelations}
+              connectionCount={connectionsByUri[result.uri] || 0}
             />
           ))}
         </div>
@@ -258,270 +233,7 @@ const TypeGroup = ({ typeLabel, typeQid, results, defaultOpen, selectNode, close
   );
 };
 
-// ── Display Mode Selector (exploration mode) ───────────────────────────────
-const DISPLAY_MODES = [
-  { key: 'outgoing', label: 'Propriétés', icon: ArrowRight },
-  { key: 'incoming', label: 'Associés', icon: Filter },
-  { key: 'shared', label: 'Communes', icon: Database },
-];
-
-const DisplaySelector = ({ mode, setMode }) => (
-  <div className="flex items-center gap-1.5 mt-2">
-    {DISPLAY_MODES.map(({ key, label, icon: Icon }) => {
-      const active = mode === key;
-      return (
-        <button
-          key={key}
-          onClick={() => setMode(key)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
-            active
-              ? 'bg-violet-500/20 text-violet-300 border-violet-500/40'
-              : 'bg-slate-800/50 text-slate-500 border-slate-700/40 hover:text-slate-300 hover:border-slate-600/50'
-          }`}
-        >
-          <Icon className="w-3 h-3" />
-          {label}
-        </button>
-      );
-    })}
-  </div>
-);
-
-// ── Exploration: single relation row ───────────────────────────────────────
-const ExplorationNodeRow = ({ uri, label, description, badge, selectNode, closeSearchModal, addNodeToGraph, loadedNodes }) => {
-  const openSearchModal = useGraphStore(s => s.openSearchModal);
-  const isInGraph = !!loadedNodes[uri];
-
-  const handleClick = useCallback((e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      openSearchModal([], null, uri);
-    } else {
-      selectNode(uri);
-      closeSearchModal();
-    }
-  }, [selectNode, closeSearchModal, openSearchModal, uri]);
-
-  return (
-    <div
-      onClick={handleClick}
-      className="flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all cursor-pointer group hover:bg-slate-800/50"
-    >
-      <div className={`w-2 h-2 rounded-full shrink-0 ${isInGraph ? 'bg-emerald-400' : 'bg-slate-700 group-hover:bg-slate-600'}`} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-200 truncate">{label || uri.split('/').pop()}</span>
-          <span className="text-[9px] text-slate-600 font-mono shrink-0">{uri.split('/').pop()}</span>
-        </div>
-        {description && <div className="text-[11px] text-slate-500 truncate">{description}</div>}
-      </div>
-      {badge && (
-        <span className="text-[10px] font-mono text-violet-400 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded shrink-0">
-          {badge}
-        </span>
-      )}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button
-          onClick={(e) => { e.stopPropagation(); if (!isInGraph) addNodeToGraph(uri); }}
-          className={`p-1 rounded transition-colors ${isInGraph ? 'text-slate-700 cursor-default' : 'hover:bg-slate-700/60 text-slate-500 hover:text-emerald-400'}`}
-          title={isInGraph ? 'Déjà dans le graphe' : 'Ajouter au graphe'}
-          disabled={isInGraph}
-        >
-          <Plus className="w-3 h-3" />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// ── Exploration: predicate group (collapsible) ─────────────────────────────
-const ExplorationPredicateGroup = ({ predicateLabel, count, children, defaultOpen }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800/40 rounded-lg transition-colors group"
-      >
-        {open ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
-        <span className="text-[11px] font-bold text-slate-300 truncate">{predicateLabel}</span>
-        <span className="text-[9px] text-slate-600 font-mono shrink-0">{count}</span>
-      </button>
-      {open && <div className="pl-2 space-y-0.5">{children}</div>}
-    </div>
-  );
-};
-
-// ── Exploration: incoming aggregate group ──────────────────────────────────
-const IncomingAggregateGroup = ({ predicateLabel, targetClassLabel, count, sourceUri, pid, targetClass, selectNode, closeSearchModal, addNodeToGraph, loadedNodes }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [children, setChildren] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const handleExpand = useCallback(async () => {
-    if (!expanded && children.length === 0) {
-      setLoading(true);
-      try {
-        const result = await fetchAggregateChildren(sourceUri, pid);
-        setChildren(result?.nodes || []);
-      } catch (err) {
-        console.warn('[IncomingAggregateGroup] expand failed:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    setExpanded(e => !e);
-  }, [expanded, children.length, sourceUri, pid]);
-
-  return (
-    <div>
-      <button
-        onClick={handleExpand}
-        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800/40 rounded-lg transition-colors group"
-      >
-        {loading ? (
-          <Loader className="w-3 h-3 text-slate-500 animate-spin" />
-        ) : expanded ? (
-          <ChevronDown className="w-3 h-3 text-slate-500" />
-        ) : (
-          <ChevronRight className="w-3 h-3 text-slate-500" />
-        )}
-        <span className="text-[11px] font-bold text-slate-300 truncate">{predicateLabel}</span>
-        {targetClassLabel && (
-          <span className="text-[10px] text-slate-500 truncate">· {targetClassLabel}</span>
-        )}
-        <span className="text-[9px] text-slate-600 font-mono shrink-0 ml-auto">{count}</span>
-      </button>
-      {expanded && children.length > 0 && (
-        <div className="pl-2 space-y-0.5">
-          {children.map(n => (
-            <ExplorationNodeRow
-              key={n.uri}
-              uri={n.uri}
-              label={n.label}
-              description={n.description}
-              selectNode={selectNode}
-              closeSearchModal={closeSearchModal}
-              addNodeToGraph={addNodeToGraph}
-              loadedNodes={loadedNodes}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Exploration results ────────────────────────────────────────────────────
-const ExplorationResults = ({ explorationUri, displayMode, outgoingDisplayRelations, loadedNodes, explorationIncoming, explorationShared, explorationLoading, selectNode, closeSearchModal, addNodeToGraph }) => {
-  if (explorationLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[120px] gap-2 text-slate-500">
-        <Loader className="w-4 h-4 animate-spin" />
-        <span className="text-sm">Chargement…</span>
-      </div>
-    );
-  }
-
-  // ── Propriétés (outgoing) ──
-  if (displayMode === 'outgoing') {
-    const edges = Object.values(outgoingDisplayRelations).filter(e => e.source === explorationUri);
-    if (edges.length === 0) {
-      return <div className="flex items-center justify-center min-h-[80px] text-slate-600 text-sm">Aucune propriété sortante chargée</div>;
-    }
-    const byPredicate = {};
-    for (const edge of edges) {
-      const key = edge.label || edge.predicate;
-      if (!byPredicate[key]) byPredicate[key] = [];
-      byPredicate[key].push(edge);
-    }
-    const groups = Object.entries(byPredicate).sort(([a], [b]) => a.localeCompare(b));
-    return (
-      <div className="p-2 space-y-1">
-        {groups.map(([predicateLabel, groupEdges], idx) => (
-          <ExplorationPredicateGroup
-            key={predicateLabel}
-            predicateLabel={predicateLabel}
-            count={groupEdges.length}
-            defaultOpen={idx < 3 || groupEdges.length <= 3}
-          >
-            {groupEdges.map(edge => {
-              const targetNode = loadedNodes[edge.target];
-              return (
-                <ExplorationNodeRow
-                  key={edge.id}
-                  uri={edge.target}
-                  label={targetNode?.label}
-                  description={targetNode?.description}
-                  selectNode={selectNode}
-                  closeSearchModal={closeSearchModal}
-                  addNodeToGraph={addNodeToGraph}
-                  loadedNodes={loadedNodes}
-                />
-              );
-            })}
-          </ExplorationPredicateGroup>
-        ))}
-      </div>
-    );
-  }
-
-  // ── Associés (incoming) ──
-  if (displayMode === 'incoming') {
-    if (explorationIncoming.length === 0) {
-      return <div className="flex items-center justify-center min-h-[80px] text-slate-600 text-sm">Aucune référence entrante</div>;
-    }
-    const groups = [...explorationIncoming].sort((a, b) =>
-      (a.predicateLabel || a.predicate).localeCompare(b.predicateLabel || b.predicate)
-    );
-    return (
-      <div className="p-2 space-y-1">
-        {groups.map((agg, i) => (
-          <IncomingAggregateGroup
-            key={`${agg.predicate}-${i}`}
-            predicateLabel={agg.predicateLabel || agg.predicate}
-            targetClassLabel={agg.targetClassLabels?.filter(l => l !== 'unknown').join(', ')}
-            count={agg.count}
-            sourceUri={explorationUri}
-            pid={agg.predicate}
-            targetClass={agg.targetClasses?.[0]}
-            selectNode={selectNode}
-            closeSearchModal={closeSearchModal}
-            addNodeToGraph={addNodeToGraph}
-            loadedNodes={loadedNodes}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  // ── Communes (shared) ──
-  if (displayMode === 'shared') {
-    if (explorationShared.length === 0) {
-      return <div className="flex items-center justify-center min-h-[80px] text-slate-600 text-sm">Aucune entité similaire trouvée</div>;
-    }
-    return (
-      <div className="p-2 space-y-0.5">
-        {explorationShared.map(({ uri, label, sharedCount }) => (
-          <ExplorationNodeRow
-            key={uri}
-            uri={uri}
-            label={label}
-            badge={`${sharedCount} prop.`}
-            selectNode={selectNode}
-            closeSearchModal={closeSearchModal}
-            addNodeToGraph={addNodeToGraph}
-            loadedNodes={loadedNodes}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return null;
-};
-
-// ── Pre-search body (history + graph exploration) ──────────────────────────
+// ── Pre-search body (history + graph filter browser) ───────────────────────
 const PreSearchBody = ({ addFilter, searchHistory, restoreFromHistory, selectNode, closeSearchModal }) => {
   const allDiscoveredTypes = useGraphStore(s => s.allDiscoveredTypes);
   const loadedNodes = useGraphStore(s => s.loadedNodes);
@@ -540,10 +252,6 @@ const PreSearchBody = ({ addFilter, searchHistory, restoreFromHistory, selectNod
     return types.sort((a, b) => b.count - a.count);
   }, [allDiscoveredTypes, taxonomyClasses, loadedNodes]);
 
-  const propertyEntries = useMemo(() => {
-    return [];
-  }, []);
-
   const entityEntries = useMemo(() => {
     return Object.values(loadedNodes)
       .slice(0, 50)
@@ -552,12 +260,10 @@ const PreSearchBody = ({ addFilter, searchHistory, restoreFromHistory, selectNod
   }, [loadedNodes]);
 
   const [showAllTypes, setShowAllTypes] = useState(false);
-  const [showAllProps, setShowAllProps] = useState(false);
   const [showAllEntities, setShowAllEntities] = useState(false);
 
   return (
     <div className="p-4 space-y-5">
-      {/* Search History */}
       {searchHistory.length > 0 && (
         <div>
           <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] mb-2">Recherches récentes</h4>
@@ -566,7 +272,11 @@ const PreSearchBody = ({ addFilter, searchHistory, restoreFromHistory, selectNod
               <button
                 key={entry.id}
                 onClick={() => {
-                  if (entry.query && QID_PATTERN.test(entry.query.trim())) {
+                  // §8.7: QID shortcut only when entry has no filters.
+                  // If there are filters too, restore the full context instead.
+                  const hasQid = entry.query && QID_PATTERN.test(entry.query.trim());
+                  const hasFilters = entry.filters?.length > 0;
+                  if (hasQid && !hasFilters) {
                     const qid = entry.query.trim().toUpperCase();
                     selectNode(`http://www.wikidata.org/entity/${qid}`);
                     closeSearchModal();
@@ -596,12 +306,10 @@ const PreSearchBody = ({ addFilter, searchHistory, restoreFromHistory, selectNod
         </div>
       )}
 
-      {/* Explore current graph */}
-      {(typeEntries.length > 0 || propertyEntries.length > 0 || entityEntries.length > 0) && (
+      {(typeEntries.length > 0 || entityEntries.length > 0) && (
         <div>
           <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] mb-3">Explorer le graphe courant</h4>
 
-          {/* Types as chips */}
           {typeEntries.length > 0 && (
             <div className="mb-3">
               <div className="text-[9px] text-slate-600 mb-1.5">Types</div>
@@ -624,30 +332,6 @@ const PreSearchBody = ({ addFilter, searchHistory, restoreFromHistory, selectNod
             </div>
           )}
 
-          {/* Properties as chips */}
-          {propertyEntries.length > 0 && (
-            <div className="mb-3">
-              <div className="text-[9px] text-slate-600 mb-1.5">Propriétés</div>
-              <div className="flex flex-wrap gap-1.5">
-                {(showAllProps ? propertyEntries : propertyEntries.slice(0, 8)).map(p => (
-                  <button
-                    key={p.pid}
-                    onClick={() => addFilter(createFilter(FILTER_TYPES.PROPERTY, p.pid, p.label))}
-                    className="text-[10px] px-2 py-1 rounded-lg bg-violet-500/8 text-violet-400/80 border border-violet-500/15 hover:bg-violet-500/15 transition-colors"
-                  >
-                    {p.label}
-                  </button>
-                ))}
-                {!showAllProps && propertyEntries.length > 8 && (
-                  <button onClick={() => setShowAllProps(true)} className="text-[10px] px-2 py-1 text-slate-600 hover:text-slate-400 transition-colors">
-                    + {propertyEntries.length - 8} autres
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Entities as chips */}
           {entityEntries.length > 0 && (
             <div>
               <div className="text-[9px] text-slate-600 mb-1.5">Entités chargées</div>
@@ -675,8 +359,8 @@ const PreSearchBody = ({ addFilter, searchHistory, restoreFromHistory, selectNod
   );
 };
 
-// ── Zero Results Body ──────────────────────────────────────────────────────
-const ZeroResultsBody = ({ query, scope, setScope, executeSearch, filters, removeFilter }) => (
+// ── Zero Results Body — §8.1 fix: callback instead of setTimeout ───────────
+const ZeroResultsBody = ({ query, scope, onSearchInWikidata, filters, removeFilter }) => (
   <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
     <p className="text-sm text-slate-400 mb-1">
       Aucun résultat pour <span className="font-bold text-slate-200">"{query}"</span>
@@ -687,7 +371,7 @@ const ZeroResultsBody = ({ query, scope, setScope, executeSearch, filters, remov
 
     {scope !== 'wikidata' && (
       <button
-        onClick={() => { setScope('wikidata'); setTimeout(() => executeSearch(), 50); }}
+        onClick={onSearchInWikidata}
         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30 transition-colors text-sm font-bold mb-4"
       >
         <Globe className="w-3.5 h-3.5" />
@@ -713,10 +397,10 @@ const ZeroResultsBody = ({ query, scope, setScope, executeSearch, filters, remov
 );
 
 // ── Selection Banner ───────────────────────────────────────────────────────
-const SelectionBanner = ({ count, onAdd, onClear }) => (
+const SelectionBanner = ({ count, onAdd, onClear, statusMsg }) => (
   <div className="sticky bottom-0 mx-2 mb-2 flex items-center justify-between px-4 py-2.5 bg-blue-500/15 border border-blue-500/30 rounded-xl backdrop-blur-sm animate-selection-banner">
     <span className="text-[11px] font-bold text-blue-300">
-      {count} entité{count > 1 ? 's' : ''} sélectionnée{count > 1 ? 's' : ''}
+      {statusMsg || `${count} entité${count > 1 ? 's' : ''} sélectionnée${count > 1 ? 's' : ''}`}
     </span>
     <div className="flex items-center gap-2">
       <button
@@ -732,10 +416,10 @@ const SelectionBanner = ({ count, onAdd, onClear }) => (
   </div>
 );
 
-// ── HAS_VALUE Popover (§5.3) ───────────────────────────────────────────────
+// ── HAS_VALUE Popover ──────────────────────────────────────────────────────
 const HasValuePopover = ({ pid, pidLabel, onAddProperty, onAddHasValue, onClose }) => {
   const ref = useRef(null);
-  const [mode, setMode] = useState('choose'); // 'choose' | 'search'
+  const [mode, setMode] = useState('choose');
   const [valueQuery, setValueQuery] = useState('');
   const [valueResults, setValueResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -834,10 +518,7 @@ const HasValuePopover = ({ pid, pidLabel, onAddProperty, onAddHasValue, onClose 
                 <p className="text-[10px] text-slate-600 italic px-2 py-1">Aucun résultat</p>
               )}
             </div>
-            <button
-              onClick={() => setMode('choose')}
-              className="text-[9px] text-slate-600 hover:text-slate-400 transition-colors"
-            >
+            <button onClick={() => setMode('choose')} className="text-[9px] text-slate-600 hover:text-slate-400 transition-colors">
               ← Retour
             </button>
           </div>
@@ -915,62 +596,528 @@ const TypeHierarchyPopover = ({ typeQid, onSelectType, onClose }) => {
   );
 };
 
+// ── Filter Row — text-based rendering ──────────────────────────────────────
+const FILTER_TYPE_LABELS = {
+  [FILTER_TYPES.TYPE]:      'est de type',
+  [FILTER_TYPES.PROPERTY]:  'a la propriété',
+  [FILTER_TYPES.ENTITY]:    'est lié à',
+  [FILTER_TYPES.HAS_VALUE]: '=',
+  [FILTER_TYPES.TEXT]:      'texte',
+};
+
+const QID_RAW = /^Q\d+$/i;
+
+const FilterRow = ({ filter, onRemove, onReplaceType, hierarchyOpen, onShowHierarchy, onHierarchyClose }) => {
+  const taxonomyClasses = useGraphStore(s => s.taxonomyClasses);
+
+  const typeLabel = filter.type === FILTER_TYPES.HAS_VALUE
+    ? `${filter.meta?.pid || ''} =`
+    : (FILTER_TYPE_LABELS[filter.type] || filter.type);
+
+  // Resolve label if it's still a raw QID (e.g. history entry created before taxonomy loaded)
+  let displayLabel = filter.label;
+  if (filter.type === FILTER_TYPES.TYPE && QID_RAW.test(filter.label)) {
+    const cls = taxonomyClasses[filter.value];
+    const resolved = cls?.labels?.fr || cls?.labels?.en;
+    displayLabel = resolved || filter.label; // keep QID if still unresolved
+  }
+
+  return (
+    <div className={`flex items-center gap-2 px-2 py-1 rounded-lg group ${filter.operator === 'not' ? 'bg-red-500/5' : ''}`}>
+      {filter.operator === 'not' && (
+        <span className="text-[10px] font-bold text-red-400/80 shrink-0">sauf</span>
+      )}
+      <span className="text-[11px] text-slate-500 shrink-0">{typeLabel}</span>
+      <span className="text-[11px] text-slate-200 font-medium truncate flex-1">{displayLabel}</span>
+      {filter.type === FILTER_TYPES.TYPE && (
+        <div className="relative shrink-0">
+          <button
+            onClick={onShowHierarchy}
+            className="p-0.5 rounded text-slate-600 hover:text-slate-400 transition-colors"
+            title="Naviguer dans la taxonomie P279"
+          >
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {hierarchyOpen && (
+            <TypeHierarchyPopover
+              typeQid={filter.value}
+              onSelectType={(qid, label) => onReplaceType(filter.id, qid, label)}
+              onClose={onHierarchyClose}
+            />
+          )}
+        </div>
+      )}
+      <button
+        onClick={() => onRemove(filter.id)}
+        className="shrink-0 p-0.5 rounded text-slate-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+        title="Retirer ce filtre"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+};
+
+// ── Filter Builder — progressive inline query builder ─────────────────────
+const FilterBuilder = ({ onAddFilter, taxonomyClasses, loadedNodes, propertyMatrix, searchFilters, onCancel }) => {
+  const [step, setStep] = useState('choice'); // 'choice' | 'type' | 'property' | 'entity'
+  const [operator, setOperator] = useState('and');
+  const [orTarget, setOrTarget] = useState('new');
+
+  // TYPE filter state
+  const [typeQuery, setTypeQuery] = useState('');
+  const [selectedType, setSelectedType] = useState(null);
+
+  // PROPERTY filter state
+  const [propQuery, setPropQuery] = useState('');
+  const [selectedProp, setSelectedProp] = useState(null);
+  const [valueMode, setValueMode] = useState('exists'); // 'exists' | 'equals'
+  const [valueQuery, setValueQuery] = useState('');
+  const [valueResults, setValueResults] = useState([]);
+  const [valueLoading, setValueLoading] = useState(false);
+  const valueTimerRef = useRef(null);
+
+  // ENTITY filter state
+  const [entityQuery, setEntityQuery] = useState('');
+  const [selectedEntity, setSelectedEntity] = useState(null);
+
+  useEffect(() => () => clearTimeout(valueTimerRef.current), []);
+
+  const existingOrGroupIds = useMemo(() => {
+    const ids = {};
+    for (const f of searchFilters) {
+      if (f.groupId && f.operator === 'or') ids[f.groupId] = true;
+    }
+    return Object.keys(ids);
+  }, [searchFilters]);
+
+  const typeResults = useMemo(() => {
+    const lc = typeQuery.toLowerCase().trim();
+    const entries = Object.entries(taxonomyClasses || {});
+    const filtered = lc
+      ? entries.filter(([qid, cls]) => {
+          const label = cls.labels?.fr || cls.labels?.en || '';
+          return label.toLowerCase().includes(lc) || qid.toLowerCase().includes(lc);
+        })
+      : entries;
+    return filtered.slice(0, 8).map(([qid, cls]) => ({ qid, label: cls.labels?.fr || cls.labels?.en || qid }));
+  }, [typeQuery, taxonomyClasses]);
+
+  // Build property list from loaded graph nodes
+  const knownProperties = useMemo(() => {
+    const map = {};
+    for (const node of Object.values(loadedNodes)) {
+      for (const [pid, prop] of Object.entries(node.properties || {})) {
+        if (!map[pid]) map[pid] = prop.label || pid;
+      }
+    }
+    return Object.entries(map).map(([pid, label]) => ({ pid, label }));
+  }, [loadedNodes]);
+
+  const propResults = useMemo(() => {
+    const lc = propQuery.toLowerCase().trim();
+    const filtered = lc
+      ? knownProperties.filter(p => p.label.toLowerCase().includes(lc) || p.pid.toLowerCase().includes(lc))
+      : knownProperties;
+    return filtered.slice(0, 8);
+  }, [propQuery, knownProperties]);
+
+  const localEntityResults = useMemo(() => {
+    const lc = entityQuery.toLowerCase().trim();
+    const nodes = Object.values(loadedNodes);
+    const filtered = lc ? nodes.filter(n => n.label?.toLowerCase().includes(lc)) : nodes;
+    return filtered.slice(0, 8).map(n => ({ uri: n.uri, label: n.label }));
+  }, [entityQuery, loadedNodes]);
+
+  const handleValueSearch = useCallback((text) => {
+    setValueQuery(text);
+    clearTimeout(valueTimerRef.current);
+    if (text.length < 2) { setValueResults([]); return; }
+    setValueLoading(true);
+    valueTimerRef.current = setTimeout(async () => {
+      try {
+        const resp = await fetch(`/api/search?q=${encodeURIComponent(text)}&lang=fr&limit=8`);
+        if (resp.ok) {
+          const results = await resp.json();
+          setValueResults((results || []).map(r => ({
+            uri: r.uri,
+            qid: r.uri?.split('/').pop(),
+            label: r.label,
+          })));
+        }
+      } catch { /* ignore */ }
+      setValueLoading(false);
+    }, 300);
+  }, []);
+
+  const handleConfirm = useCallback((type, value, label, meta = {}) => {
+    let groupId = null;
+    if (operator === 'or') {
+      groupId = orTarget === 'new' ? `or-group-${Date.now()}` : orTarget;
+    }
+    onAddFilter(createFilter(type, value, label, operator, meta, groupId));
+    onCancel();
+  }, [operator, orTarget, onAddFilter, onCancel]);
+
+  // Shared operator row (inlined to avoid hooks-in-nested-component issues)
+  const operatorRow = (
+    <div className="flex items-center gap-1 flex-wrap">
+      <span className="text-[9px] text-slate-600 shrink-0">Opérateur :</span>
+      {[['and', 'ET'], ['or', 'OU'], ['not', 'SAUF']].map(([key, lbl]) => (
+        <button
+          key={key}
+          onClick={() => setOperator(key)}
+          className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+            operator === key
+              ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+              : 'bg-slate-800/50 text-slate-500 border-slate-700/40 hover:text-slate-300'
+          }`}
+        >
+          {lbl}
+        </button>
+      ))}
+      {operator === 'or' && existingOrGroupIds.length > 0 && (
+        <select
+          value={orTarget}
+          onChange={e => setOrTarget(e.target.value)}
+          className="ml-1 text-[9px] bg-slate-800 border border-slate-700/40 rounded text-slate-400 px-1 py-0.5"
+        >
+          <option value="new">Nouveau groupe OU</option>
+          {existingOrGroupIds.map((gid, i) => (
+            <option key={gid} value={gid}>Ajouter au groupe OU {i + 1}</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+
+  // Step 1: Choose filter type
+  if (step === 'choice') {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-xl border border-slate-700/30">
+        <span className="text-[10px] text-slate-500 shrink-0">Ajouter :</span>
+        <button onClick={() => setStep('type')} className="text-[10px] px-2 py-1 rounded bg-red-500/10 text-red-400/80 border border-red-500/20 hover:bg-red-500/20 transition-colors">
+          Type d'entité
+        </button>
+        <button onClick={() => setStep('property')} className="text-[10px] px-2 py-1 rounded bg-violet-500/10 text-violet-400/80 border border-violet-500/20 hover:bg-violet-500/20 transition-colors">
+          Propriété
+        </button>
+        <button onClick={() => setStep('entity')} className="text-[10px] px-2 py-1 rounded bg-amber-500/10 text-amber-400/80 border border-amber-500/20 hover:bg-amber-500/20 transition-colors">
+          Entité liée
+        </button>
+        <button onClick={onCancel} className="ml-auto p-1 rounded hover:bg-slate-700/60 text-slate-600 hover:text-slate-300 transition-colors">
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    );
+  }
+
+  // Step 2a: Type filter config
+  if (step === 'type') {
+    return (
+      <div className="p-2.5 bg-slate-800/50 rounded-xl border border-red-500/15 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-slate-400 shrink-0">est de type</span>
+          {selectedType ? (
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/15 border border-red-500/25 text-[10px] text-red-300">
+              <span>{selectedType.label}</span>
+              <button onClick={() => setSelectedType(null)} className="text-red-500/60 hover:text-red-400">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={typeQuery}
+              onChange={e => setTypeQuery(e.target.value)}
+              placeholder="Chercher un type d'entité…"
+              className="flex-1 px-2 py-0.5 bg-slate-700/60 border border-slate-600/40 rounded text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-red-500/40"
+              autoFocus
+            />
+          )}
+        </div>
+
+        {!selectedType && typeResults.length > 0 && (
+          <div className="space-y-0.5 max-h-36 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            {typeResults.map(t => (
+              <button
+                key={t.qid}
+                onClick={() => setSelectedType(t)}
+                className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-red-500/10 text-left transition-colors"
+              >
+                <span className="text-[10px] text-slate-300 flex-1">{t.label}</span>
+                <span className="text-[9px] text-slate-600 font-mono">{t.qid}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {operatorRow}
+
+        <div className="flex items-center justify-between">
+          <button onClick={() => setStep('choice')} className="text-[9px] text-slate-600 hover:text-slate-400 transition-colors">← Retour</button>
+          <button
+            onClick={() => selectedType && handleConfirm(FILTER_TYPES.TYPE, selectedType.qid, selectedType.label)}
+            disabled={!selectedType}
+            className={`text-[10px] px-3 py-1 rounded border transition-colors ${
+              selectedType
+                ? 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30 cursor-pointer'
+                : 'bg-slate-800/50 text-slate-600 border-slate-700/30 cursor-not-allowed'
+            }`}
+          >
+            Ajouter
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2b: Property filter config
+  if (step === 'property') {
+    return (
+      <div className="p-2.5 bg-slate-800/50 rounded-xl border border-violet-500/15 space-y-2">
+        {!selectedProp ? (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 shrink-0">propriété</span>
+              <input
+                type="text"
+                value={propQuery}
+                onChange={e => setPropQuery(e.target.value)}
+                placeholder="Chercher une propriété (ex: P31, occupation)…"
+                className="flex-1 px-2 py-0.5 bg-slate-700/60 border border-slate-600/40 rounded text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500/40"
+                autoFocus
+              />
+            </div>
+            {propResults.length > 0 && (
+              <div className="space-y-0.5 max-h-36 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                {propResults.map(p => (
+                  <button
+                    key={p.pid}
+                    onClick={() => setSelectedProp(p)}
+                    className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-violet-500/10 text-left transition-colors"
+                  >
+                    <span className="text-[9px] font-mono text-violet-400 shrink-0">{p.pid}</span>
+                    <span className="text-[10px] text-slate-300 flex-1">{p.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {propResults.length === 0 && propQuery.length >= 2 && (
+              <p className="text-[10px] text-slate-600 italic px-1">Aucune propriété connue — tapez un PID directement (ex: P569)</p>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 shrink-0">propriété</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-violet-500/15 border border-violet-500/25 text-[10px] text-violet-300">
+                <span className="font-mono">{selectedProp.pid}</span>
+                <span>{selectedProp.label}</span>
+                <button onClick={() => { setSelectedProp(null); setValueMode('exists'); setValueQuery(''); setValueResults([]); }} className="text-violet-500/60 hover:text-violet-400">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setValueMode('exists')}
+                className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                  valueMode === 'exists'
+                    ? 'bg-violet-500/20 text-violet-300 border-violet-500/40'
+                    : 'bg-slate-800/50 text-slate-500 border-slate-700/40 hover:text-slate-300'
+                }`}
+              >
+                A la propriété
+              </button>
+              <button
+                onClick={() => setValueMode('equals')}
+                className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                  valueMode === 'equals'
+                    ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                    : 'bg-slate-800/50 text-slate-500 border-slate-700/40 hover:text-slate-300'
+                }`}
+              >
+                = valeur spécifique
+              </button>
+            </div>
+
+            {valueMode === 'equals' && (
+              <div className="space-y-1">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
+                  <input
+                    type="text"
+                    value={valueQuery}
+                    onChange={e => handleValueSearch(e.target.value)}
+                    placeholder="Rechercher une valeur…"
+                    className="w-full pl-7 pr-3 py-1 bg-slate-700/60 border border-slate-600/40 rounded text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500/40"
+                    autoFocus
+                  />
+                  {valueLoading && <Loader className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-orange-400 animate-spin" />}
+                </div>
+                {valueResults.length > 0 && (
+                  <div className="space-y-0.5 max-h-28 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                    {valueResults.map(r => (
+                      <button
+                        key={r.uri}
+                        onClick={() => handleConfirm(
+                          FILTER_TYPES.HAS_VALUE,
+                          `${selectedProp.pid}=${r.qid}`,
+                          `${selectedProp.label} = ${r.label}`,
+                          { pid: selectedProp.pid, qid: r.qid }
+                        )}
+                        className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-orange-500/10 text-left transition-colors"
+                      >
+                        <span className="text-[10px] text-slate-300 flex-1">{r.label}</span>
+                        <span className="text-[9px] text-slate-600 font-mono">{r.qid}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {valueQuery.length >= 2 && !valueLoading && valueResults.length === 0 && (
+                  <p className="text-[10px] text-slate-600 italic px-1">Aucun résultat</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {operatorRow}
+
+        <div className="flex items-center justify-between">
+          <button onClick={() => setStep('choice')} className="text-[9px] text-slate-600 hover:text-slate-400 transition-colors">← Retour</button>
+          {selectedProp && valueMode === 'exists' && (
+            <button
+              onClick={() => handleConfirm(FILTER_TYPES.PROPERTY, selectedProp.pid, selectedProp.label)}
+              className="text-[10px] px-3 py-1 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30 transition-colors"
+            >
+              Ajouter
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2c: Entity filter config
+  if (step === 'entity') {
+    return (
+      <div className="p-2.5 bg-slate-800/50 rounded-xl border border-amber-500/15 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-slate-400 shrink-0">est lié à</span>
+          {selectedEntity ? (
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/25 text-[10px] text-amber-300">
+              <span>{selectedEntity.label}</span>
+              <button onClick={() => setSelectedEntity(null)} className="text-amber-500/60 hover:text-amber-400">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={entityQuery}
+              onChange={e => setEntityQuery(e.target.value)}
+              placeholder="Chercher une entité du graphe…"
+              className="flex-1 px-2 py-0.5 bg-slate-700/60 border border-slate-600/40 rounded text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/40"
+              autoFocus
+            />
+          )}
+        </div>
+
+        {!selectedEntity && localEntityResults.length > 0 && (
+          <div className="space-y-0.5 max-h-36 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            {localEntityResults.map(e => (
+              <button
+                key={e.uri}
+                onClick={() => setSelectedEntity(e)}
+                className="w-full flex items-center gap-2 px-2 py-1 rounded hover:bg-amber-500/10 text-left transition-colors"
+              >
+                <span className="text-[10px] text-slate-300 flex-1">{e.label}</span>
+                <span className="text-[9px] text-slate-600 font-mono">{e.uri?.split('/').pop()}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {operatorRow}
+
+        <div className="flex items-center justify-between">
+          <button onClick={() => setStep('choice')} className="text-[9px] text-slate-600 hover:text-slate-400 transition-colors">← Retour</button>
+          {selectedEntity && (
+            <button
+              onClick={() => handleConfirm(FILTER_TYPES.ENTITY, selectedEntity.uri, selectedEntity.label)}
+              className="text-[10px] px-3 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors"
+            >
+              Ajouter
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 // ── Main SearchModal ───────────────────────────────────────────────────────
 const SearchModal = () => {
   // ─── Store state ───
-  const searchModalOpen = useGraphStore(s => s.searchModalOpen);
-  const closeSearchModal = useGraphStore(s => s.closeSearchModal);
-  const openSearchModal = useGraphStore(s => s.openSearchModal);
-  const searchFilters = useGraphStore(s => s.searchFilters);
-  const searchResults = useGraphStore(s => s.searchResults);
-  const searchLoading = useGraphStore(s => s.searchLoading);
-  const searchQuery = useGraphStore(s => s.searchQuery);
-  const addFilter = useGraphStore(s => s.addFilter);
-  const removeFilter = useGraphStore(s => s.removeFilter);
-  const clearFilters = useGraphStore(s => s.clearFilters);
-  const toggleFilterOperator = useGraphStore(s => s.toggleFilterOperator);
-  const setSearchQuery = useGraphStore(s => s.setSearchQuery);
-  const executeSearch = useGraphStore(s => s.executeSearch);
-  const selectNode = useGraphStore(s => s.selectNode);
-  const visibleNodeIds = useGraphStore(s => s.visibleNodeIds);
-  const searchHasMore = useGraphStore(s => s.searchHasMore);
+  const searchModalOpen     = useGraphStore(s => s.searchModalOpen);
+  const closeSearchModal    = useGraphStore(s => s.closeSearchModal);
+  const openSearchModal     = useGraphStore(s => s.openSearchModal);
+  const searchFilters       = useGraphStore(s => s.searchFilters);
+  const searchResults       = useGraphStore(s => s.searchResults);
+  const searchLoading       = useGraphStore(s => s.searchLoading);
+  const searchQuery         = useGraphStore(s => s.searchQuery);
+  const addFilter           = useGraphStore(s => s.addFilter);
+  const removeFilter        = useGraphStore(s => s.removeFilter);
+  const clearFilters        = useGraphStore(s => s.clearFilters);
+  const setSearchQuery      = useGraphStore(s => s.setSearchQuery);
+  const executeSearch       = useGraphStore(s => s.executeSearch);
+  const selectNode          = useGraphStore(s => s.selectNode);
+  const visibleNodeIds      = useGraphStore(s => s.visibleNodeIds);
+  const searchHasMore       = useGraphStore(s => s.searchHasMore);
   const getSuggestedProperties = useGraphStore(s => s.getSuggestedProperties);
-  const loadPropertyMatrix = useGraphStore(s => s.loadPropertyMatrix);
+  const loadPropertyMatrix  = useGraphStore(s => s.loadPropertyMatrix);
   const propertyMatrixLoaded = useGraphStore(s => s.propertyMatrixLoaded);
-  const loadedNodes = useGraphStore(s => s.loadedNodes);
-  const loadedRelations = useGraphStore(s => s.loadedRelations);
-  const addNodeToGraph = useGraphStore(s => s.addNodeToGraph);
+  const propertyMatrix      = useGraphStore(s => s.propertyMatrix);
+  const loadedNodes         = useGraphStore(s => s.loadedNodes);
+  const loadedRelations     = useGraphStore(s => s.loadedRelations);
+  const addNodeToGraph      = useGraphStore(s => s.addNodeToGraph);
+  const searchScope         = useGraphStore(s => s.searchScope);
+  const setSearchScope      = useGraphStore(s => s.setSearchScope);
+  const searchHistory       = useGraphStore(s => s.searchHistory);
+  const restoreFromHistory  = useGraphStore(s => s.restoreFromHistory);
+  const taxonomyClasses     = useGraphStore(s => s.taxonomyClasses);
 
-  // New scope & history
-  const searchScope = useGraphStore(s => s.searchScope);
-  const setSearchScope = useGraphStore(s => s.setSearchScope);
-  const searchHistory = useGraphStore(s => s.searchHistory);
-  const restoreFromHistory = useGraphStore(s => s.restoreFromHistory);
-
-  // Exploration mode
-  const searchExplorationUri = useGraphStore(s => s.searchExplorationUri);
-  const searchDisplayMode = useGraphStore(s => s.searchDisplayMode);
-  const setSearchDisplayMode = useGraphStore(s => s.setSearchDisplayMode);
-  const fetchOutgoingForDisplay = useGraphStore(s => s.fetchOutgoingForDisplay);
-  const outgoingDisplayRelations = useGraphStore(s => s.outgoingDisplayRelations);
-  const outgoingFetchedUris = useGraphStore(s => s.outgoingFetchedUris);
-
-  const inputRef = useRef(null);
-  const debounceRef = useRef(null);
+  const inputRef          = useRef(null);
+  const debounceRef       = useRef(null);
   const filterDebounceRef = useRef(null);
-  const resultsRef = useRef(null);
+  const resultsRef        = useRef(null);
+
+  // §8.6 — Stable refs for store actions and guard values used inside useEffects.
+  // Avoids spurious re-runs by keeping effect dep arrays minimal and accurate.
+  const executeSearchRef   = useRef(executeSearch);
+  const setSearchQueryRef  = useRef(setSearchQuery);
+  const searchModalOpenRef = useRef(searchModalOpen);
+  const searchQueryRef     = useRef(searchQuery);
+  const searchFiltersRef   = useRef(searchFilters);
+  useEffect(() => { executeSearchRef.current  = executeSearch;   }, [executeSearch]);
+  useEffect(() => { setSearchQueryRef.current = setSearchQuery;  }, [setSearchQuery]);
+  useEffect(() => { searchModalOpenRef.current = searchModalOpen; }, [searchModalOpen]);
+  useEffect(() => { searchQueryRef.current    = searchQuery;     }, [searchQuery]);
+  useEffect(() => { searchFiltersRef.current  = searchFilters;   }, [searchFilters]);
 
   // ─── Local state ───
-  const [localQuery, setLocalQuery] = useState('');
-  const [selectedUris, setSelectedUris] = useState(new Set());
+  const [localQuery, setLocalQuery]               = useState('');
+  const [selectedUris, setSelectedUris]           = useState(new Set());
   const [hierarchyPopoverFilterId, setHierarchyPopoverFilterId] = useState(null);
   const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
-  const [searchExecuted, setSearchExecuted] = useState(false);
-
-  // Exploration local state
-  const [explorationIncoming, setExplorationIncoming] = useState([]);
-  const [explorationShared, setExplorationShared] = useState([]);
-  const [explorationLoading, setExplorationLoading] = useState(false);
+  const [searchExecuted, setSearchExecuted]       = useState(false);
+  const [showFilterBuilder, setShowFilterBuilder] = useState(false);
+  const [batchAddStatus, setBatchAddStatus]       = useState('');
 
   // Sync local query with store
   useEffect(() => {
@@ -985,81 +1132,63 @@ const SearchModal = () => {
       setSelectedUris(new Set());
       setFocusedResultIndex(-1);
       setSearchExecuted(false);
+      setShowFilterBuilder(false);
     }
   }, [searchModalOpen, propertyMatrixLoaded, loadPropertyMatrix]);
 
-  // Auto-execute on filter change (with debounce 250ms)
+  // Auto-execute on filter change (250ms debounce).
+  // Only `searchFilters` is a real trigger — other values are read via refs.
   useEffect(() => {
-    if (!searchModalOpen) return;
-    if (searchFilters.length === 0 && !searchQuery) return;
+    if (!searchModalOpenRef.current) return;
+    if (searchFilters.length === 0 && !searchQueryRef.current) return;
 
     clearTimeout(filterDebounceRef.current);
     filterDebounceRef.current = setTimeout(() => {
-      executeSearch();
+      executeSearchRef.current();
       setSearchExecuted(true);
     }, 250);
 
     return () => clearTimeout(filterDebounceRef.current);
-  }, [searchFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchFilters]);
 
-  // Search-as-you-type for local scopes
+  // Search-as-you-type for local scopes.
+  // Only `localQuery` and `searchScope` are real triggers — other values are read via refs.
   useEffect(() => {
-    if (!searchModalOpen) return;
+    if (!searchModalOpenRef.current) return;
 
     clearTimeout(debounceRef.current);
 
+    const filters = searchFiltersRef.current;
     if (searchScope === 'graph' || searchScope === 'visible') {
-      // Local search: debounce 150ms, search-as-you-type
-      if (localQuery.length >= 1 || searchFilters.length > 0) {
+      if (localQuery.length >= 1 || filters.length > 0) {
         debounceRef.current = setTimeout(() => {
-          setSearchQuery(localQuery);
-          executeSearch();
+          setSearchQueryRef.current(localQuery);
+          executeSearchRef.current();
           setSearchExecuted(true);
         }, 150);
-      } else if (localQuery.length === 0 && searchFilters.length === 0) {
-        setSearchQuery('');
+      } else if (localQuery.length === 0 && filters.length === 0) {
+        setSearchQueryRef.current('');
         setSearchExecuted(false);
       }
     }
-    // For wikidata scope, don't auto-search on type — wait for Enter
 
     return () => clearTimeout(debounceRef.current);
-  }, [localQuery, searchScope]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [localQuery, searchScope]);
 
   // Reset focused index when results change
   useEffect(() => {
     setFocusedResultIndex(-1);
   }, [searchResults]);
 
-  // Fetch exploration data when URI or display mode changes
-  useEffect(() => {
-    if (!searchExplorationUri) return;
-
-    if (searchDisplayMode === 'outgoing') {
-      if (!outgoingFetchedUris.has(searchExplorationUri)) {
-        fetchOutgoingForDisplay(searchExplorationUri);
-      }
-    } else if (searchDisplayMode === 'incoming') {
-      setExplorationLoading(true);
-      setExplorationIncoming([]);
-      fetchIncomingAggregates(searchExplorationUri)
-        .then(data => setExplorationIncoming(data?.aggregates || []))
-        .catch(err => console.warn('[SearchModal] fetchIncomingAggregates failed:', err))
-        .finally(() => setExplorationLoading(false));
-    } else if (searchDisplayMode === 'shared') {
-      const node = loadedNodes[searchExplorationUri];
-      if (!node?.properties || Object.keys(node.properties).length === 0) {
-        setExplorationShared([]);
-        return;
-      }
-      setExplorationLoading(true);
-      setExplorationShared([]);
-      fetchSimilarByProperties(searchExplorationUri, node.properties)
-        .then(data => setExplorationShared(Array.isArray(data) ? data : []))
-        .catch(err => console.warn('[SearchModal] fetchSimilarByProperties failed:', err))
-        .finally(() => setExplorationLoading(false));
+  // ─── Precalculate connectionsByUri (§8.2 fix: O(M) instead of O(N×M)) ───
+  const connectionsByUri = useMemo(() => {
+    const map = {};
+    for (const rel of Object.values(loadedRelations)) {
+      map[rel.source] = (map[rel.source] || 0) + 1;
+      map[rel.target] = (map[rel.target] || 0) + 1;
     }
-  }, [searchExplorationUri, searchDisplayMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    return map;
+  }, [loadedRelations]);
 
   // ─── Derived data ───
   const loadedCount = Object.keys(loadedNodes).length;
@@ -1068,9 +1197,9 @@ const SearchModal = () => {
   const isQidInput = QID_PATTERN.test(localQuery.trim());
 
   const placeholder = useMemo(() => {
-    if (searchScope === 'graph') return `Filtrer dans les ${loadedCount} nœuds chargés…`;
+    if (searchScope === 'graph')    return `Filtrer dans les ${loadedCount} nœuds chargés…`;
     if (searchScope === 'wikidata') return 'Rechercher dans Wikidata…';
-    if (searchScope === 'visible') return `Filtrer les ${visibleCount} nœuds visibles…`;
+    if (searchScope === 'visible')  return `Filtrer les ${visibleCount} nœuds visibles…`;
     return 'Rechercher…';
   }, [searchScope, loadedCount, visibleCount]);
 
@@ -1090,22 +1219,19 @@ const SearchModal = () => {
     for (const result of searchResults) {
       if (result.inGraph) inGraphCount++;
       const primaryType = result.typeLabels?.[0] || 'Autre';
-      const typeQid = result.types?.[0] ? (result.types[0].startsWith('http') ? result.types[0].split('/').pop() : result.types[0]) : null;
+      const typeQid = result.types?.[0]
+        ? (result.types[0].startsWith('http') ? result.types[0].split('/').pop() : result.types[0])
+        : null;
       typeSet.add(primaryType);
       if (!groups[primaryType]) groups[primaryType] = { typeQid, results: [] };
       groups[primaryType].results.push(result);
     }
 
-    const sorted = Object.entries(groups)
-      .sort(([, a], [, b]) => b.results.length - a.results.length);
-
-    return {
-      groupedResults: sorted,
-      stats: { total: searchResults.length, inGraph: inGraphCount, types: typeSet.size },
-    };
+    const sorted = Object.entries(groups).sort(([, a], [, b]) => b.results.length - a.results.length);
+    return { groupedResults: sorted, stats: { total: searchResults.length, inGraph: inGraphCount, types: typeSet.size } };
   }, [searchResults]);
 
-  // Flat list of all result URIs for keyboard navigation
+  // Flat list for keyboard navigation
   const flatResultUris = useMemo(() => {
     const uris = [];
     for (const [, { results }] of groupedResults) {
@@ -1114,8 +1240,56 @@ const SearchModal = () => {
     return uris;
   }, [groupedResults]);
 
-  // Is in pre-search state?
   const isPreSearch = !searchExecuted && localQuery === '' && searchFilters.length === 0;
+
+  // ─── Filter rendering with OR group support ───
+  const renderFilterBar = () => {
+    const processedGroups = new Set();
+    const orGroups = {};
+    for (const f of searchFilters) {
+      if (f.operator === 'or' && f.groupId) {
+        if (!orGroups[f.groupId]) orGroups[f.groupId] = [];
+        orGroups[f.groupId].push(f);
+      }
+    }
+
+    return searchFilters.map(f => {
+      if (f.operator === 'or' && f.groupId) {
+        if (processedGroups.has(f.groupId)) return null;
+        processedGroups.add(f.groupId);
+        const groupFilters = orGroups[f.groupId];
+        return (
+          <div key={`group-${f.groupId}`} className="rounded-lg border border-amber-500/15 bg-amber-500/5 px-1.5 py-1 space-y-0.5">
+            {groupFilters.map((gf, idx) => (
+              <div key={gf.id} className="flex items-center gap-1">
+                {idx > 0 && <span className="text-[9px] font-bold text-amber-500/50 w-5 text-right shrink-0">ou</span>}
+                {idx === 0 && <span className="w-5 shrink-0" />}
+                <FilterRow
+                  filter={gf}
+                  onRemove={removeFilter}
+                  onReplaceType={handleReplaceTypeFilter}
+                  hierarchyOpen={hierarchyPopoverFilterId === gf.id}
+                  onShowHierarchy={() => setHierarchyPopoverFilterId(hierarchyPopoverFilterId === gf.id ? null : gf.id)}
+                  onHierarchyClose={() => setHierarchyPopoverFilterId(null)}
+                />
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return (
+        <FilterRow
+          key={f.id}
+          filter={f}
+          onRemove={removeFilter}
+          onReplaceType={handleReplaceTypeFilter}
+          hierarchyOpen={hierarchyPopoverFilterId === f.id}
+          onShowHierarchy={() => setHierarchyPopoverFilterId(hierarchyPopoverFilterId === f.id ? null : f.id)}
+          onHierarchyClose={() => setHierarchyPopoverFilterId(null)}
+        />
+      );
+    });
+  };
 
   // ─── Handlers ───
   const handleSubmit = useCallback(() => {
@@ -1142,6 +1316,7 @@ const SearchModal = () => {
     setLocalQuery(e.target.value);
   }, []);
 
+  // §8.5 fix: single onKeyDown on the input only (not on container)
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {
       closeSearchModal();
@@ -1150,7 +1325,6 @@ const SearchModal = () => {
 
     if (e.key === 'Enter') {
       if (e.metaKey || e.ctrlKey) {
-        // ⌘Enter: add focused result to graph
         if (focusedResultIndex >= 0 && focusedResultIndex < flatResultUris.length) {
           const uri = flatResultUris[focusedResultIndex];
           if (!loadedNodes[uri]) addNodeToGraph(uri);
@@ -1158,7 +1332,6 @@ const SearchModal = () => {
         return;
       }
       if (focusedResultIndex >= 0 && focusedResultIndex < flatResultUris.length) {
-        // Enter on focused result: navigate
         selectNode(flatResultUris[focusedResultIndex]);
         closeSearchModal();
         return;
@@ -1179,7 +1352,6 @@ const SearchModal = () => {
       return;
     }
 
-    // Scope shortcuts: Ctrl/⌘ + 1/2/3
     if ((e.ctrlKey || e.metaKey) && ['1', '2', '3'].includes(e.key)) {
       e.preventDefault();
       const scopes = ['graph', 'wikidata', 'visible'];
@@ -1192,28 +1364,43 @@ const SearchModal = () => {
     executeSearch(true);
   }, [executeSearch]);
 
-  const handleTypeFilterReplace = useCallback((qid, label) => {
-    const currentTypeFilter = searchFilters.find(f => f.type === FILTER_TYPES.TYPE);
-    if (currentTypeFilter) removeFilter(currentTypeFilter.id);
+  const handleReplaceTypeFilter = useCallback((filterId, qid, label) => {
+    removeFilter(filterId);
     addFilter(createFilter(FILTER_TYPES.TYPE, qid, label));
     setHierarchyPopoverFilterId(null);
-  }, [searchFilters, removeFilter, addFilter]);
+  }, [removeFilter, addFilter]);
 
   const toggleSelectUri = useCallback((uri) => {
     setSelectedUris(prev => {
       const next = new Set(prev);
-      if (next.has(uri)) next.delete(uri);
-      else next.add(uri);
+      if (next.has(uri)) next.delete(uri); else next.add(uri);
       return next;
     });
   }, []);
 
+  // §8.4 fix: handleBatchAdd with per-iteration error handling
   const handleBatchAdd = useCallback(async () => {
+    let success = 0, failed = 0;
     for (const uri of selectedUris) {
-      if (!loadedNodes[uri]) await addNodeToGraph(uri);
+      try {
+        if (!loadedNodes[uri]) await addNodeToGraph(uri);
+        success++;
+      } catch { failed++; }
     }
     setSelectedUris(new Set());
+    if (failed > 0) {
+      setBatchAddStatus(`${success} ajouté${success > 1 ? 's' : ''} · ${failed} échec${failed > 1 ? 's' : ''}`);
+      setTimeout(() => setBatchAddStatus(''), 3000);
+    }
   }, [selectedUris, loadedNodes, addNodeToGraph]);
+
+  // §8.1 fix: searchInWikidata without setTimeout — Zustand set() is synchronous
+  const handleSearchInWikidata = useCallback(() => {
+    setSearchScope('wikidata');
+    setSearchQuery(localQuery);
+    executeSearch();
+    setSearchExecuted(true);
+  }, [setSearchScope, setSearchQuery, localQuery, executeSearch]);
 
   // ── Idle bar (when modal is closed) ──
   if (!searchModalOpen) {
@@ -1246,7 +1433,6 @@ const SearchModal = () => {
     <div
       className="fixed bottom-0 left-1/2 z-50 w-[720px] max-h-[85vh] flex flex-col bg-slate-900/97 border border-slate-700/50 border-b-0 rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up"
       style={{ transform: 'translateX(-50%)' }}
-      onKeyDown={handleKeyDown}
     >
       {/* ── Header ── */}
       <div className="px-4 pt-4 pb-3">
@@ -1299,90 +1485,66 @@ const SearchModal = () => {
           </div>
         )}
 
-        {/* Scope selector — hidden in exploration mode */}
-        {!searchExplorationUri && (
-          <ScopeSelector
-            scope={searchScope}
-            setScope={setSearchScope}
-            loadedCount={loadedCount}
-            visibleCount={visibleCount}
-          />
-        )}
-
-        {/* Exploration mode: node label + display selector */}
-        {searchExplorationUri && (
-          <>
-            <div className="flex items-center gap-2 mt-2.5">
-              <Compass className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-              <span className="text-[12px] font-bold text-violet-300 truncate">
-                {loadedNodes[searchExplorationUri]?.label || searchExplorationUri.split('/').pop()}
-              </span>
-              <span className="text-[9px] text-slate-600 font-mono shrink-0">
-                {searchExplorationUri.split('/').pop()}
-              </span>
-            </div>
-            <DisplaySelector mode={searchDisplayMode} setMode={setSearchDisplayMode} />
-          </>
-        )}
+        <ScopeSelector scope={searchScope} setScope={setSearchScope} loadedCount={loadedCount} visibleCount={visibleCount} />
       </div>
 
-      {/* ── Filter Bar ── */}
-      {searchFilters.length > 0 && (
-        <div className="px-4 pb-2 border-t border-slate-700/30 pt-2">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {searchFilters.map(f => (
-              <div key={f.id} className="relative">
-                <FilterBadge
-                  filter={f}
-                  onToggleOperator={toggleFilterOperator}
-                  onRemove={removeFilter}
-                  onShowHierarchy={f.type === FILTER_TYPES.TYPE ? () => setHierarchyPopoverFilterId(f.id === hierarchyPopoverFilterId ? null : f.id) : undefined}
-                />
-                {/* Type hierarchy popover */}
-                {f.type === FILTER_TYPES.TYPE && hierarchyPopoverFilterId === f.id && (
-                  <TypeHierarchyPopover
-                    typeQid={f.value}
-                    onSelectType={handleTypeFilterReplace}
-                    onClose={() => setHierarchyPopoverFilterId(null)}
-                  />
-                )}
-              </div>
-            ))}
-            {searchFilters.length > 1 && (
+      {/* ── Filter Bar (shown when filters exist or builder is open) ── */}
+      {(searchFilters.length > 0 || showFilterBuilder) && (
+        <div className="px-4 pb-2 border-t border-slate-700/30 pt-2 space-y-1">
+          {renderFilterBar()}
+
+          {showFilterBuilder ? (
+            <FilterBuilder
+              onAddFilter={addFilter}
+              taxonomyClasses={taxonomyClasses}
+              loadedNodes={loadedNodes}
+              propertyMatrix={propertyMatrix}
+              searchFilters={searchFilters}
+              onCancel={() => setShowFilterBuilder(false)}
+            />
+          ) : (
+            <div className="flex items-center gap-2 mt-1">
               <button
-                onClick={clearFilters}
-                className="text-[10px] text-slate-600 hover:text-red-400 px-2 py-0.5 rounded transition-colors"
+                onClick={() => setShowFilterBuilder(true)}
+                className="flex items-center gap-1 text-[10px] text-slate-600 hover:text-slate-400 transition-colors"
               >
-                Tout effacer
+                <Plus className="w-3 h-3" />
+                Ajouter un filtre
               </button>
-            )}
-          </div>
+              {searchFilters.length > 1 && (
+                <button
+                  onClick={clearFilters}
+                  className="ml-auto text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+                >
+                  × Tout effacer
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* "+ Ajouter un filtre" trigger when searching but no filters yet */}
+      {searchFilters.length === 0 && !showFilterBuilder && !isPreSearch && (
+        <div className="px-4 pb-1.5">
+          <button
+            onClick={() => setShowFilterBuilder(true)}
+            className="flex items-center gap-1 text-[10px] text-slate-600 hover:text-slate-400 transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            Ajouter un filtre
+          </button>
         </div>
       )}
 
       {/* Suggested properties drawer (below filter bar, when TYPE filter active) */}
-      {activeTypeFilter && suggestedProperties.length > 0 && (
+      {activeTypeFilter && suggestedProperties.length > 0 && !showFilterBuilder && (
         <SuggestedPropertiesDrawer suggestedProperties={suggestedProperties} addFilter={addFilter} />
       )}
 
       {/* ── Body ── */}
       <div ref={resultsRef} className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent min-h-0 relative">
-        {searchExplorationUri ? (
-          // Exploration mode: show node relations
-          <ExplorationResults
-            explorationUri={searchExplorationUri}
-            displayMode={searchDisplayMode}
-            outgoingDisplayRelations={outgoingDisplayRelations}
-            loadedNodes={loadedNodes}
-            explorationIncoming={explorationIncoming}
-            explorationShared={explorationShared}
-            explorationLoading={explorationLoading}
-            selectNode={selectNode}
-            closeSearchModal={closeSearchModal}
-            addNodeToGraph={addNodeToGraph}
-          />
-        ) : isPreSearch ? (
-          // Pre-search state: history + filter browser
+        {isPreSearch ? (
           <PreSearchBody
             addFilter={addFilter}
             searchHistory={searchHistory}
@@ -1391,7 +1553,6 @@ const SearchModal = () => {
             closeSearchModal={closeSearchModal}
           />
         ) : groupedResults.length > 0 ? (
-          // Results
           <div className={`p-2 space-y-1 transition-opacity duration-150 ${searchLoading ? 'opacity-50' : 'opacity-100'}`}>
             {groupedResults.map(([typeLabel, { typeQid, results }], idx) => (
               <TypeGroup
@@ -1408,12 +1569,11 @@ const SearchModal = () => {
                 onToggleSelect={toggleSelectUri}
                 focusedUri={focusedResultIndex >= 0 ? flatResultUris[focusedResultIndex] : null}
                 loadedNodes={loadedNodes}
-                loadedRelations={loadedRelations}
+                connectionsByUri={connectionsByUri}
                 style={idx < 6 ? { animation: `fade-in-stagger 0.2s ease-out ${idx * 0.05}s both` } : undefined}
               />
             ))}
 
-            {/* Load more */}
             {searchHasMore && !searchLoading && (
               <div className="p-2 flex justify-center">
                 <button
@@ -1427,7 +1587,6 @@ const SearchModal = () => {
             )}
           </div>
         ) : (
-          // Empty / zero results / loading
           <div className="flex items-center justify-center min-h-[120px]">
             {searchLoading ? (
               <div className="flex items-center gap-2 text-slate-500">
@@ -1438,8 +1597,7 @@ const SearchModal = () => {
               <ZeroResultsBody
                 query={searchQuery}
                 scope={searchScope}
-                setScope={setSearchScope}
-                executeSearch={executeSearch}
+                onSearchInWikidata={handleSearchInWikidata}
                 filters={searchFilters}
                 removeFilter={removeFilter}
               />
@@ -1464,6 +1622,7 @@ const SearchModal = () => {
             count={selectedUris.size}
             onAdd={handleBatchAdd}
             onClear={() => setSelectedUris(new Set())}
+            statusMsg={batchAddStatus}
           />
         )}
       </div>

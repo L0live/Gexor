@@ -150,10 +150,15 @@ export const fetchSimilarByProperties = async (uri, properties, lang = 'fr', lim
   const { getAlwaysPrimaryPids } = await import('../propertyClassification.js');
   const alwaysPrimary = getAlwaysPrimaryPids();
 
+  // PIDs à haute cardinalité exclus explicitement pour éviter les timeouts WDQS
+  const HIGH_CARDINALITY_PIDS = new Set(['P31', 'P131', 'P17', 'P30', 'P279']);
+  const MAX_PIDS = 5;
+
   // Group QID values by D_always_primary PID
   const pidGroups = {};
   for (const [pid, prop] of Object.entries(properties || {})) {
     if (!alwaysPrimary.has(pid)) continue;
+    if (HIGH_CARDINALITY_PIDS.has(pid)) continue;
     const qids = [];
     for (const v of prop.values || []) {
       if (!v.isEntity) continue;
@@ -163,7 +168,10 @@ export const fetchSimilarByProperties = async (uri, properties, lang = 'fr', lim
     if (qids.length > 0) pidGroups[pid] = qids;
   }
 
-  const pids = Object.keys(pidGroups);
+  // Trier par cardinalité croissante (PIDs avec moins de valeurs = plus sélectifs)
+  const pids = Object.keys(pidGroups)
+    .sort((a, b) => pidGroups[a].length - pidGroups[b].length)
+    .slice(0, MAX_PIDS);
   if (pids.length === 0) return [];
 
   // One query per PID: uses the specific wdt:Pxxx index → fast, no timeout risk

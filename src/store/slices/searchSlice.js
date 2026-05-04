@@ -28,20 +28,14 @@ export const createSearchSlice = (set, get) => ({
   // ─── New: Search history ───
   searchHistory: [],
 
-  // ─── Node exploration mode ───
-  searchExplorationUri: null,    // URI du nœud exploré (null = mode recherche normal)
-  searchDisplayMode: 'outgoing', // 'outgoing' | 'incoming' | 'shared'
-
   // ─── Modal ───
-  openSearchModal: (initialFilters = [], initialScope = null, explorationUri = null) => {
+  openSearchModal: (initialFilters = [], initialScope = null) => {
     const updates = {
       searchModalOpen: true,
       searchFilters: initialFilters,
       searchResults: [],
       searchOffset: 0,
       searchHasMore: false,
-      searchExplorationUri: explorationUri,
-      ...(explorationUri ? { searchDisplayMode: 'outgoing' } : {}),
     };
     if (initialScope) updates.searchScope = initialScope;
     set(updates);
@@ -57,12 +51,10 @@ export const createSearchSlice = (set, get) => ({
     if (!taxonomyLoaded) loadTaxonomy();
   },
 
-  closeSearchModal: () => set({ searchModalOpen: false, searchExplorationUri: null }),
+  closeSearchModal: () => set({ searchModalOpen: false }),
 
   // ─── New: Scope ───
   setSearchScope: (scope) => set({ searchScope: scope }),
-
-  setSearchDisplayMode: (mode) => set({ searchDisplayMode: mode }),
 
   // ─── New: History ───
   addToHistory: (entry) => {
@@ -84,11 +76,6 @@ export const createSearchSlice = (set, get) => ({
   // ─── Filters CRUD ───
   addFilter: (filter) => {
     const { searchFilters } = get();
-    // Prevent duplicate in_graph toggles (legacy)
-    if (filter.type === FILTER_TYPES.IN_GRAPH) {
-      const existing = searchFilters.find(f => f.type === FILTER_TYPES.IN_GRAPH);
-      if (existing) return;
-    }
     set({ searchFilters: [...searchFilters, filter] });
   },
 

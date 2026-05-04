@@ -2,12 +2,13 @@ import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import useGraphStore from '../../store/useGraphStore';
-import { getCategoryColor, MAX_INSTANCES, NODE_RADIUS, AGGREGATE_NODE_COLOR, AGGREGATE_NODE_COLOR_LOADING, getAggregateScale, ADDED_PULSE_COLOR, ADDED_PULSE_DURATION, SHARED_NODE_OPACITY, SHARED_NODE_SCALE } from '../../constants/graphConstants';
+import { getCategoryColor, MAX_INSTANCES, NODE_RADIUS, AGGREGATE_NODE_COLOR, AGGREGATE_NODE_COLOR_LOADING, getAggregateScale, ADDED_PULSE_COLOR, ADDED_PULSE_DURATION, SHARED_NODE_SCALE } from '../../constants/graphConstants';
+import { getTheme } from '../../constants/themes';
 import { getRadialDisplayPos } from '../../utils/radialLayout';
 import { readPosition } from '../../utils/sharedPositions';
 
 // Pré-alloué au niveau module — évite new THREE.Color() à chaque frame
-const _pulseColor = new THREE.Color(ADDED_PULSE_COLOR);
+const _pulseColor = new THREE.Color();
 
 const InstancedNodes = () => {
   const nodes = useGraphStore(state => state.nodes);
@@ -57,6 +58,9 @@ const AllNodesGroup = ({
   const recentlyAddedNodesRef = useRef({});
   const radialTargetsRef = useRef({});
   const nodeSettingsRef = useRef({});
+  const settingsRef = useRef({
+    nodeParams: {}, aggregateParams: {}, highlightParams: {}, theme: null,
+  });
 
   useEffect(() => {
     // Initialize synchronously so first frame has correct values
@@ -64,12 +68,24 @@ const AllNodesGroup = ({
     recentlyAddedNodesRef.current = s.recentlyAddedNodes || {};
     radialTargetsRef.current = s.radialTargets || {};
     nodeSettingsRef.current = s.nodeSettings || {};
+    settingsRef.current = {
+      nodeParams: s.nodeParams || {},
+      aggregateParams: s.aggregateParams || {},
+      highlightParams: s.highlightParams || {},
+      theme: getTheme(s.theme),
+    };
 
     // Subscribe to future changes (runs outside the frame loop)
     return useGraphStore.subscribe((state) => {
       recentlyAddedNodesRef.current = state.recentlyAddedNodes || {};
       radialTargetsRef.current = state.radialTargets || {};
       nodeSettingsRef.current = state.nodeSettings || {};
+      settingsRef.current = {
+        nodeParams: state.nodeParams || {},
+        aggregateParams: state.aggregateParams || {},
+        highlightParams: state.highlightParams || {},
+        theme: getTheme(state.theme),
+      };
     });
   }, []);
 
@@ -91,6 +107,18 @@ const AllNodesGroup = ({
     const count = visibleNodes.length;
     const safeCount = Math.min(count, MAX_INSTANCES);
     const camPos = state.camera.position;
+
+    const { nodeParams, aggregateParams, highlightParams, theme } = settingsRef.current;
+    const radius = nodeParams.radius ?? NODE_RADIUS;
+    const aggColor = aggregateParams.color ?? AGGREGATE_NODE_COLOR;
+    const aggColorLoading = aggregateParams.colorLoading ?? AGGREGATE_NODE_COLOR_LOADING;
+    const aggMinScale = aggregateParams.minScale;
+    const aggMaxScale = aggregateParams.maxScale;
+    const pulseColorHex = highlightParams.addedPulseColor ?? ADDED_PULSE_COLOR;
+    const pulseDuration = highlightParams.addedPulseDuration ?? ADDED_PULSE_DURATION;
+    _pulseColor.set(pulseColorHex);
+    const useCategoryColors = theme?.useCategoryColors !== false;
+    const fallbackColor = theme?.nodeColor ?? '#64748b';
 
     // Build lightweight storeState from refs — no getState() call in hot path
     const storeState = {
@@ -132,7 +160,7 @@ const AllNodesGroup = ({
 
       // Skip off-screen instances (frustum test is cheaper than full matrix update)
       if (doCulling && !isSelected) {
-        _testSphere.set(_v3, (node.size || NODE_RADIUS) * 2);
+        _testSphere.set(_v3, (node.size || radius) * 2);
         if (!_frustum.intersectsSphere(_testSphere)) {
           _obj.matrix.makeScale(0, 0, 0);
           meshRef.current.setMatrixAt(i, _obj.matrix);
@@ -150,16 +178,27 @@ const AllNodesGroup = ({
 
       _obj.position.copy(_v3);
       const isAggregate = node.isAggregate;
-      const baseSize = (node.size || NODE_RADIUS) * 1.5;
-      let size = isAggregate ? baseSize * getAggregateScale(node.aggregateCount) : baseSize;
-      if (node.isSharedNode) size *= SHARED_NODE_SCALE;
+      const baseSize = (node.size || radius) * 1.5;
+      const aggScale = isAggregate
+        ? (aggMinScale != null && aggMaxScale != null
+            ? (() => {
+                if (!node.aggregateCount || node.aggregateCount <= 1) return aggMinScale;
+                const t = Math.min(Math.log2(node.aggregateCount) / 10, 1);
+                return aggMinScale + t * (aggMaxScale - aggMinScale);
+              })()
+            : getAggregateScale(node.aggregateCount))
+        : 1;
+      let size = isAggregate ? baseSize * aggScale : baseSize;
+      if (node.isSharedNode) {
+        size *= (nodeParams.sharedScale ?? SHARED_NODE_SCALE);
+      }
 
       // Pulse scale for recently-added nodes
       const recentlyAdded = storeState.recentlyAddedNodes?.[node.id];
       const addedElapsed = recentlyAdded ? Date.now() - recentlyAdded : Infinity;
-      if (addedElapsed < ADDED_PULSE_DURATION) {
+      if (addedElapsed < pulseDuration) {
         hasPulse = true;
-        const pulse = Math.max(0, 1 - addedElapsed / ADDED_PULSE_DURATION) * (0.5 + 0.5 * Math.sin(addedElapsed * 0.008));
+        const pulse = Math.max(0, 1 - addedElapsed / pulseDuration) * (0.5 + 0.5 * Math.sin(addedElapsed * 0.008));
         size *= (1 + pulse * 0.3);
       }
 
@@ -169,18 +208,16 @@ const AllNodesGroup = ({
       meshRef.current.setMatrixAt(i, _obj.matrix);
 
       let c;
-      if (addedElapsed < ADDED_PULSE_DURATION) {
-        // Blend color toward green for recently added
-        const t = Math.max(0, 1 - addedElapsed / ADDED_PULSE_DURATION) * 0.5;
-        const baseColor = isAggregate
-          ? (node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR)
-          : getCategoryColor(node.type);
-        _color.set(baseColor);
+      const nodeColor = isAggregate
+        ? (node.loadingChildren ? aggColorLoading : aggColor)
+        : (useCategoryColors ? getCategoryColor(node.type) : fallbackColor);
+      if (addedElapsed < pulseDuration) {
+        // Blend color toward pulse color for recently added
+        const t = Math.max(0, 1 - addedElapsed / pulseDuration) * 0.5;
+        _color.set(nodeColor);
         _color.lerp(_pulseColor, t);
       } else {
-        c = isAggregate
-          ? (node.loadingChildren ? AGGREGATE_NODE_COLOR_LOADING : AGGREGATE_NODE_COLOR)
-          : getCategoryColor(node.type);
+        c = nodeColor;
         _color.set(c);
       }
       meshRef.current.setColorAt(i, _color);

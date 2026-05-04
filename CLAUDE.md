@@ -85,12 +85,12 @@ Entry point: [src/store/useGraphStore.js](src/store/useGraphStore.js)
 
 | Slice | File | Responsibility |
 |-------|------|----------------|
-| `dataSlice` | [src/store/slices/dataSlice.js](src/store/slices/dataSlice.js) | Backend API calls, L1 cache, raw data, aggregates, expand/collapse, **per-node settings** (`nodeSettings`), `addNodeToGraph`, `recentlyAddedNodes` |
+| `dataSlice` | [src/store/slices/dataSlice.js](src/store/slices/dataSlice.js) | Backend API calls, L1 cache, raw data, aggregates, expand/collapse, **per-node settings** (`nodeSettings`), `addNodeToGraph`, `recentlyAddedNodes`, `sharedExpandedUris`, `loadedByDirection`, `_fetchSharedNeighbors` |
 | `graphSlice` | [src/store/slices/graphSlice.js](src/store/slices/graphSlice.js) | Processed nodes/edges, PID visibility, context-promoted PIDs, **per-node direction filtering** |
 | `uiSlice` | [src/store/slices/uiSlice.js](src/store/slices/uiSlice.js) | Selection, layout state, simulation, on-demand outgoing fetch for display |
 | `pinSlice` | [src/store/slices/pinSlice.js](src/store/slices/pinSlice.js) | **Position lock only** (pin/unpin), drag management. Per-node depth/direction/radial delegated to `dataSlice.nodeSettings` |
 | `historySlice` | [src/store/slices/historySlice.js](src/store/slices/historySlice.js) | Undo/redo snapshots |
-| `searchSlice` | [src/store/slices/searchSlice.js](src/store/slices/searchSlice.js) | Search state, filters (`searchFilters`), results, taxonomy (`taxonomyClasses`, `getTaxonomyLabel`), pagination, search history |
+| `searchSlice` | [src/store/slices/searchSlice.js](src/store/slices/searchSlice.js) | Search state, filters (`searchFilters`), **scope** (`searchScope`), results, taxonomy (`taxonomyClasses`, `getTaxonomyLabel`), pagination, **search history** (`searchHistory`, sessionStorage), `propertyMatrix` |
 
 ### Data Flow
 
@@ -110,7 +110,7 @@ Wikidata API ←→ Fastify Backend (cache PG) ←→ Frontend fetch ←→ data
 App → Gexor (main UI)
   ├── Canvas (@react-three/fiber)
   │   └── Scene → InstancedNodes, InstancedEdges, Minimap, RadialSpheres
-  └── UI panels: SearchModal, InfoPanel, RightPanel, AllPropertiesModal,
+  └── UI panels: SearchModal, InfoPanel, RightPanel,
                  SettingsPanel, StartScreen, TypeHierarchyPanel
 ```
 
@@ -133,20 +133,21 @@ Per-node exploration direction is now controlled by `ExplorationBar` inside `Inf
 | [src/components/UI/ExplorationBar.jsx](src/components/UI/ExplorationBar.jsx) | Direction d'exploration per-node: [Off] [Propriétés] [Associés] [Load ↻] |
 | [src/components/UI/BasicsPluginsBar.jsx](src/components/UI/BasicsPluginsBar.jsx) | Icon bar at bottom of InfoPanel; each icon opens a RightPanel tab via `openRightPanel` |
 | [src/components/UI/TagsFormat.jsx](src/components/UI/TagsFormat.jsx) | Exploration tags injected by `tagRegistry` based on P31 type (`contextResolver.json`) |
-| [src/components/UI/PropertiesGrouped.jsx](src/components/UI/PropertiesGrouped.jsx) | Shared property display components (`EntityLink`, qualifier display) reused by plugins |
-| [src/components/UI/AllPropertiesModal.jsx](src/components/UI/AllPropertiesModal.jsx) | All properties modal with clickable entity references |
-| [src/components/UI/SearchModal.jsx](src/components/UI/SearchModal.jsx) | Advanced search modal with filter badges, taxonomy hierarchy, paginated results |
+| [src/components/UI/SearchModal.jsx](src/components/UI/SearchModal.jsx) | Advanced search modal with scope selector (`graph`/`wikidata`/`visible`), filter badges, taxonomy hierarchy, search history, paginated results |
 | [src/components/UI/TypeHierarchyPanel.jsx](src/components/UI/TypeHierarchyPanel.jsx) | P31 type parent/child hierarchy navigator (uses `taxonomyClasses` from searchSlice) |
 | [src/components/UI/ClickableProperty.jsx](src/components/UI/ClickableProperty.jsx) | Clickable PID badge: left-click opens SearchModal with property filter, right-click adds OR filter |
-| [src/components/UI/FilterBadge.jsx](src/components/UI/FilterBadge.jsx) | Colored badge for a search filter (operator toggle, remove, hierarchy popover) |
 | [src/components/UI/StartScreen.jsx](src/components/UI/StartScreen.jsx) | Initial landing screen shown before any search |
 | [src/hooks/useForceLayout.js](src/hooks/useForceLayout.js) | WASM force layout hook |
-| [src/hooks/useConnectedNodes.js](src/hooks/useConnectedNodes.js) | Computes connected nodes for a given `nodeUri`; merges `loadedRelations` + `outgoingDisplayRelations`, filters by visibility |
+| [src/hooks/usePluginData.js](src/hooks/usePluginData.js) | Internal plugin data API: `{ node, properties, incoming, graph, shared }` — each capability has `isLoaded`, `isLoading`, `load()`. Replaces `useConnectedNodes.js`. Used by all node-mode plugins. |
 | [src/plugins/pluginRegistry.js](src/plugins/pluginRegistry.js) | Singleton registry: `registerPlugin`, `getPlugin`, `getTabsForMode(mode)` |
 | [src/plugins/tagRegistry.js](src/plugins/tagRegistry.js) | Tag provider registry: `registerTagProvider(id, fn)` — allows future features (parcours, annotations) to inject tags into TagsFormat |
 | [src/plugins/loadPlugins.js](src/plugins/loadPlugins.js) | Registers all built-in plugins into pluginRegistry on app startup |
-| [src/plugins/properties/](src/plugins/properties/) | Built-in plugin: Propriétés tab (node mode) — lazy-loaded `PropertiesTab` |
-| [src/plugins/associates/](src/plugins/associates/) | Built-in plugin: Associés tab (node mode) — connected nodes list |
+| [src/plugins/properties/](src/plugins/properties/) | Built-in plugin: Propriétés tab (node mode) — `PropertiesTab` + `PropertiesContent` |
+| [src/plugins/properties/PropertiesContent.jsx](src/plugins/properties/PropertiesContent.jsx) | Standalone property display component (grouped by datatype, redundancy A-groups, noise B-groups); reusable outside the tab |
+| [src/plugins/associates/](src/plugins/associates/) | Built-in plugin: Associés tab (node mode) — incoming connected nodes list via `usePluginData.incoming` |
+| [src/plugins/all-in-graph/](src/plugins/all-in-graph/) | Built-in plugin: Dans le graphe tab (node mode) — all visible connected nodes (incoming + outgoing) via `usePluginData.graph` |
+| [src/plugins/cluster-shared/](src/plugins/cluster-shared/) | Built-in plugin: Similaires tab (node mode) — SPARQL-based similar entities via `usePluginData.shared`; two sections: already-in-graph + trigger fetch |
+| [src/plugins/edge-detail/](src/plugins/edge-detail/) | Built-in plugin: Détail tab (edge mode) — edge relation cards with qualifiers, classification badges, collapsible accordions |
 | [src/plugins/wikipedia/](src/plugins/wikipedia/) | Built-in plugin: Wikipedia tab (node + aggregate mode) |
 | [src/plugins/aggregate-childs/](src/plugins/aggregate-childs/) | Built-in plugin: Contenu tab (aggregate mode) — list of aggregate children |
 | [src/services/queries/wikidata.js](src/services/queries/wikidata.js) | Thin API client (calls `/api/*` endpoints) |
@@ -161,7 +162,7 @@ Per-node exploration direction is now controlled by `ExplorationBar` inside `Inf
 | [src/data/contextRules.json](src/data/contextRules.json) | Static rules for 20 type families (human, country, film…) → PID promotions via `contextResolver.js` |
 | [src/data/contextResolver.json](src/data/contextResolver.json) | Maps QID P31 types to exploration tags (chronologie, contemporains, globe…) consumed by `TagsFormat` |
 | [src/models/lodNode.js](src/models/lodNode.js) | LOD node/edge/aggregate data models |
-| [src/models/searchFilter.js](src/models/searchFilter.js) | Search filter model: `FILTER_TYPES` (text, entity, property, type, in_graph, has_value), `FILTER_OPERATORS` (and/or/not) |
+| [src/models/searchFilter.js](src/models/searchFilter.js) | Search filter model: `FILTER_TYPES` (text, entity, property, type, has_value), `FILTER_OPERATORS` (and/or/not), `createOrGroup()` |
 | [src/constants/graphConstants.js](src/constants/graphConstants.js) | Layout/color/geometry/aggregate constants |
 
 ## Tech Stack
@@ -202,15 +203,22 @@ The Vite dev server proxies `/api/*` to `http://localhost:3001` (Fastify backend
 - **Per-node settings**: Each node has independent `depth`, `explorationDirection`, `renderMode`, `radialStrength` via `nodeSettings` map in `dataSlice`. Default direction is `'incoming'`
 - **Highlight system**: Selected node gets blue outline (`SELECTION_OUTLINE_COLOR`). Recently-added nodes get green pulse animation (`ADDED_PULSE_COLOR`, `ADDED_PULSE_DURATION = 1500ms`)
 - **InfoPanel + RightPanel**: `NodeDetailPanel` replaced by a two-panel system. `InfoPanel` (left) = compact header + `ExplorationBar` + `TagsFormat` + `BasicsPluginsBar`. `RightPanel` (right) = tabbed detail driven by `pluginRegistry`. Tabs are lazy-loaded React components registered by plugins.
-- **Plugin system**: `pluginRegistry.js` — a singleton `Map` of plugins. Each plugin declares `{ id, label, icon, availableFor, tier, tab: { component } }`. `getTabsForMode(mode)` returns tabs for 'node' | 'edge' | 'aggregate'. Built-in plugins: `properties`, `associates`, `wikipedia`, `aggregate-childs`. External plugins register at startup via `loadPlugins.js`.
-- **Tag system**: `tagRegistry.js` — a `Map` of tag providers injected into `TagsFormat`. Each provider returns an array of `ExplorationTag | ActionTag` based on node data. `contextResolver.json` maps P31 QIDs to exploration tags (future plugins like `temporal`, `geographic`, `cluster-shared` will activate via these tags).
+- **Plugin system**: `pluginRegistry.js` — a singleton `Map` of plugins. Each plugin declares `{ id, label, icon, category, availableFor, tier, tab: { component } }`. `getTabsForMode(mode)` returns tabs for 'node' | 'edge' | 'aggregate'. Built-in plugins: `properties`, `associates`, `all-in-graph`, `cluster-shared` (node mode); `edge-detail` (edge mode); `wikipedia`, `aggregate-childs` (aggregate mode). External plugins register at startup via `loadPlugins.js`.
+- **Tag system**: `tagRegistry.js` — a `Map` of tag providers injected into `TagsFormat`. Each provider returns an array of `ExplorationTag | ActionTag` based on node data. `contextResolver.json` maps P31 QIDs to exploration tags (future plugins like `temporal`, `geographic` will activate via these tags).
+- **Shared/Similaires**: `dataSlice._fetchSharedNeighbors(uri)` calls `fetchSimilarByProperties` (SPARQL), creates stub nodes + synthetic edges with `classification: 'shared'` and `sharedCount`. `sharedExpandedUris` tracks which nodes have been fetched. `usePluginData.shared` exposes `{ nodes, isLoaded, isLoading, load }` for the `cluster-shared` plugin.
+- **usePluginData hook**: `src/hooks/usePluginData.js` — single internal API for all node-mode plugins. Returns `{ node, properties, incoming, graph, shared }`. Each capability has `isLoaded`, `isLoading`, `load()`. `graph.nodes` = all visible connected nodes (both directions). `incoming.nodes` = incoming-only. `shared.nodes` = similar entities sorted by `sharedCount`. Replaces the deleted `useConnectedNodes.js`.
+- **loadedByDirection**: `dataSlice.loadedByDirection[child][parent]` = `string[]` — tracks which directions (`incoming`, `outgoing`, `shared`) each parent used to load a child node.
 - **Qualifier support**: `wikidataClient.js` parses `claim.qualifiers` for 9 target PIDs (`QUALIFIER_PIDS`: P580, P582, P585, P571, P576, P453, P794, P3831, P1932). Qualifiers are resolved with the same batch label pipeline as properties/edges. `properties[pid].values[].qualifiers` and `edges[].qualifiers` are now populated.
-- **Add to graph**: `addNodeToGraph(uri)` in `dataSlice` — loads, pins, and triggers pulse animation. Available from SearchModal and AllPropertiesModal
-- **Search filters**: `searchSlice` holds a `searchFilters` array of `SearchFilter` objects (type, value, label, operator, color). Composable with AND/OR/NOT operators. `ClickableProperty` creates property filters inline; `TypeHierarchyPanel` creates type filters
+- **Add to graph**: `addNodeToGraph(uri)` in `dataSlice` — loads, pins, and triggers pulse animation. Available from SearchModal, ClusterSharedTab, and AllInGraphTab
+- **Search filters**: `searchSlice` holds a `searchFilters` array of `SearchFilter` objects (type, value, label, operator, color, groupId). `FILTER_TYPES`: `text`, `entity`, `property`, `type`, `has_value`. Composable with AND/OR/NOT operators; `createOrGroup(filters)` creates a group of OR-linked filters sharing a `groupId`. `ClickableProperty` creates property filters inline; `TypeHierarchyPanel` creates type filters
+- **Search scope**: `searchSlice.searchScope` (`'graph' | 'wikidata' | 'visible'`) replaces the old `IN_GRAPH` filter type. Controls whether results are filtered from `loadedNodes`, fetched from Wikidata SPARQL, or filtered from `visibleNodeIds`
+- **Search history**: `searchSlice.searchHistory` persisted to `sessionStorage`. `addToHistory(entry)` / `restoreFromHistory(entry)` with up to 10 entries
 - **Taxonomy**: `searchSlice.taxonomyClasses` holds a QID→`{parents, children, totalInstances}` map loaded lazily from the backend. `getTaxonomyLabel(qid, lang)` resolves labels. `TypeHierarchyPanel` navigates this hierarchy
 - **Prefetch queue**: `prefetchQueue.js` pre-fetches neighbor node properties in the background. `prioritizeAndFetch(uri)` returns a Promise resolving to a LodNode — the detail panel calls this on node selection for instant display
 - **Error handling**: `errorHandler.js` provides `handleApiError(err, context)` returning `{ message, code }`. All store async actions should call this instead of ad-hoc try/catch logging
 - **Export/Import**: `exportImport.js` serializes the full graph state (nodes, edges, positions, nodeSettings, pinnedNodes) to JSON for save/restore. Positions are read from the SharedArrayBuffer via `readAllPositions()`
+- **PropertiesContent**: `src/plugins/properties/PropertiesContent.jsx` — extracted standalone component rendering properties grouped by datatype (relation, temporel, spatial, numérique, texte, média, web, identifiant) plus redundancy A-groups and noise B-groups. Reusable by `PropertiesTab` and any future full-properties view.
+- **Edge detail**: `edge-detail` plugin displays a list of `RelationCard` accordions for the selected edge's `relations[]`. Each card shows source → target, classification badge, rank badge, and qualifiers. Opens by default when ≤ 3 relations.
 
 ## Data Models
 
@@ -304,3 +312,13 @@ The Vite dev server proxies `/api/*` to `http://localhost:3001` (Fastify backend
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)

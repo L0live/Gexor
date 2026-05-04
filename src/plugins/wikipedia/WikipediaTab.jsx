@@ -43,4 +43,4 @@ const WikipediaTab = () => {
   );
 };
 
-export default WikipediaTab;
+export default React.memo(WikipediaTab);
