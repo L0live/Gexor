@@ -399,6 +399,12 @@ Le fichier `vite.config.js` configure :
 
 ---
 
+## Documentation
+
+La documentation de conception, d'architecture et de vision se trouve dans [`docs/`](docs/README.md) : roadmap, pipeline Wikidata, stratégie de filtres SPARQL, refonte plugin-first, spécifications UI, etc.
+
+---
+
 ## Licence
 
 ISC

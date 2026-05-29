@@ -1,6 +1,6 @@
 # Modularité future — Vision long-terme
 
-> **But** : anticiper les besoins de modularité au-delà de la refonte plugin-first. Ce document décrit les **cas d'usage** réalistes des 12-24 prochains mois et **vérifie que l'architecture cible décrite dans [PLUGIN_FIRST_REFACTOR.md](PLUGIN_FIRST_REFACTOR.md) les absorbe sans réécriture**.
+> **But** : anticiper les besoins de modularité au-delà de la refonte plugin-first. Ce document décrit les **cas d'usage** réalistes des 12-24 prochains mois et **vérifie que l'architecture cible décrite dans [refonte-plugin-first.md](../architecture/refonte-plugin-first.md) les absorbe sans réécriture**.
 > Si un cas d'usage casse les contrats, c'est qu'il manque un point d'extension dans la refonte — il faut l'ajouter en Phase 0/1.
 
 ---
@@ -224,7 +224,7 @@ Strategy : permissions **opt-in** par manifest, pas opt-out. Plugin sans permiss
 
 ## 8. Take-aways
 
-1. La refonte plugin-first décrite dans [PLUGIN_FIRST_REFACTOR.md](PLUGIN_FIRST_REFACTOR.md) **absorbe 7 cas d'usage majeurs sur 8** sans modification du contrat principal.
+1. La refonte plugin-first décrite dans [refonte-plugin-first.md](../architecture/refonte-plugin-first.md) **absorbe 7 cas d'usage majeurs sur 8** sans modification du contrat principal.
 2. **5 ajouts mineurs en Phase 1** (`declaresSlots`, `uiPrimitives`, `persistence`, slot `scene.tool`, `ctx.camera`) débloquent les cas d'usage les plus ambitieux (Scene Composer, UI Builder, parcours).
 3. Les seuls cas hors-portée court terme sont **marketplace en ligne** (résolveur d'install) et **collaboration temps réel** — mais le bus + storeSlices isolés posent déjà les bases.
 4. La minimap actuelle, sans valeur stratégique aujourd'hui, devient une **vitrine du système plugin** une fois plugin-ifiée (layers superposables, ouverte aux extensions).
